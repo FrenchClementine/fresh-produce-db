@@ -1,0 +1,7 @@
+console.log('To force refresh the product specs data:')
+console.log('1. Open browser developer tools (F12)')
+console.log('2. Go to Application/Storage tab')
+console.log('3. Clear Local Storage and Session Storage')
+console.log('4. Or simply refresh the page with Ctrl+F5 / Cmd+Shift+R')
+console.log('')
+console.log('Or visit: http://localhost:3001/products and check if Iceberg Lettuce now shows "3 packaging specs configured"')

@@ -1,0 +1,377 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { supabase } from '@/lib/supabase'
+import { useToast } from '@/hooks/use-toast'
+import { useQueryClient } from '@tanstack/react-query'
+
+const editSupplierSchema = z.object({
+  name: z.string().min(1, 'Supplier name is required'),
+  email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  phone_number: z.string().optional(),
+  address: z.string().optional(),
+  warehouse_address: z.string().optional(),
+  city: z.string().optional(),
+  zip_code: z.string().optional(),
+  country: z.string().optional(),
+  delivery_modes: z.array(z.string()).optional(),
+  notes: z.string().optional(),
+  is_active: z.boolean().default(true),
+})
+
+type EditSupplierFormValues = z.infer<typeof editSupplierSchema>
+
+interface EditSupplierFormProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  supplier: any
+}
+
+const deliveryModeOptions = [
+  { id: 'Ex Works', label: 'Ex Works' },
+  { id: 'DELIVERY', label: 'Delivery' },
+  { id: 'TRANSIT', label: 'Transit' },
+]
+
+export function EditSupplierForm({ open, onOpenChange, supplier }: EditSupplierFormProps) {
+  const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  const form = useForm<EditSupplierFormValues>({
+    resolver: zodResolver(editSupplierSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      phone_number: '',
+      address: '',
+      warehouse_address: '',
+      city: '',
+      zip_code: '',
+      country: '',
+      delivery_modes: [],
+      notes: '',
+      is_active: true,
+    },
+  })
+
+  // Reset form when supplier changes
+  useEffect(() => {
+    if (supplier) {
+      form.reset({
+        name: supplier.name || '',
+        email: supplier.email || '',
+        phone_number: supplier.phone_number || '',
+        address: supplier.address || '',
+        warehouse_address: supplier.warehouse_address || '',
+        city: supplier.city || '',
+        zip_code: supplier.zip_code || '',
+        country: supplier.country || '',
+        delivery_modes: supplier.delivery_modes || [],
+        notes: supplier.notes || '',
+        is_active: supplier.is_active ?? true,
+      })
+    }
+  }, [supplier, form])
+
+  const onSubmit = async (values: EditSupplierFormValues) => {
+    if (!supplier) return
+    
+    setIsLoading(true)
+    try {
+      const { error } = await supabase
+        .from('suppliers')
+        .update({
+          name: values.name,
+          email: values.email || null,
+          phone_number: values.phone_number || null,
+          address: values.address || null,
+          warehouse_address: values.warehouse_address || null,
+          city: values.city || null,
+          zip_code: values.zip_code || null,
+          country: values.country || null,
+          delivery_modes: values.delivery_modes || [],
+          notes: values.notes || null,
+          is_active: values.is_active,
+        })
+        .eq('id', supplier.id)
+
+      if (error) throw error
+
+      toast({
+        title: 'Success',
+        description: 'Supplier updated successfully',
+      })
+
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] })
+      onOpenChange(false)
+      
+    } catch (error: any) {
+      console.error('Error updating supplier:', error)
+      toast({
+        title: 'Error',
+        description: `Failed to update supplier: ${error.message}`,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Supplier</DialogTitle>
+          <DialogDescription>
+            Update supplier profile information
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Supplier Name *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Fresh Farms Ltd" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="contact@supplier.com" type="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="phone_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="+1 234 567 8900" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="country"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Country</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Netherlands" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Amsterdam" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="zip_code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Zip Code</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. 1012 AB" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Street address" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="warehouse_address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Warehouse Address</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Warehouse/distribution center address" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="delivery_modes"
+              render={() => (
+                <FormItem>
+                  <div className="mb-4">
+                    <FormLabel className="text-base">Delivery Modes</FormLabel>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    {deliveryModeOptions.map((item) => (
+                      <FormField
+                        key={item.id}
+                        control={form.control}
+                        name="delivery_modes"
+                        render={({ field }) => {
+                          return (
+                            <FormItem
+                              key={item.id}
+                              className="flex flex-row items-start space-x-3 space-y-0"
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(item.id)}
+                                  onCheckedChange={(checked) => {
+                                    return checked
+                                      ? field.onChange([...field.value || [], item.id])
+                                      : field.onChange(
+                                          field.value?.filter(
+                                            (value) => value !== item.id
+                                          )
+                                        )
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="text-sm font-normal">
+                                {item.label}
+                              </FormLabel>
+                            </FormItem>
+                          )
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Additional notes about the supplier..." 
+                      className="resize-none" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="is_active"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Active Supplier
+                    </FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onOpenChange(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Updating...' : 'Update Supplier'}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  )
+}
