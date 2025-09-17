@@ -54,9 +54,9 @@ export default function CoordinatesAdminPage() {
           continue;
         }
 
-        const total = data.length;
-        const withCoordinates = data.filter(item => item.latitude && item.longitude).length;
-        const failed = data.filter(item => item.geocoding_failed).length;
+        const total = data?.length || 0;
+        const withCoordinates = data?.filter((item: any) => item.latitude && item.longitude).length || 0;
+        const failed = data?.filter((item: any) => item.geocoding_failed).length || 0;
         const withoutCoordinates = total - withCoordinates;
         const percentage = total > 0 ? Math.round((withCoordinates / total) * 100) : 0;
 
