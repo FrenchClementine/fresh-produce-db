@@ -463,18 +463,18 @@ export function useProductFinder(criteria: ProductFinderCriteria | null) {
 
           if (!pricingError && secondLegPricing) {
             multiHopRoutes.forEach(route => {
-              route.pricing_bands = secondLegPricing.filter(p => p.transporter_route_id === route.id)
+              (route as any).pricing_bands = secondLegPricing.filter(p => p.transporter_route_id === route.id)
             })
           }
         }
       }
 
-      console.log('Available transshipment hubs for multi-hop:', multiHopRoutes?.map(r => ({
-        transship_hub: r.origin_hub?.name,
+      console.log('Available transshipment hubs for multi-hop:', multiHopRoutes?.map((r: any) => ({
+        transship_hub: r.origin_hub?.[0]?.name,
         transship_hub_id: r.origin_hub_id,
-        to: r.destination_hub?.name,
+        to: r.destination_hub?.[0]?.name,
         transporter: r.transporters?.name,
-        can_transship: r.origin_hub?.can_transship
+        can_transship: r.origin_hub?.[0]?.can_transship
       })))
 
       // Process the data to create SupplierResult objects
@@ -488,7 +488,7 @@ export function useProductFinder(criteria: ProductFinderCriteria | null) {
         const supplierCertifications = certifications?.filter(c => c.supplier_id === supplier.id) || []
 
         // Skip supplier if they don't meet customer certification requirements
-        if (!supplierMeetsCertificationRequirements(supplierCertifications, customerRequiredCertifications)) {
+        if (!supplierMeetsCertificationRequirements(supplierCertifications, customerRequiredCertifications || [])) {
           console.log(`Supplier ${supplier.name} skipped - missing required certifications`)
           continue
         }
@@ -616,54 +616,54 @@ export function useProductFinder(criteria: ProductFinderCriteria | null) {
                   )
 
                   if (onwardRoute) {
-                    const routePricing = onwardRoute.pricing_bands || []
+                    const routePricing = (onwardRoute as any).pricing_bands || []
                     const transshipHub = onwardRoute.origin_hub
 
                     // Calculate total cost and time
                     const supplierDuration = supplierCanDeliverToTransship.typical_lead_time_days || 1
                     const transportDuration = onwardRoute.transport_duration_days || 2
-                    const handlingTime = Math.ceil((transshipHub?.transship_handling_time_hours || 4) / 24)
+                    const handlingTime = Math.ceil(((transshipHub as any)?.[0]?.transship_handling_time_hours || 4) / 24)
                     const totalDuration = supplierDuration + transportDuration + handlingTime
 
                     // Estimate total cost (supplier delivery + handling + transport)
-                    const handlingCost = transshipHub?.transship_cost_per_pallet || 15
+                    const handlingCost = (transshipHub as any)?.[0]?.transship_cost_per_pallet || 15
                     const transportCost = routePricing.length > 0 ? routePricing[0].price_per_pallet : 40
                     const estimatedTotalCost = handlingCost + transportCost
 
                     deliveryToHub = {
-                      id: onwardRoute.destination_hub.id,
-                      name: onwardRoute.destination_hub.name,
-                      city: onwardRoute.destination_hub.city_name || 'Unknown',
-                      country_code: onwardRoute.destination_hub.country_code || 'N/A',
+                      id: (onwardRoute.destination_hub as any)?.[0]?.id,
+                      name: (onwardRoute.destination_hub as any)?.[0]?.name,
+                      city: (onwardRoute.destination_hub as any)?.[0]?.city_name || 'Unknown',
+                      country_code: (onwardRoute.destination_hub as any)?.[0]?.country_code || 'N/A',
                       transport_days: totalDuration,
                       cost_estimate: estimatedTotalCost,
                       is_supplier_transport: false,
                       transporter_name: 'Multi-hop Transport',
                       multi_hop_route: {
                         transshipment_hub: {
-                          id: transshipHub?.id,
-                          name: transshipHub?.name,
-                          city: transshipHub?.city_name,
-                          handling_time_hours: transshipHub?.transship_handling_time_hours,
-                          handling_cost_per_pallet: transshipHub?.transship_cost_per_pallet
+                          id: (transshipHub as any)?.[0]?.id,
+                          name: (transshipHub as any)?.[0]?.name,
+                          city: (transshipHub as any)?.[0]?.city_name,
+                          handling_time_hours: (transshipHub as any)?.[0]?.transship_handling_time_hours,
+                          handling_cost_per_pallet: (transshipHub as any)?.[0]?.transship_cost_per_pallet
                         },
                         first_leg: {
                           from_hub: logistic.origin_hub?.name,
-                          to_hub: transshipHub?.name,
+                          to_hub: (transshipHub as any)?.[0]?.name,
                           duration_days: supplierDuration,
-                          transport_type: 'supplier_delivery',
+                          transport_type: 'supplier_delivery' as const,
                           mode: supplierCanDeliverToTransship.mode
                         },
                         second_leg: {
-                          from_hub: transshipHub?.name,
-                          to_hub: onwardRoute.destination_hub.name,
+                          from_hub: (transshipHub as any)?.[0]?.name,
+                          to_hub: (onwardRoute.destination_hub as any)?.[0]?.name,
                           duration_days: transportDuration,
-                          transport_type: 'transporter_delivery',
-                          transporter_name: onwardRoute.transporters?.name,
+                          transport_type: 'transporter_delivery' as const,
+                          transporter_name: (onwardRoute.transporters as any)?.name,
                           cost_per_pallet: transportCost
                         }
                       },
-                      pricing_bands: routePricing.map(p => ({
+                      pricing_bands: routePricing.map((p: any) => ({
                         min_pallets: p.min_pallets,
                         max_pallets: p.max_pallets,
                         price_per_pallet: p.price_per_pallet + handlingCost, // Include handling in total price

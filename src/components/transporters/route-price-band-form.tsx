@@ -102,20 +102,20 @@ export function RoutePriceBandForm({ priceBandId, routeId, onSuccess, onCancel }
       pallet_dimensions: '120x100',
       min_pallets: 1,
       max_pallets: undefined,
-      price_per_pallet: undefined,
+      price_per_pallet: 0,
     },
     values: currentPriceBand ? {
       transporter_route_id: currentPriceBand.transporter_route_id,
       pallet_dimensions: currentPriceBand.pallet_dimensions,
       min_pallets: currentPriceBand.min_pallets,
       max_pallets: currentPriceBand.max_pallets || undefined,
-      price_per_pallet: currentPriceBand.price_per_pallet,
+      price_per_pallet: currentPriceBand.price_per_pallet || 0,
     } : newRouteId ? {
       transporter_route_id: newRouteId,
       pallet_dimensions: '120x100',
       min_pallets: 1,
       max_pallets: undefined,
-      price_per_pallet: undefined,
+      price_per_pallet: 0,
     } : undefined,
   })
 
@@ -137,7 +137,7 @@ export function RoutePriceBandForm({ priceBandId, routeId, onSuccess, onCancel }
     if (pricingMode === 'per_pallet') {
       form.setValue('min_pallets', 1)
       form.setValue('max_pallets', undefined)
-      form.setValue('price_per_pallet', undefined)
+      form.setValue('price_per_pallet', 0)
     }
   }, [pricingMode, form])
   
@@ -151,7 +151,7 @@ export function RoutePriceBandForm({ priceBandId, routeId, onSuccess, onCancel }
     try {
       const submitData = {
         ...data,
-        max_pallets: data.max_pallets || null,
+        max_pallets: data.max_pallets || undefined,
       }
 
       if (priceBandId) {
@@ -474,8 +474,8 @@ export function RoutePriceBandForm({ priceBandId, routeId, onSuccess, onCancel }
           </DialogHeader>
           <TransporterRouteForm
             onSuccess={(routeId) => {
-              setNewRouteId(routeId)
-              form.setValue('transporter_route_id', routeId)
+              setNewRouteId(routeId || null)
+              form.setValue('transporter_route_id', routeId || '')
               handleRouteCreated()
             }}
             onCancel={() => setShowRouteForm(false)}

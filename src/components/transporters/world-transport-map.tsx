@@ -8,7 +8,7 @@ import { useTransporterRoutes } from '@/hooks/use-transporters'
 import { MapIcon, RouteIcon, Building2Icon } from 'lucide-react'
 
 // Simple coordinate conversion for world map (rough approximation)
-const latLngToPixel = (lat: number, lng: number, mapWidth: number, mapHeight: number) => {
+const latLngToPixel = (lat: number, lng: number, mapWidth: number, mapHeight: number): [number, number] => {
   // Convert latitude/longitude to pixel coordinates for a basic world map
   const x = ((lng + 180) / 360) * mapWidth
   const y = ((90 - lat) / 180) * mapHeight

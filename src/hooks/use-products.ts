@@ -469,8 +469,8 @@ export function useProductSizeOptions(productId?: string) {
       const uniqueSizes = data
         ?.map(spec => spec.size_options)
         .filter(Boolean)
-        .filter((size, index, self) => 
-          index === self.findIndex(s => s.id === size.id)
+        .filter((size: any, index: number, self: any[]) =>
+          index === self.findIndex((s: any) => s.id === size.id)
         ) || []
       
       return uniqueSizes

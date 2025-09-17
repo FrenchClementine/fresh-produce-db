@@ -331,10 +331,12 @@ export function TransportMap() {
             <LeafletMap
               center={[centerLat, centerLng]}
               zoom={5}
-              hubs={hubsWithCoords}
-              routes={routeConnections}
-              selectedHub={selectedHub}
-              onHubSelect={setSelectedHub}
+              hubs={hubsWithCoords.filter(hub => hub.coordinates !== null) as any[]}
+              routes={routeConnections.filter(route =>
+                route.origin.coordinates !== null && route.destination.coordinates !== null
+              ) as any[]}
+              selectedHub={selectedHub as any}
+              onHubSelect={setSelectedHub as any}
             />
           </div>
 

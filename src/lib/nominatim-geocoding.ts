@@ -79,8 +79,7 @@ export async function geocodeWithNominatim(
       headers: {
         'User-Agent': 'ProductFinderApp/1.0 (contact@example.com)', // Required by Nominatim
         'Accept': 'application/json'
-      },
-      timeout: 10000 // 10 second timeout
+      }
     });
 
     if (response.status === 429) {
@@ -153,11 +152,20 @@ export async function geocodeAndUpdateEntity(
 
     if (!result.success) {
       // Update failed geocoding status
+      // First get current attempts count
+      const { data: currentData } = await supabase
+        .from(entityType)
+        .select('geocoding_attempts')
+        .eq('id', entityId)
+        .single();
+
+      const currentAttempts = currentData?.geocoding_attempts || 0;
+
       const { error: updateError } = await supabase
         .from(entityType)
         .update({
           geocoding_failed: true,
-          geocoding_attempts: supabase.sql`geocoding_attempts + 1`,
+          geocoding_attempts: currentAttempts + 1,
           coordinates_last_updated: new Date().toISOString()
         })
         .eq('id', entityId);
@@ -170,6 +178,15 @@ export async function geocodeAndUpdateEntity(
     }
 
     // Update with successful coordinates
+    // First get current attempts count
+    const { data: currentData3 } = await supabase
+      .from(entityType)
+      .select('geocoding_attempts')
+      .eq('id', entityId)
+      .single();
+
+    const currentAttempts3 = currentData3?.geocoding_attempts || 0;
+
     const { error: updateError } = await supabase
       .from(entityType)
       .update({
@@ -178,7 +195,7 @@ export async function geocodeAndUpdateEntity(
         coordinates_last_updated: new Date().toISOString(),
         coordinates_source: 'nominatim',
         geocoding_failed: false,
-        geocoding_attempts: supabase.sql`geocoding_attempts + 1`
+        geocoding_attempts: currentAttempts3 + 1
       })
       .eq('id', entityId);
 
@@ -237,8 +254,8 @@ export async function batchGeocodeEntities(
     console.log(`Geocoding ${entities.length} ${entityType}...`);
 
     for (const entity of entities) {
-      const city = entity[cityField];
-      const country = entity[countryField];
+      const city = (entity as any)[cityField];
+      const country = (entity as any)[countryField];
 
       if (!city || !country) {
         continue;

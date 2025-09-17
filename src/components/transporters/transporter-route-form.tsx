@@ -137,9 +137,9 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
     try {
       const submitData = {
         ...data,
-        fixed_departure_days: data.fixed_departure_days?.length ? data.fixed_departure_days : null,
-        customs_description: data.customs_description || null,
-        notes: data.notes || null,
+        fixed_departure_days: data.fixed_departure_days?.length ? data.fixed_departure_days : undefined,
+        customs_description: data.customs_description || undefined,
+        notes: data.notes || undefined,
       }
 
       if (routeId) {

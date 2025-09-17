@@ -89,14 +89,14 @@ export function TransporterForm({ transporterId, onSuccess, onCancel }: Transpor
     try {
       const submitData = {
         ...data,
-        email: data.email || null,
-        phone_number: data.phone_number || null,
-        address: data.address || null,
-        city: data.city || null,
-        zip_code: data.zip_code || null,
-        country: data.country || null,
-        agent_id: data.agent_id === 'none' ? null : data.agent_id,
-        notes: data.notes || null,
+        email: data.email || undefined,
+        phone_number: data.phone_number || undefined,
+        address: data.address || undefined,
+        city: data.city || undefined,
+        zip_code: data.zip_code || undefined,
+        country: data.country || undefined,
+        agent_id: data.agent_id === 'none' ? undefined : data.agent_id,
+        notes: data.notes || undefined,
       }
 
       if (transporterId) {

@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { useHubs } from '@/hooks/use-products'
 import { useTransporterRoutes } from '@/hooks/use-transporters'
-import { Map, Route, Building2 } from 'lucide-react'
+import { Map as MapIcon, Route, Building2 } from 'lucide-react'
 
 // World map topology URL
 const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@3/countries-50m.json"
@@ -177,7 +177,7 @@ export function SimpleTransportMap() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Map className="h-6 w-6 text-blue-600" />
+            <MapIcon className="h-6 w-6 text-blue-600" />
             Transport Network Map
           </CardTitle>
           <CardDescription>
@@ -200,7 +200,7 @@ export function SimpleTransportMap() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Map className="h-6 w-6 text-blue-600" />
+            <MapIcon className="h-6 w-6 text-blue-600" />
             Transport Network Map
           </CardTitle>
           <CardDescription>
@@ -266,7 +266,6 @@ export function SimpleTransportMap() {
                   key={hub.id}
                   coordinates={hub.coordinates!}
                   onClick={() => setSelectedHub(selectedHub?.id === hub.id ? null : hub)}
-                  style={{ cursor: 'pointer' }}
                 >
                   <circle
                     r={selectedHub?.id === hub.id ? 8 : 6}
@@ -336,7 +335,7 @@ export function SimpleTransportMap() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-2">
-              <Map className="h-5 w-5 text-purple-600" />
+              <MapIcon className="h-5 w-5 text-purple-600" />
               <div>
                 <p className="text-2xl font-bold">
                   {new Set(routeConnections.map(r => r.transporter)).size}

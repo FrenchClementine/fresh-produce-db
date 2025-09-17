@@ -42,8 +42,7 @@ export function useLeafletMap({ center, zoom }: UseLeafletMapOptions) {
         const L = await import('leaflet')
         console.log('Leaflet imported successfully')
 
-        // Load Leaflet CSS
-        await import('leaflet/dist/leaflet.css')
+        // Note: Leaflet CSS should be loaded in the head of the document
 
         // Fix for default markers in Next.js
         delete (L.Icon.Default.prototype as any)._getIconUrl
