@@ -80,6 +80,16 @@ interface TransportMatch {
   currency: string;
   frequency: string;
   is_active: boolean;
+  isAlternative?: boolean;
+  originHub?: Hub;
+  destinationHub?: Hub;
+  originDistance?: number;
+  destinationDistance?: number;
+  routeDistance?: number;
+  requestedDistance?: number;
+  price_range?: string;
+  similarity?: number;
+  totalDeviation?: number;
 }
 
 export default function TransportPage() {
@@ -312,16 +322,16 @@ export default function TransportPage() {
       // Transform grouped data into display format
       const matches = Array.from(routeGroups.values()).map(({ route, pricingData }) => {
         // Get price range from all price bands
-        const standardPricing = pricingData.filter(p => p.pallet_dimensions === '120x80');
+        const standardPricing = pricingData.filter((p: any) => p.pallet_dimensions === '120x80');
         const allPricing = standardPricing.length > 0 ? standardPricing : pricingData;
 
-        const prices = allPricing.map(p => p.price_per_pallet).filter(p => p > 0);
+        const prices = allPricing.map((p: any) => p.price_per_pallet).filter((p: any) => p > 0);
         const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
         const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
 
         // Get min/max pallet ranges
-        const minPallets = allPricing.length > 0 ? Math.min(...allPricing.map(p => p.min_pallets || 1)) : 1;
-        const maxPallets = allPricing.length > 0 ? Math.max(...allPricing.map(p => p.max_pallets || 999)) : null;
+        const minPallets = allPricing.length > 0 ? Math.min(...allPricing.map((p: any) => p.min_pallets || 1)) : 1;
+        const maxPallets = allPricing.length > 0 ? Math.max(...allPricing.map((p: any) => p.max_pallets || 999)) : null;
 
         return {
           id: route.id,
@@ -515,10 +525,10 @@ export default function TransportPage() {
         // Transform grouped alternatives into display format
         const alternatives = Array.from(altRouteGroups.values()).map(({ route, pricingData }) => {
           // Get price range from all price bands
-          const standardPricing = pricingData.filter(p => p.pallet_dimensions === '120x80');
+          const standardPricing = pricingData.filter((p: any) => p.pallet_dimensions === '120x80');
           const allPricing = standardPricing.length > 0 ? standardPricing : pricingData;
 
-          const prices = allPricing.map(p => p.price_per_pallet).filter(p => p > 0);
+          const prices = allPricing.map((p: any) => p.price_per_pallet).filter((p: any) => p > 0);
           const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
           const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
 
@@ -754,9 +764,11 @@ export default function TransportPage() {
                               <div className="flex justify-between text-xs text-gray-600">
                                 <span>Route distance: {match.routeDistance}km</span>
                                 <span>
-                                  {match.routeDistance > match.requestedDistance
+                                  {match.routeDistance && match.requestedDistance && match.routeDistance > match.requestedDistance
                                     ? `+${match.routeDistance - match.requestedDistance}km vs requested`
-                                    : `${match.requestedDistance - match.routeDistance}km shorter`
+                                    : match.routeDistance && match.requestedDistance
+                                    ? `${match.requestedDistance - match.routeDistance}km shorter`
+                                    : 'Distance comparison unavailable'
                                   }
                                 </span>
                               </div>

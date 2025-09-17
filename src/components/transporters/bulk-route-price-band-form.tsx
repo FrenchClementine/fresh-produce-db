@@ -149,7 +149,7 @@ export function BulkRoutePriceBandForm({ routeId, onSuccess, onCancel }: BulkRou
           transporter_route_id: data.transporter_route_id,
           pallet_dimensions: data.pallet_dimensions,
           min_pallets: band.min_pallets,
-          max_pallets: band.max_pallets || null,
+          max_pallets: band.max_pallets || undefined,
           price_per_pallet: band.price_per_pallet,
         })
       )
@@ -206,7 +206,7 @@ export function BulkRoutePriceBandForm({ routeId, onSuccess, onCancel }: BulkRou
                             Create New Route
                           </div>
                         </SelectItem>
-                        {routes?.length > 0 && (
+                        {(routes?.length ?? 0) > 0 && (
                           <div className="border-t my-1" />
                         )}
                         {routes?.filter(r => r.is_active).map((route) => (
@@ -398,8 +398,8 @@ export function BulkRoutePriceBandForm({ routeId, onSuccess, onCancel }: BulkRou
           </DialogHeader>
           <TransporterRouteForm
             onSuccess={(routeId) => {
-              setNewRouteId(routeId)
-              form.setValue('transporter_route_id', routeId)
+              setNewRouteId(routeId || null)
+              form.setValue('transporter_route_id', routeId || '')
               handleRouteCreated()
             }}
             onCancel={() => setShowRouteForm(false)}

@@ -5,7 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
 
 export default function DebugPage() {
-  const [data, setData] = useState({
+  const [data, setData] = useState<{
+    products: any[],
+    packagingOptions: any[],
+    pallets: any[],
+    productSpecs: any[],
+    error: any
+  }>({
     products: [],
     packagingOptions: [],
     pallets: [],

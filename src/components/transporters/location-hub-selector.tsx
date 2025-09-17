@@ -35,8 +35,8 @@ interface NearestHub {
   id: string
   name: string
   hub_code: string
-  city_name: string
-  country_code: string
+  city_name?: string
+  country_code?: string
   distance: number
   isRoadDistance: boolean
 }
@@ -77,7 +77,7 @@ export function LocationHubSelector({
       setFoundCoordinates(geoResult.coordinates)
 
       // Get all active hubs with coordinates
-      const activeHubs = hubs?.filter(h =>
+      const activeHubs = hubs?.filter((h: any) =>
         h.is_active &&
         h.latitude !== null &&
         h.longitude !== null
@@ -89,7 +89,7 @@ export function LocationHubSelector({
       }
 
       // Calculate distances to all hubs
-      const destinations = activeHubs.map(hub => ({
+      const destinations = activeHubs.map((hub: any) => ({
         lat: hub.latitude!,
         lng: hub.longitude!,
         id: hub.id
@@ -180,7 +180,7 @@ export function LocationHubSelector({
                   Find by Location
                 </div>
               </SelectItem>
-              {hubs?.length > 0 && <div className="border-t my-1" />}
+              {(hubs?.length ?? 0) > 0 && <div className="border-t my-1" />}
               {hubs?.filter(h => h.is_active).map((hub) => (
                 <SelectItem key={hub.id} value={hub.id}>
                   {hub.name} ({hub.hub_code}) - {hub.country_code}

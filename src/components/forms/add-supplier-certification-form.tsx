@@ -186,8 +186,7 @@ export function AddSupplierCertificationForm({
                       })) || []),
                       {
                         value: 'new',
-                        label: 'Add New Certification',
-                        icon: <Plus className="h-4 w-4" />
+                        label: '+ Add New Certification'
                       }
                     ]}
                     placeholder="Select certification"

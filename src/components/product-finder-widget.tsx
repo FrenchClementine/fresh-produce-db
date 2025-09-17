@@ -118,7 +118,7 @@ export function ProductFinderWidget() {
   )
 
   const sizeOptionsDropdown = createSearchableOptions(
-    sizeOptions?.map(size => ({
+    sizeOptions?.map((size: any) => ({
       value: size.id,
       label: size.name
     })) || []
@@ -272,11 +272,11 @@ export function ProductFinderWidget() {
                           : "Select delivery location..."
                 }
                 searchPlaceholder="Search locations..."
-                disabled={
+                disabled={Boolean(
                   (!selectedCustomer && !selectedProduct) ||
                   (selectedCustomer && customerDeliveryHubsLoading) ||
                   (selectedProduct && deliveryHubsLoading)
-                }
+                )}
               />
               {selectedProduct && availableHubs?.length === 0 && !deliveryHubsLoading && (
                 <p className="text-xs text-muted-foreground">

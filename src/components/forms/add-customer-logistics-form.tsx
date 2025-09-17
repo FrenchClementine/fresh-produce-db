@@ -264,11 +264,13 @@ export function AddCustomerLogisticsForm({ open, onOpenChange, customerId }: Add
                     const searchTerm = searchQuery.toLowerCase()
                     const hubName = hub.name?.toLowerCase() || ''
                     const hubCode = hub.hub_code?.toLowerCase() || ''
-                    const hubLocation = hub.location?.toLowerCase() || ''
+                    const hubCity = hub.city_name?.toLowerCase() || ''
+                    const hubCountry = hub.country_code?.toLowerCase() || ''
 
                     return hubName.includes(searchTerm) ||
                            hubCode.includes(searchTerm) ||
-                           hubLocation.includes(searchTerm)
+                           hubCity.includes(searchTerm) ||
+                           hubCountry.includes(searchTerm)
                   }) || []
 
                   return (
@@ -311,7 +313,7 @@ export function AddCustomerLogisticsForm({ open, onOpenChange, customerId }: Add
                                 {filteredHubs.map((hub) => (
                                   <CommandItem
                                     key={hub.id}
-                                    value={`${hub.name} ${hub.hub_code} ${hub.location || ''}`}
+                                    value={`${hub.name} ${hub.hub_code} ${hub.city_name || ''}`}
                                     onSelect={() => {
                                       field.onChange(hub.id)
                                       setIsPopoverOpen(false)
@@ -326,8 +328,8 @@ export function AddCustomerLogisticsForm({ open, onOpenChange, customerId }: Add
                                     />
                                     <div className="flex flex-col">
                                       <span className="font-medium">{hub.name} ({hub.hub_code})</span>
-                                      {hub.location && (
-                                        <span className="text-sm text-muted-foreground">{hub.location}</span>
+                                      {hub.city_name && (
+                                        <span className="text-sm text-muted-foreground">{hub.city_name}, {hub.country_code}</span>
                                       )}
                                     </div>
                                   </CommandItem>

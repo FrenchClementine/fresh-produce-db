@@ -201,9 +201,7 @@ export function AddStaffForm({ open, onOpenChange }: AddStaffFormProps) {
                       options={createSearchableOptions(
                         authUsers?.map((user) => ({
                           value: user.id,
-                          label: user.email,
-                          searchable: `${user.email}${user.user_metadata?.full_name ? ` ${user.user_metadata.full_name}` : ''}`,
-                          description: `${user.user_metadata?.full_name || 'No name'} • Last login: ${user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'Never'}`,
+                          label: user.email || '',
                         })) || []
                       )}
                       placeholder={authUsersLoading ? "Loading users..." : "Select an auth account"}

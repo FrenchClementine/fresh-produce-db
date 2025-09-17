@@ -221,11 +221,11 @@ export function ProductPackagingSpecForm() {
         packaging_id: packagingId,
         pallet_id: palletId,
         size_option_id: sizeOptionId,
-        boxes_per_pallet: parseInt(values.boxes_per_pallet),
-        weight_per_box: values.weight_per_box ? parseFloat(values.weight_per_box) : null,
-        weight_per_pallet: values.weight_per_pallet ? parseFloat(values.weight_per_pallet) : null,
+        boxes_per_pallet: values.boxes_per_pallet,
+        weight_per_box: values.weight_per_box || null,
+        weight_per_pallet: values.weight_per_pallet || null,
         weight_unit: values.weight_unit,
-        pieces_per_box: values.pieces_per_box ? parseInt(values.pieces_per_box) : null,
+        pieces_per_box: values.pieces_per_box || null,
       }))
 
       const { error } = await supabase
@@ -256,7 +256,7 @@ export function ProductPackagingSpecForm() {
       console.error('Error creating product packaging spec:', error)
       toast({
         title: 'Error',
-        description: `Failed to create specification: ${error.message}`,
+        description: `Failed to create specification: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: 'destructive',
       })
     } finally {

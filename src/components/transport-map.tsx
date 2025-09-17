@@ -21,6 +21,7 @@ interface RouteInfo {
   toHub: Hub | null
   distance: number
   routeCoordinates: [number, number][]
+  isRoadDistance?: boolean
 }
 
 interface TransportMapProps {

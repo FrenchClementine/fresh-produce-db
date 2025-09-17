@@ -79,7 +79,7 @@ export function AddProductForm({ open, onOpenChange }: AddProductFormProps) {
   const { allCategories, isLoading: categoriesLoading } = useAllProductCategories()
   
   // Create category options dynamically
-  const categoryOptions = allCategories?.map(category => ({
+  const categoryOptions = allCategories?.map((category: string) => ({
     value: category,
     label: formatCategoryName(category)
   })) || []

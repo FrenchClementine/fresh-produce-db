@@ -198,7 +198,6 @@ export default function SettingsPage() {
                         <TableHead>Name</TableHead>
                         <TableHead>Category</TableHead>
                         <TableHead>Intended Use</TableHead>
-                        <TableHead>Sold By</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
@@ -217,7 +216,6 @@ export default function SettingsPage() {
                               {product.intended_use}
                             </Badge>
                           </TableCell>
-                          <TableCell>{product.sold_by}</TableCell>
                           <TableCell>
                             <Badge variant={product.is_active ? "default" : "secondary"}>
                               {product.is_active ? 'Active' : 'Inactive'}
