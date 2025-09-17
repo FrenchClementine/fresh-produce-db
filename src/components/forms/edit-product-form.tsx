@@ -22,15 +22,46 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  SearchableSelect,
+  createSearchableOptions,
+} from '@/components/ui/searchable-select'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
+
+const categoryOptions = createSearchableOptions([
+  { value: 'tomatoes', label: 'Tomatoes' },
+  { value: 'lettuce', label: 'Lettuce' },
+  { value: 'babyleaf', label: 'Baby Leaf' },
+  { value: 'citrus', label: 'Citrus' },
+  { value: 'greenhouse_crop', label: 'Greenhouse Crop' },
+  { value: 'mushroom', label: 'Mushroom' },
+  { value: 'grapes', label: 'Grapes' },
+  { value: 'carrots', label: 'Carrots' },
+  { value: 'potatoes', label: 'Potatoes' },
+  { value: 'onions', label: 'Onions' },
+  { value: 'fruit', label: 'Fruit' },
+  { value: 'vegetables', label: 'Vegetables' },
+])
+
+const intendedUseOptions = createSearchableOptions([
+  { value: 'retail', label: 'Retail' },
+  { value: 'process', label: 'Process' },
+  { value: 'industrial', label: 'Industrial' },
+  { value: 'wholesale', label: 'Wholesale' },
+])
+
+const soldByOptions = createSearchableOptions([
+  { value: 'kg', label: 'Kg' },
+  { value: 'piece', label: 'Piece' },
+  { value: 'box', label: 'Box' },
+  { value: 'punnet', label: 'Punnet' },
+])
+
+const statusOptions = createSearchableOptions([
+  { value: 'true', label: 'Active' },
+  { value: 'false', label: 'Inactive' },
+])
 
 const editProductSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -145,27 +176,15 @@ export function EditProductForm({ product, open, onOpenChange }: EditProductForm
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="tomatoes">Tomatoes</SelectItem>
-                      <SelectItem value="lettuce">Lettuce</SelectItem>
-                      <SelectItem value="babyleaf">Baby Leaf</SelectItem>
-                      <SelectItem value="citrus">Citrus</SelectItem>
-                      <SelectItem value="greenhouse_crop">Greenhouse Crop</SelectItem>
-                      <SelectItem value="mushroom">Mushroom</SelectItem>
-                      <SelectItem value="grapes">Grapes</SelectItem>
-                      <SelectItem value="carrots">Carrots</SelectItem>
-                      <SelectItem value="potatoes">Potatoes</SelectItem>
-                      <SelectItem value="onions">Onions</SelectItem>
-                      <SelectItem value="fruit">Fruit</SelectItem>
-                      <SelectItem value="vegetables">Vegetables</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchableSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      options={categoryOptions}
+                      placeholder="Select category"
+                      searchPlaceholder="Search categories..."
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -177,19 +196,15 @@ export function EditProductForm({ product, open, onOpenChange }: EditProductForm
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Intended Use</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select intended use" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="retail">Retail</SelectItem>
-                      <SelectItem value="process">Process</SelectItem>
-                      <SelectItem value="industrial">Industrial</SelectItem>
-                      <SelectItem value="wholesale">Wholesale</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchableSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      options={intendedUseOptions}
+                      placeholder="Select intended use"
+                      searchPlaceholder="Search intended use..."
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -201,19 +216,15 @@ export function EditProductForm({ product, open, onOpenChange }: EditProductForm
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Sold By</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select sold by unit" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="kg">Kg</SelectItem>
-                      <SelectItem value="piece">Piece</SelectItem>
-                      <SelectItem value="box">Box</SelectItem>
-                      <SelectItem value="punnet">Punnet</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchableSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      options={soldByOptions}
+                      placeholder="Select sold by unit"
+                      searchPlaceholder="Search units..."
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -225,17 +236,15 @@ export function EditProductForm({ product, open, onOpenChange }: EditProductForm
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select onValueChange={(value) => field.onChange(value === 'true')} value={field.value.toString()}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="true">Active</SelectItem>
-                      <SelectItem value="false">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchableSelect
+                      value={field.value.toString()}
+                      onValueChange={(value) => field.onChange(value === 'true')}
+                      options={statusOptions}
+                      placeholder="Select status"
+                      searchPlaceholder="Search status..."
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

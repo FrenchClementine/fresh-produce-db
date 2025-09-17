@@ -28,6 +28,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  SearchableSelect,
+  SearchableSelectOption,
+} from '@/components/ui/searchable-select'
 import { Input } from '@/components/ui/input'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
@@ -169,32 +173,26 @@ export function AddSupplierCertificationForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Certification *</FormLabel>
-                  <Select 
+                  <SearchableSelect
+                    value={field.value}
                     onValueChange={(value) => {
                       field.onChange(value)
                       setShowNewCertification(value === 'new')
-                    }} 
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select certification" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {certifications?.map((certification) => (
-                        <SelectItem key={certification.id} value={certification.id}>
-                          {certification.name}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="new">
-                        <div className="flex items-center gap-2">
-                          <Plus className="h-4 w-4" />
-                          Add New Certification
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                    }}
+                    options={[
+                      ...(certifications?.map((certification) => ({
+                        value: certification.id,
+                        label: certification.name,
+                      })) || []),
+                      {
+                        value: 'new',
+                        label: 'Add New Certification',
+                        icon: <Plus className="h-4 w-4" />
+                      }
+                    ]}
+                    placeholder="Select certification"
+                    searchPlaceholder="Search certifications..."
+                  />
                   <FormMessage />
                 </FormItem>
               )}

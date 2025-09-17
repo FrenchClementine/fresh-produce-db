@@ -20,20 +20,18 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
 import { useHubs } from '@/hooks/use-products'
+import { useDistanceAdvisory } from '@/hooks/use-distance-advisory'
+import { DistanceAdvisory } from '@/components/distance-advisory'
+import { useNearestHubs } from '@/hooks/use-nearest-hubs'
+import { NearestHubsSuggestion } from '@/components/nearest-hubs-suggestion'
 import { Plus } from 'lucide-react'
 
 const addLogisticsSchema = z.object({
@@ -94,10 +92,33 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
   const [newHubData, setNewHubData] = useState({ name: '', hub_code: '', country_code: '', city_name: '', region: '' })
   const [showCreateHub, setShowCreateHub] = useState(false)
   const [hubType, setHubType] = useState<'origin' | 'destination' | null>(null)
-  
+
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { hubs } = useHubs()
+
+  // Fetch supplier data for distance calculations
+  const { data: supplier } = useQuery({
+    queryKey: ['supplier', supplierId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('suppliers')
+        .select('id, name, city, country')
+        .eq('id', supplierId)
+        .single()
+
+      if (error) throw error
+      return data
+    },
+    enabled: !!supplierId && open
+  })
+
+  // Distance advisory for origin hub
+  const originDistanceAdvisory = useDistanceAdvisory()
+  // Distance advisory for destination hub (for non-Ex Works)
+  const destinationDistanceAdvisory = useDistanceAdvisory()
+  // Nearest hubs for Ex Works (fast database lookup)
+  const nearestHubs = useNearestHubs()
 
   const form = useForm<AddLogisticsFormValues>({
     resolver: zodResolver(addLogisticsSchema),
@@ -105,21 +126,64 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
       origin_hub_id: '',
       destination_hub_id: '',
       mode: undefined,
-      typical_lead_time_days: 1,
+      typical_lead_time_days: undefined,
       fixed_operational_days: [],
       notes: '',
     },
   })
 
   const selectedMode = form.watch('mode')
+  const selectedOriginHubId = form.watch('origin_hub_id')
+  const selectedDestinationHubId = form.watch('destination_hub_id')
   const isExWorks = selectedMode === 'Ex Works'
 
   // Clear destination hub when Ex Works is selected
   useEffect(() => {
     if (isExWorks) {
       form.setValue('destination_hub_id', '')
+      destinationDistanceAdvisory.clearDistance()
     }
-  }, [isExWorks, form])
+  }, [isExWorks, form]) // Removed destinationDistanceAdvisory from deps
+
+  // Calculate distance to origin hub when selected
+  useEffect(() => {
+    if (supplier?.city && supplier?.country && selectedOriginHubId) {
+      originDistanceAdvisory.calculateDistance(
+        supplier.city,
+        supplier.country,
+        selectedOriginHubId
+      )
+    } else {
+      originDistanceAdvisory.clearDistance()
+    }
+  }, [supplier?.city, supplier?.country, selectedOriginHubId]) // Removed originDistanceAdvisory from deps
+
+  // Calculate distance to destination hub when selected (and not Ex Works)
+  useEffect(() => {
+    if (!isExWorks && supplier?.city && supplier?.country && selectedDestinationHubId) {
+      destinationDistanceAdvisory.calculateDistance(
+        supplier.city,
+        supplier.country,
+        selectedDestinationHubId
+      )
+    } else {
+      destinationDistanceAdvisory.clearDistance()
+    }
+  }, [isExWorks, supplier?.city, supplier?.country, selectedDestinationHubId]) // Removed destinationDistanceAdvisory from deps
+
+  // Find nearest hubs for Ex Works mode (using fast database lookup)
+  useEffect(() => {
+    if (isExWorks && supplier?.city && supplier?.country && !selectedOriginHubId) {
+      nearestHubs.findNearestHubs(supplier.city, supplier.country, 'supplier')
+    } else {
+      nearestHubs.clearHubs()
+    }
+  }, [isExWorks, supplier?.city, supplier?.country, selectedOriginHubId])
+
+  const handleSelectNearestHub = (hubId: string) => {
+    form.setValue('origin_hub_id', hubId)
+    nearestHubs.clearHubs()
+  }
 
   const handleCreateHub = async () => {
     if (!newHubData.name || !newHubData.hub_code) {
@@ -218,9 +282,9 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
     }
   }
 
-  const handleSelectAllDays = () => {
-    const allDays = daysOfWeek.map(day => day.id)
-    form.setValue('fixed_operational_days', allDays)
+  const handleSelectAllWeekdays = () => {
+    const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+    form.setValue('fixed_operational_days', weekdays)
   }
 
   const handleClearAllDays = () => {
@@ -239,6 +303,39 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Delivery Mode Selection - First */}
+            <FormField
+              control={form.control}
+              name="mode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Delivery Mode *</FormLabel>
+                  <SearchableSelect
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    options={deliveryModes.map((mode) => ({
+                      value: mode.value,
+                      label: mode.label,
+                    }))}
+                    placeholder="Select delivery mode"
+                    searchPlaceholder="Search delivery modes..."
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Nearest Hub Suggestions for Ex Works (before hub selection) */}
+            {isExWorks && supplier && (
+              <NearestHubsSuggestion
+                hubs={nearestHubs.nearestHubs}
+                isLoading={nearestHubs.isLoading}
+                error={nearestHubs.error}
+                entityName={supplier.name}
+                onSelectHub={handleSelectNearestHub}
+              />
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -247,20 +344,16 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
                   <FormItem>
                     <FormLabel>Origin Hub *</FormLabel>
                     <div className="flex gap-2">
-                      <FormControl>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select origin hub" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {hubs?.map((hub) => (
-                              <SelectItem key={hub.id} value={hub.id}>
-                                {hub.name} ({hub.hub_code})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
+                      <SearchableSelect
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        options={hubs?.map((hub) => ({
+                          value: hub.id,
+                          label: `${hub.name} (${hub.hub_code})`,
+                        })) || []}
+                        placeholder="Select origin hub"
+                        searchPlaceholder="Search hubs..."
+                      />
                       <Button
                         type="button"
                         variant="outline"
@@ -278,6 +371,20 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
                 )}
               />
 
+              {/* Distance Advisory for Origin Hub */}
+              {supplier && selectedOriginHubId && (
+                <div className="col-span-2">
+                  <DistanceAdvisory
+                    distanceInfo={originDistanceAdvisory.distanceInfo}
+                    isCalculating={originDistanceAdvisory.isCalculating}
+                    error={originDistanceAdvisory.error}
+                    entityType="supplier"
+                    entityName={supplier.name}
+                    hubName={hubs?.find(h => h.id === selectedOriginHubId)?.name || 'Selected Hub'}
+                  />
+                </div>
+              )}
+
               <FormField
                 control={form.control}
                 name="destination_hub_id"
@@ -288,24 +395,19 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
                       {isExWorks && <span className="text-sm text-muted-foreground ml-1">(Not needed for Ex Works)</span>}
                     </FormLabel>
                     <div className="flex gap-2">
-                      <FormControl>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
+                      <div className={isExWorks ? "opacity-50" : ""}>
+                        <SearchableSelect
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          options={hubs?.filter(hub => hub.id !== form.watch('origin_hub_id')).map((hub) => ({
+                            value: hub.id,
+                            label: `${hub.name} (${hub.hub_code})`,
+                          })) || []}
+                          placeholder={isExWorks ? "N/A for Ex Works" : "Select destination hub"}
+                          searchPlaceholder="Search hubs..."
                           disabled={isExWorks}
-                        >
-                          <SelectTrigger className={isExWorks ? "opacity-50" : ""}>
-                            <SelectValue placeholder={isExWorks ? "N/A for Ex Works" : "Select destination hub"} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {hubs?.filter(hub => hub.id !== form.watch('origin_hub_id')).map((hub) => (
-                              <SelectItem key={hub.id} value={hub.id}>
-                                {hub.name} ({hub.hub_code})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
+                        />
+                      </div>
                       <Button
                         type="button"
                         variant="outline"
@@ -323,6 +425,20 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
                   </FormItem>
                 )}
               />
+
+              {/* Distance Advisory for Destination Hub */}
+              {!isExWorks && supplier && selectedDestinationHubId && (
+                <div className="col-span-2">
+                  <DistanceAdvisory
+                    distanceInfo={destinationDistanceAdvisory.distanceInfo}
+                    isCalculating={destinationDistanceAdvisory.isCalculating}
+                    error={destinationDistanceAdvisory.error}
+                    entityType="supplier"
+                    entityName={supplier.name}
+                    hubName={hubs?.find(h => h.id === selectedDestinationHubId)?.name || 'Selected Hub'}
+                  />
+                </div>
+              )}
             </div>
 
             {showCreateHub && (
@@ -395,32 +511,7 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="mode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Delivery Mode *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select delivery mode" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {deliveryModes.map((mode) => (
-                          <SelectItem key={mode.value} value={mode.value}>
-                            {mode.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
+            <div className="grid grid-cols-1 gap-4">
               <FormField
                 control={form.control}
                 name="typical_lead_time_days"
@@ -432,8 +523,12 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
                         type="number"
                         min="1"
                         placeholder="e.g. 2"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          field.onChange(value === '' ? undefined : parseInt(value))
+                        }}
+                        onFocus={(e) => e.target.select()}
                       />
                     </FormControl>
                     <FormMessage />
@@ -450,8 +545,8 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
                   <div className="mb-4">
                     <FormLabel className="text-base">Operational Days (Optional)</FormLabel>
                     <div className="flex gap-2 mt-2">
-                      <Button type="button" variant="outline" size="sm" onClick={handleSelectAllDays}>
-                        Select All
+                      <Button type="button" variant="outline" size="sm" onClick={handleSelectAllWeekdays}>
+                        Select All Weekdays
                       </Button>
                       <Button type="button" variant="outline" size="sm" onClick={handleClearAllDays}>
                         Clear All

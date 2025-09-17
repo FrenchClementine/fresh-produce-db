@@ -24,11 +24,23 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Package, Box, Layers, Ruler } from 'lucide-react'
+import { Plus, Package, Box, Layers, Ruler, Check, ChevronsUpDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
 import { useProducts, usePackagingOptions, usePallets, useSizeOptions } from '@/hooks/use-products'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from '@/components/ui/command'
 
 const productPackagingSpecSchema = z.object({
   // Product fields
@@ -67,11 +79,11 @@ const productPackagingSpecSchema = z.object({
   }).optional(),
   
   // Specification fields
-  boxes_per_pallet: z.string().min(1, 'Boxes per pallet is required'),
-  weight_per_box: z.string().optional(),
-  weight_per_pallet: z.string().optional(),
+  boxes_per_pallet: z.number().min(1, 'Boxes per pallet is required'),
+  weight_per_box: z.number().optional(),
+  weight_per_pallet: z.number().optional(),
   weight_unit: z.enum(['kg', 'g', 'ton']),
-  pieces_per_box: z.string().optional(),
+  pieces_per_box: z.number().optional(),
 })
 
 type ProductPackagingSpecFormValues = z.infer<typeof productPackagingSpecSchema>
@@ -82,6 +94,8 @@ export function ProductPackagingSpecForm() {
   const [showNewPackaging, setShowNewPackaging] = useState(false)
   const [showNewPallet, setShowNewPallet] = useState(false)
   const [showNewSize, setShowNewSize] = useState(false)
+  const [productPopoverOpen, setProductPopoverOpen] = useState(false)
+  const [productSearch, setProductSearch] = useState('')
   
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -98,11 +112,11 @@ export function ProductPackagingSpecForm() {
       packaging_ids: [],
       pallet_id: '',
       size_option_id: '',
-      boxes_per_pallet: '',
-      weight_per_box: '',
-      weight_per_pallet: '',
+      boxes_per_pallet: undefined,
+      weight_per_box: undefined,
+      weight_per_pallet: undefined,
       weight_unit: 'kg',
-      pieces_per_box: '',
+      pieces_per_box: undefined,
     },
   })
 
@@ -110,11 +124,11 @@ export function ProductPackagingSpecForm() {
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === 'boxes_per_pallet' || name === 'weight_per_box') {
-        const boxes = parseFloat(value.boxes_per_pallet || '0')
-        const weightPerBox = parseFloat(value.weight_per_box || '0')
+        const boxes = value.boxes_per_pallet || 0
+        const weightPerBox = value.weight_per_box || 0
         
         if (boxes > 0 && weightPerBox > 0) {
-          const totalWeight = (boxes * weightPerBox).toFixed(2)
+          const totalWeight = parseFloat((boxes * weightPerBox).toFixed(2))
           form.setValue('weight_per_pallet', totalWeight)
         }
       }
@@ -272,40 +286,104 @@ export function ProductPackagingSpecForm() {
               <FormField
                 control={form.control}
                 name="product_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Product *</FormLabel>
-                    <div className="flex gap-2">
-                      <Select 
-                        onValueChange={(value) => {
-                          field.onChange(value)
-                          setShowNewProduct(value === 'new')
-                        }} 
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder="Select product" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {products?.map((product) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.name} ({product.category})
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="new">
-                            <div className="flex items-center gap-2">
-                              <Plus className="h-4 w-4" />
-                              Add New Product
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const selectedProduct = products?.find((product) => product.id === field.value)
+
+                  const formatIntendedUse = (value?: string | null) => {
+                    if (!value) return ''
+                    return value
+                      .toString()
+                      .replace(/_/g, ' ')
+                      .split(' ')
+                      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                      .join(' ')
+                  }
+
+                  const triggerLabel = field.value === 'new'
+                    ? 'Add New Product'
+                    : selectedProduct
+                      ? `${selectedProduct.name}${selectedProduct.intended_use ? ` (${formatIntendedUse(selectedProduct.intended_use)})` : ''}`
+                      : 'Select product'
+
+                  return (
+                    <FormItem>
+                      <FormLabel>Product *</FormLabel>
+                      <Popover open={productPopoverOpen} onOpenChange={(open) => {
+                        setProductPopoverOpen(open)
+                        if (!open) setProductSearch('')
+                      }}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={productPopoverOpen}
+                              className="w-full justify-between"
+                            >
+                              {triggerLabel}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[480px] p-0" align="start">
+                          <Command>
+                            <CommandInput
+                              placeholder="Search products..."
+                              value={productSearch}
+                              onValueChange={setProductSearch}
+                            />
+                            <CommandEmpty>
+                              {productSearch.length === 0
+                                ? 'Type to search products...'
+                                : 'No products found.'}
+                            </CommandEmpty>
+                            <CommandGroup className="max-h-64 overflow-auto">
+                              {products?.map((product) => {
+                                const intendedUseLabel = formatIntendedUse(product.intended_use)
+                                const optionLabel = `${product.name}${intendedUseLabel ? ` (${intendedUseLabel})` : ''}`
+                                return (
+                                  <CommandItem
+                                    key={product.id}
+                                    value={`${product.name} ${intendedUseLabel} ${product.category}`}
+                                    onSelect={() => {
+                                      field.onChange(product.id)
+                                      setShowNewProduct(false)
+                                      setProductPopoverOpen(false)
+                                      setProductSearch('')
+                                    }}
+                                  >
+                                    <Check
+                                      className={`mr-2 h-4 w-4 ${field.value === product.id ? 'opacity-100' : 'opacity-0'}`}
+                                    />
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{product.name}</span>
+                                      {intendedUseLabel && (
+                                        <span className="text-sm text-muted-foreground">{intendedUseLabel}</span>
+                                      )}
+                                    </div>
+                                  </CommandItem>
+                                )
+                              })}
+                              <CommandItem
+                                value="add-new-product"
+                                onSelect={() => {
+                                  field.onChange('new')
+                                  setShowNewProduct(true)
+                                  setProductPopoverOpen(false)
+                                  setProductSearch('')
+                                }}
+                              >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add New Product
+                              </CommandItem>
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
               />
 
               {showNewProduct && (
@@ -576,7 +654,17 @@ export function ProductPackagingSpecForm() {
                       <FormItem>
                         <FormLabel>Deposit Fee</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={field.value || ''}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              field.onChange(value === '' ? undefined : parseFloat(value))
+                            }}
+                            onFocus={(e) => e.target.select()}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -590,7 +678,17 @@ export function ProductPackagingSpecForm() {
                       <FormItem>
                         <FormLabel>Rent Fee</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={field.value || ''}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              field.onChange(value === '' ? undefined : parseFloat(value))
+                            }}
+                            onFocus={(e) => e.target.select()}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -683,7 +781,17 @@ export function ProductPackagingSpecForm() {
                       <FormItem>
                         <FormLabel>Brutto Weight</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.1" placeholder="25.0" {...field} />
+                          <Input
+                            type="number"
+                            step="0.1"
+                            placeholder="25.0"
+                            value={field.value || ''}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              field.onChange(value === '' ? undefined : parseFloat(value))
+                            }}
+                            onFocus={(e) => e.target.select()}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -697,7 +805,16 @@ export function ProductPackagingSpecForm() {
                       <FormItem>
                         <FormLabel>Pallets per Truck</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="33" {...field} />
+                          <Input
+                            type="number"
+                            placeholder="33"
+                            value={field.value || ''}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              field.onChange(value === '' ? undefined : parseInt(value))
+                            }}
+                            onFocus={(e) => e.target.select()}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -711,7 +828,17 @@ export function ProductPackagingSpecForm() {
                       <FormItem>
                         <FormLabel>Deposit Fee</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={field.value || ''}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              field.onChange(value === '' ? undefined : parseFloat(value))
+                            }}
+                            onFocus={(e) => e.target.select()}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -798,7 +925,16 @@ export function ProductPackagingSpecForm() {
                     <FormItem>
                       <FormLabel>Boxes per Pallet *</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="48" {...field} />
+                        <Input
+                          type="number"
+                          placeholder="48"
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            field.onChange(value === '' ? undefined : parseInt(value))
+                          }}
+                          onFocus={(e) => e.target.select()}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -812,7 +948,16 @@ export function ProductPackagingSpecForm() {
                     <FormItem>
                       <FormLabel>Pieces per Box (Optional)</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="24" {...field} />
+                        <Input
+                          type="number"
+                          placeholder="24"
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            field.onChange(value === '' ? undefined : parseInt(value))
+                          }}
+                          onFocus={(e) => e.target.select()}
+                        />
                       </FormControl>
                       <FormDescription>
                         Leave empty if not applicable
@@ -829,7 +974,17 @@ export function ProductPackagingSpecForm() {
                     <FormItem>
                       <FormLabel>Estimated Weight per Box (Optional)</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.1" placeholder="15.5" {...field} />
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="15.5"
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            field.onChange(value === '' ? undefined : parseFloat(value))
+                          }}
+                          onFocus={(e) => e.target.select()}
+                        />
                       </FormControl>
                       <FormDescription>
                         Leave empty if not applicable
@@ -850,7 +1005,12 @@ export function ProductPackagingSpecForm() {
                           type="number" 
                           step="0.1" 
                           placeholder="Auto-calculated" 
-                          {...field}
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            field.onChange(value === '' ? undefined : parseFloat(value))
+                          }}
+                          onFocus={(e) => e.target.select()}
                           disabled={!!(form.watch('boxes_per_pallet') && form.watch('weight_per_box'))}
                         />
                       </FormControl>

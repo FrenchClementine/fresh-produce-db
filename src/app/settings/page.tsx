@@ -3,8 +3,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Package, Box, Layers, Ruler, Settings, Plus, Edit, Trash2, MapPin, Award } from 'lucide-react'
-import { useProducts, usePackagingOptions, usePallets, useSizeOptions, useHubs, useCertifications } from '@/hooks/use-products'
+import { Package, Box, Layers, Ruler, Settings, Plus, Edit, Trash2, MapPin, Award, Tag, UserCheck } from 'lucide-react'
+import { useProducts, usePackagingOptions, usePallets, useSizeOptions, useHubs, useCertifications, useProductCategories } from '@/hooks/use-products'
+import { useStaffWithCustomerCount } from '@/hooks/use-staff'
 import {
   Table,
   TableBody,
@@ -27,7 +28,36 @@ import { AddPackagingForm } from '@/components/forms/add-packaging-form'
 import { AddPalletForm } from '@/components/forms/add-pallet-form'
 import { AddSizeForm } from '@/components/forms/add-size-form'
 import { AddHubForm } from '@/components/forms/add-hub-form'
+import { EditHubForm } from '@/components/forms/edit-hub-form'
 import { AddCertificationForm } from '@/components/forms/add-certification-form'
+import { AddStaffForm } from '@/components/forms/add-staff-form'
+import { EditStaffForm } from '@/components/forms/edit-staff-form'
+
+// Category emojis mapping
+const categoryEmojis: Record<string, string> = {
+  tomatoes: '🍅',
+  lettuce: '🥬', 
+  babyleaf: '🌿',
+  citrus: '🍊',
+  greenhouse_crop: '🏠',
+  mushroom: '🍄',
+  grapes: '🍇',
+  carrots: '🥕',
+  potatoes: '🥔',
+  onions: '🧅',
+  fruit: '🍎',
+  vegetables: '🥒'
+}
+
+const getCategoryEmoji = (category: string) => {
+  return categoryEmojis[category] || '📦'
+}
+
+const formatCategoryName = (category: string) => {
+  return category.replace('_', ' ').split(' ').map(word => 
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ')
+}
 
 export default function SettingsPage() {
   const { products, isLoading: productsLoading } = useProducts()
@@ -36,18 +66,23 @@ export default function SettingsPage() {
   const { sizeOptions, isLoading: sizesLoading } = useSizeOptions()
   const { hubs, isLoading: hubsLoading } = useHubs()
   const { certifications, isLoading: certificationsLoading } = useCertifications()
+  const { categories, isLoading: categoriesLoading } = useProductCategories()
+  const { staffWithCount, isLoading: staffLoading } = useStaffWithCustomerCount()
   
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [editingProduct, setEditingProduct] = useState<any>(null)
   const [editingPackaging, setEditingPackaging] = useState<any>(null)
   const [editingPallet, setEditingPallet] = useState<any>(null)
   const [editingSize, setEditingSize] = useState<any>(null)
+  const [editingHub, setEditingHub] = useState<any>(null)
+  const [editingStaff, setEditingStaff] = useState<any>(null)
   const [showAddProduct, setShowAddProduct] = useState(false)
   const [showAddPackaging, setShowAddPackaging] = useState(false)
   const [showAddPallet, setShowAddPallet] = useState(false)
   const [showAddSize, setShowAddSize] = useState(false)
   const [showAddHub, setShowAddHub] = useState(false)
   const [showAddCertification, setShowAddCertification] = useState(false)
+  const [showAddStaff, setShowAddStaff] = useState(false)
   const queryClient = useQueryClient()
 
   const handleDelete = async (table: string, id: string, name: string) => {
@@ -86,10 +121,14 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="products" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="products" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             Products
+          </TabsTrigger>
+          <TabsTrigger value="categories" className="flex items-center gap-2">
+            <Tag className="h-4 w-4" />
+            Categories
           </TabsTrigger>
           <TabsTrigger value="packaging" className="flex items-center gap-2">
             <Box className="h-4 w-4" />
@@ -110,6 +149,10 @@ export default function SettingsPage() {
           <TabsTrigger value="certifications" className="flex items-center gap-2">
             <Award className="h-4 w-4" />
             Certifications
+          </TabsTrigger>
+          <TabsTrigger value="staff" className="flex items-center gap-2">
+            <UserCheck className="h-4 w-4" />
+            Staff
           </TabsTrigger>
         </TabsList>
 
@@ -205,6 +248,73 @@ export default function SettingsPage() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Categories Tab */}
+        <TabsContent value="categories">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Tag className="h-5 w-5" />
+                    Product Categories
+                  </CardTitle>
+                  <CardDescription>
+                    Manage product category classifications with emojis
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {categoriesLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <span className="ml-2">Loading categories...</span>
+                </div>
+              ) : categories && categories.length === 0 ? (
+                <div className="text-center py-8">
+                  <Tag className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Categories Found</h3>
+                  <p className="text-muted-foreground">
+                    No product categories are currently in use.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {categories?.map((category) => (
+                    <Card key={category} className="p-4">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{getCategoryEmoji(category)}</span>
+                        <div>
+                          <h3 className="font-semibold">{formatCategoryName(category)}</h3>
+                          <p className="text-sm text-muted-foreground">{category}</p>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+              
+              {!categoriesLoading && (
+                <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Need to add a new category?
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Product categories are defined at the database level. To add new categories, please contact your system administrator or add the category to the database enum.
+                  </p>
+                  <div className="text-xs text-muted-foreground bg-background p-3 rounded border font-mono">
+                    ALTER TYPE "public"."product_category" ADD VALUE 'new_category';
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    <strong>Note:</strong> Categories shown above are currently in use by existing products. New enum values will appear here once products use them.
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -560,7 +670,12 @@ export default function SettingsPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Button size="sm" variant="ghost" title="Edit hub">
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                title="Edit hub"
+                                onClick={() => setEditingHub(hub)}
+                              >
                                 <Edit className="h-4 w-4" />
                               </Button>
                               <Button
@@ -674,6 +789,117 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Staff Tab */}
+        <TabsContent value="staff">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserCheck className="h-5 w-5" />
+                    Staff Management
+                  </CardTitle>
+                  <CardDescription>
+                    Manage internal staff members and customer relationship assignments
+                  </CardDescription>
+                </div>
+                <Button onClick={() => setShowAddStaff(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Staff Member
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {staffLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <span className="ml-2">Loading staff...</span>
+                </div>
+              ) : staffWithCount && staffWithCount.length === 0 ? (
+                <div className="text-center py-8">
+                  <UserCheck className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Staff Members Found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    No staff members have been created yet.
+                  </p>
+                  <Button onClick={() => setShowAddStaff(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Your First Staff Member
+                  </Button>
+                </div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Department</TableHead>
+                        <TableHead>Customers</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {staffWithCount?.map((staff) => (
+                        <TableRow key={staff.id}>
+                          <TableCell className="font-medium">{staff.name}</TableCell>
+                          <TableCell>
+                            {staff.email || <span className="text-muted-foreground">-</span>}
+                          </TableCell>
+                          <TableCell>
+                            {staff.role && (
+                              <Badge variant="outline">{staff.role}</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {staff.department && (
+                              <Badge variant="secondary">{staff.department}</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <span className="font-medium">{staff.customer_count || 0}</span>
+                              <span className="text-xs text-muted-foreground ml-1">customers</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={staff.is_active ? "default" : "secondary"}>
+                              {staff.is_active ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                title="Edit staff member"
+                                onClick={() => setEditingStaff(staff)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDelete('staff', staff.id, staff.name)}
+                                disabled={isDeleting === staff.id || staff.customer_count > 0}
+                                title={staff.customer_count > 0 ? 'Cannot delete staff with assigned customers' : 'Delete staff member'}
+                              >
+                                <Trash2 className={`h-4 w-4 text-red-500 ${isDeleting === staff.id ? 'animate-spin' : ''}`} />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       <EditProductForm
@@ -766,6 +992,35 @@ export default function SettingsPage() {
         onOpenChange={(open) => {
           if (!open) {
             setShowAddCertification(false)
+          }
+        }}
+      />
+
+      <EditHubForm
+        hub={editingHub}
+        open={!!editingHub}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingHub(null)
+          }
+        }}
+      />
+
+      <AddStaffForm
+        open={showAddStaff}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowAddStaff(false)
+          }
+        }}
+      />
+
+      <EditStaffForm
+        staff={editingStaff}
+        open={!!editingStaff}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingStaff(null)
           }
         }}
       />

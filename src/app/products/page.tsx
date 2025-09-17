@@ -2,10 +2,10 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Package, Plus, Edit, Trash2 } from 'lucide-react'
+import { Package, Plus, Edit, Trash2, ChevronDown, ChevronRight, Users, Upload } from 'lucide-react'
 import { ProductPackagingSpecForm } from '@/components/forms/product-packaging-spec-form'
 import { EditProductPackagingSpecForm } from '@/components/forms/edit-product-packaging-spec-form'
-import { useProductSpecs } from '@/hooks/use-products'
+import { useProductSpecs, useProductSuppliers } from '@/hooks/use-products'
 import {
   Table,
   TableBody,
@@ -19,12 +19,118 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import Link from 'next/link'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+
+// Category emojis mapping
+const categoryEmojis: Record<string, string> = {
+  tomatoes: '🍅',
+  lettuce: '🥬', 
+  babyleaf: '🌿',
+  citrus: '🍊',
+  greenhouse_crop: '🏠',
+  mushroom: '🍄',
+  grapes: '🍇',
+  carrots: '🥕',
+  potatoes: '🥔',
+  onions: '🧅',
+  fruit: '🍎',
+  vegetables: '🥒'
+}
+
+interface ProductSuppliersDialogProps {
+  product: any
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+function ProductSuppliersDialog({ product, open, onOpenChange }: ProductSuppliersDialogProps) {
+  const { productSuppliers, isLoading } = useProductSuppliers(product?.products?.id)
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Suppliers for {product?.products?.name}
+          </DialogTitle>
+          <DialogDescription>
+            All suppliers offering this product
+          </DialogDescription>
+        </DialogHeader>
+        
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-2">Loading suppliers...</span>
+          </div>
+        ) : productSuppliers && productSuppliers.length > 0 ? (
+          <div className="space-y-4">
+            {productSuppliers.map((supplierProduct: any) => (
+              <Card key={supplierProduct.id} className="hover:bg-muted/50 transition-colors">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{supplierProduct.suppliers?.name}</CardTitle>
+                      <CardDescription className="flex items-center gap-4 mt-1">
+                        {(supplierProduct.suppliers?.city || supplierProduct.suppliers?.country) && (
+                          <span>
+                            📍 {[supplierProduct.suppliers?.city, supplierProduct.suppliers?.country].filter(Boolean).join(', ')}
+                          </span>
+                        )}
+                        {supplierProduct.suppliers?.phone_number && (
+                          <span>📞 {supplierProduct.suppliers.phone_number}</span>
+                        )}
+                      </CardDescription>
+                    </div>
+                    <Link href={`/suppliers?supplier=${supplierProduct.suppliers?.id}`}>
+                      <Button size="sm">
+                        View Supplier
+                      </Button>
+                    </Link>
+                  </div>
+                </CardHeader>
+                {supplierProduct.notes && (
+                  <CardContent className="pt-0">
+                    <p className="text-sm text-muted-foreground">{supplierProduct.notes}</p>
+                  </CardContent>
+                )}
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No Suppliers Found</h3>
+            <p className="text-muted-foreground">
+              No suppliers are currently offering this product.
+            </p>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 export default function ProductsPage() {
   const { productSpecs, isLoading } = useProductSpecs()
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editingSpec, setEditingSpec] = useState<any>(null)
+  const [selectedProduct, setSelectedProduct] = useState<any>(null)
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const queryClient = useQueryClient()
 
   const handleDelete = async (specId: string) => {
@@ -50,6 +156,26 @@ export default function ProductsPage() {
       setIsDeleting(null)
     }
   }
+
+  const toggleCategory = (category: string) => {
+    const newExpanded = new Set(expandedCategories)
+    if (newExpanded.has(category)) {
+      newExpanded.delete(category)
+    } else {
+      newExpanded.add(category)
+    }
+    setExpandedCategories(newExpanded)
+  }
+
+  // Group products by category
+  const productsByCategory = productSpecs?.reduce((acc: Record<string, any[]>, spec: any) => {
+    const category = spec.products?.category || 'uncategorized'
+    if (!acc[category]) {
+      acc[category] = []
+    }
+    acc[category].push(spec)
+    return acc
+  }, {}) || {}
 
   if (showCreateForm) {
     return (
@@ -85,32 +211,31 @@ export default function ProductsPage() {
             Manage your product packaging specifications
           </p>
         </div>
-        <Button onClick={() => setShowCreateForm(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Specification
-        </Button>
+        <div className="flex gap-2">
+          <Link href="/products/bulk-import">
+            <Button variant="outline">
+              <Upload className="mr-2 h-4 w-4" />
+              Bulk Import
+            </Button>
+          </Link>
+          <Button onClick={() => setShowCreateForm(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Specification
+          </Button>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Product Packaging Specifications
-          </CardTitle>
-          <CardDescription>
-            All configured product specifications with packaging, pallet, and size details
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <span className="ml-2">Loading specifications...</span>
-            </div>
-          ) : productSpecs && productSpecs.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-2">Loading products...</span>
+        </div>
+      ) : productSpecs && productSpecs.length === 0 ? (
+        <Card>
+          <CardContent>
             <div className="text-center py-8">
               <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Specifications Found</h3>
+              <h3 className="text-lg font-semibold mb-2">No Products Found</h3>
               <p className="text-muted-foreground mb-4">
                 No product packaging specifications have been created yet.
               </p>
@@ -119,116 +244,152 @@ export default function ProductsPage() {
                 Create Your First Specification
               </Button>
             </div>
-          ) : (
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Packaging</TableHead>
-                    <TableHead>Pallet</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Boxes/Pallet</TableHead>
-                    <TableHead>Weight/Box</TableHead>
-                    <TableHead>Pieces/Box</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {productSpecs?.map((spec, index) => (
-                    <TableRow key={spec.id || index}>
-                      <TableCell>
-                        {spec.products ? (
-                          <div className="font-medium">{spec.products.name}</div>
-                        ) : (
-                          <span className="text-muted-foreground">Unknown Product</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {spec.products?.category ? (
-                          <Badge variant="secondary" className="text-xs capitalize">
-                            {spec.products.category.replace('_', ' ')}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {Object.entries(productsByCategory).map(([category, specs]) => (
+            <Card key={category}>
+              <Collapsible 
+                open={expandedCategories.has(category)}
+                onOpenChange={() => toggleCategory(category)}
+              >
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="hover:bg-muted/50 cursor-pointer transition-colors">
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{categoryEmojis[category] || '📦'}</span>
+                        <div>
+                          <span className="capitalize">{category.replace('_', ' ')}</span>
+                          <Badge variant="secondary" className="ml-2">
+                            {specs.length}
                           </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {spec.packaging_options ? (
-                          <div className="space-y-1">
-                            <div className="font-medium text-sm">{spec.packaging_options.label}</div>
-                            <Badge variant="outline" className="text-xs">
-                              {spec.packaging_options.unit_type}
-                            </Badge>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {spec.pallets ? (
-                          <div className="space-y-1">
-                            <div className="font-medium text-sm">{spec.pallets.label}</div>
-                            {spec.pallets.dimensions_cm && (
-                              <div className="text-xs text-muted-foreground">
-                                {spec.pallets.dimensions_cm}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {spec.size_options ? (
-                          <Badge variant="outline" className="text-xs">
-                            {spec.size_options.name}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-mono text-sm">{spec.boxes_per_pallet}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-mono text-sm">
-                          {spec.weight_per_box ? `${spec.weight_per_box} ${spec.weight_unit}` : '-'}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-mono text-sm">{spec.pieces_per_box || '-'}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingSpec(spec)}
-                            title="Edit specification"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(spec.id)}
-                            disabled={isDeleting === spec.id}
-                            title="Delete specification"
-                          >
-                            <Trash2 className={`h-4 w-4 text-red-500 ${isDeleting === spec.id ? 'animate-spin' : ''}`} />
-                          </Button>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                      </div>
+                      {expandedCategories.has(category) ? (
+                        <ChevronDown className="h-5 w-5" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5" />
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent>
+                  <CardContent className="pt-0">
+                    <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Product</TableHead>
+                            <TableHead>Packaging</TableHead>
+                            <TableHead>Pallet</TableHead>
+                            <TableHead>Size</TableHead>
+                            <TableHead>Boxes/Pallet</TableHead>
+                            <TableHead>Weight/Box</TableHead>
+                            <TableHead>Suppliers</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {specs.map((spec: any, index: number) => (
+                            <TableRow key={spec.id || index} className="hover:bg-muted/50">
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  className="h-auto p-0 font-medium text-left justify-start"
+                                  onClick={() => setSelectedProduct(spec)}
+                                >
+                                  {spec.products?.name || 'Unknown Product'}
+                                </Button>
+                              </TableCell>
+                              <TableCell>
+                                {spec.packaging_options ? (
+                                  <div className="space-y-1">
+                                    <div className="font-medium text-sm">{spec.packaging_options.label}</div>
+                                    <Badge variant="outline" className="text-xs">
+                                      {spec.packaging_options.unit_type}
+                                    </Badge>
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {spec.pallets ? (
+                                  <div className="space-y-1">
+                                    <div className="font-medium text-sm">{spec.pallets.label}</div>
+                                    {spec.pallets.dimensions_cm && (
+                                      <div className="text-xs text-muted-foreground">
+                                        {spec.pallets.dimensions_cm}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {spec.size_options ? (
+                                  <Badge variant="outline" className="text-xs">
+                                    {spec.size_options.name}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <span className="font-mono text-sm">{spec.boxes_per_pallet}</span>
+                              </TableCell>
+                              <TableCell>
+                                <span className="font-mono text-sm">
+                                  {spec.weight_per_box ? `${spec.weight_per_box} ${spec.weight_unit}` : '-'}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setSelectedProduct(spec)}
+                                  className="flex items-center gap-1"
+                                >
+                                  <Users className="h-3 w-3" />
+                                  View
+                                </Button>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setEditingSpec(spec)}
+                                    title="Edit specification"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleDelete(spec.id)}
+                                    disabled={isDeleting === spec.id}
+                                    title="Delete specification"
+                                  >
+                                    <Trash2 className={`h-4 w-4 text-red-500 ${isDeleting === spec.id ? 'animate-spin' : ''}`} />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <EditProductPackagingSpecForm
         spec={editingSpec}
@@ -236,6 +397,16 @@ export default function ProductsPage() {
         onOpenChange={(open) => {
           if (!open) {
             setEditingSpec(null)
+          }
+        }}
+      />
+
+      <ProductSuppliersDialog
+        product={selectedProduct}
+        open={!!selectedProduct}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedProduct(null)
           }
         }}
       />

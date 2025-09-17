@@ -1,0 +1,5 @@
+product_name,intended_use,category,packaging_label,packaging_unit_type,size_name,boxes_per_pallet,weight_per_box,weight_per_pallet,pieces_per_box,pallet_dimensions
+Rocket Premium,Wholesale,babyleaf,Plastic Crate,kg,Large,50,10,500,0,120x100
+Iceberg Lettuce Grade A,Retail,lettuce,Cardboard Box,kg,Medium,40,8,320,8,120x80
+Baby Spinach Organic,Industry,babyleaf,Plastic Tray,kg,Small,60,5,300,0,120x100
+Cherry Tomatoes Sweet,Wholesale,tomatoes,Plastic Punnet,kg,Standard,45,2,90,12,120x80

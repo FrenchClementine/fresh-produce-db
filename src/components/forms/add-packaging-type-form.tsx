@@ -23,16 +23,21 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  SearchableSelect,
+} from '@/components/ui/searchable-select'
 import { Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
+
+const unitTypeOptions = [
+  { value: 'Box', label: 'Box' },
+  { value: 'Bag', label: 'Bag' },
+  { value: 'Crate', label: 'Crate' },
+  { value: 'Pallet', label: 'Pallet' },
+  { value: 'Container', label: 'Container' },
+  { value: 'Bulk', label: 'Bulk' },
+]
 
 const packagingTypeSchema = z.object({
   label: z.string().min(1, 'Label is required'),
@@ -134,21 +139,15 @@ export function AddPackagingTypeForm({ children }: AddPackagingTypeFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Unit Type *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select unit type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Box">Box</SelectItem>
-                      <SelectItem value="Bag">Bag</SelectItem>
-                      <SelectItem value="Crate">Crate</SelectItem>
-                      <SelectItem value="Pallet">Pallet</SelectItem>
-                      <SelectItem value="Container">Container</SelectItem>
-                      <SelectItem value="Bulk">Bulk</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchableSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      options={unitTypeOptions}
+                      placeholder="Select unit type"
+                      searchPlaceholder="Search unit types..."
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

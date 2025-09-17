@@ -157,6 +157,11 @@ export default function SuppliersPage() {
                   <TableRow key={supplier.id}>
                     <TableCell>
                       <div className="font-medium">{supplier.name}</div>
+                      {supplier.staff && (
+                        <div className="text-sm text-blue-600 font-medium mt-1">
+                          Agent: {supplier.staff.name} {supplier.staff.role && `(${supplier.staff.role})`}
+                        </div>
+                      )}
                       {supplier.notes && (
                         <div className="text-sm text-muted-foreground mt-1">
                           {supplier.notes}

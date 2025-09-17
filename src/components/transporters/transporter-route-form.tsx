@@ -449,7 +449,7 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
 
     {/* Origin Hub Creation Dialog */}
     <Dialog open={showOriginHubForm} onOpenChange={setShowOriginHubForm}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Origin Hub</DialogTitle>
           <DialogDescription>
@@ -482,7 +482,7 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
 
     {/* Destination Hub Creation Dialog */}
     <Dialog open={showDestinationHubForm} onOpenChange={setShowDestinationHubForm}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Destination Hub</DialogTitle>
           <DialogDescription>

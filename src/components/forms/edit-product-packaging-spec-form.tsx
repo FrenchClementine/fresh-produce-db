@@ -39,11 +39,11 @@ const editProductPackagingSpecSchema = z.object({
   packaging_id: z.string().min(1, 'Packaging is required'),
   pallet_id: z.string().min(1, 'Pallet is required'),
   size_option_id: z.string().min(1, 'Size is required'),
-  boxes_per_pallet: z.string().min(1, 'Boxes per pallet is required'),
-  weight_per_box: z.string().optional(),
-  weight_per_pallet: z.string().optional(),
+  boxes_per_pallet: z.number().min(1, 'Boxes per pallet is required'),
+  weight_per_box: z.number().optional(),
+  weight_per_pallet: z.number().optional(),
   weight_unit: z.enum(['kg', 'g', 'ton']),
-  pieces_per_box: z.string().optional(),
+  pieces_per_box: z.number().optional(),
 })
 
 type EditProductPackagingSpecFormValues = z.infer<typeof editProductPackagingSpecSchema>
@@ -71,11 +71,11 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
       packaging_id: spec?.packaging_id || '',
       pallet_id: spec?.pallet_id || '',
       size_option_id: spec?.size_option_id || '',
-      boxes_per_pallet: spec?.boxes_per_pallet?.toString() || '',
-      weight_per_box: spec?.weight_per_box?.toString() || '',
-      weight_per_pallet: spec?.weight_per_pallet?.toString() || '',
+      boxes_per_pallet: spec?.boxes_per_pallet || undefined,
+      weight_per_box: spec?.weight_per_box || undefined,
+      weight_per_pallet: spec?.weight_per_pallet || undefined,
       weight_unit: spec?.weight_unit || 'kg',
-      pieces_per_box: spec?.pieces_per_box?.toString() || '',
+      pieces_per_box: spec?.pieces_per_box || undefined,
     },
   })
 
@@ -87,11 +87,11 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
         packaging_id: spec.packaging_id || '',
         pallet_id: spec.pallet_id || '',
         size_option_id: spec.size_option_id || '',
-        boxes_per_pallet: spec.boxes_per_pallet?.toString() || '',
-        weight_per_box: spec.weight_per_box?.toString() || '',
-        weight_per_pallet: spec.weight_per_pallet?.toString() || '',
+        boxes_per_pallet: spec.boxes_per_pallet || undefined,
+        weight_per_box: spec.weight_per_box || undefined,
+        weight_per_pallet: spec.weight_per_pallet || undefined,
         weight_unit: spec.weight_unit || 'kg',
-        pieces_per_box: spec.pieces_per_box?.toString() || '',
+        pieces_per_box: spec.pieces_per_box || undefined,
       })
     }
   }, [spec, form])
@@ -100,11 +100,11 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === 'boxes_per_pallet' || name === 'weight_per_box') {
-        const boxes = parseFloat(value.boxes_per_pallet || '0')
-        const weightPerBox = parseFloat(value.weight_per_box || '0')
+        const boxes = value.boxes_per_pallet || 0
+        const weightPerBox = value.weight_per_box || 0
         
         if (boxes > 0 && weightPerBox > 0) {
-          const totalWeight = (boxes * weightPerBox).toFixed(2)
+          const totalWeight = parseFloat((boxes * weightPerBox).toFixed(2))
           form.setValue('weight_per_pallet', totalWeight)
         }
       }
@@ -123,11 +123,11 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
           packaging_id: values.packaging_id,
           pallet_id: values.pallet_id,
           size_option_id: values.size_option_id,
-          boxes_per_pallet: parseInt(values.boxes_per_pallet),
-          weight_per_box: values.weight_per_box ? parseFloat(values.weight_per_box) : null,
-          weight_per_pallet: values.weight_per_pallet ? parseFloat(values.weight_per_pallet) : null,
+          boxes_per_pallet: values.boxes_per_pallet,
+          weight_per_box: values.weight_per_box || null,
+          weight_per_pallet: values.weight_per_pallet || null,
           weight_unit: values.weight_unit,
-          pieces_per_box: values.pieces_per_box ? parseInt(values.pieces_per_box) : null,
+          pieces_per_box: values.pieces_per_box || null,
         })
         .eq('id', spec.id)
 
@@ -279,7 +279,16 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                     <FormItem>
                       <FormLabel>Boxes per Pallet *</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="48" {...field} />
+                        <Input
+                          type="number"
+                          placeholder="48"
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            field.onChange(value === '' ? undefined : parseInt(value))
+                          }}
+                          onFocus={(e) => e.target.select()}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -293,7 +302,16 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                     <FormItem>
                       <FormLabel>Pieces per Box (Optional)</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="24" {...field} />
+                        <Input
+                          type="number"
+                          placeholder="24"
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            field.onChange(value === '' ? undefined : parseInt(value))
+                          }}
+                          onFocus={(e) => e.target.select()}
+                        />
                       </FormControl>
                       <FormDescription>
                         Leave empty if not applicable
@@ -310,7 +328,17 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                     <FormItem>
                       <FormLabel>Estimated Weight per Box (Optional)</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.1" placeholder="15.5" {...field} />
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="15.5"
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            field.onChange(value === '' ? undefined : parseFloat(value))
+                          }}
+                          onFocus={(e) => e.target.select()}
+                        />
                       </FormControl>
                       <FormDescription>
                         Leave empty if not applicable
@@ -331,7 +359,12 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                           type="number" 
                           step="0.1" 
                           placeholder="Auto-calculated" 
-                          {...field}
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            field.onChange(value === '' ? undefined : parseFloat(value))
+                          }}
+                          onFocus={(e) => e.target.select()}
                           disabled={!!(form.watch('boxes_per_pallet') && form.watch('weight_per_box'))}
                         />
                       </FormControl>

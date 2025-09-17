@@ -21,12 +21,8 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  SearchableSelect,
+} from '@/components/ui/searchable-select'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -34,6 +30,20 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
 import { useProductSpecs } from '@/hooks/use-products'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from '@/components/ui/command'
+import { Check, ChevronsUpDown, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const seasonOptions = [
   { value: 'spring', label: 'Spring' },
@@ -63,7 +73,7 @@ const seasonToMonths = {
   spring: ['march', 'april', 'may'],
   summer: ['may', 'june', 'july', 'august', 'september', 'october'],
   autumn: ['september', 'october', 'november'],
-  winter: ['december', 'january', 'february'],
+  winter: ['october', 'november', 'december', 'january', 'february', 'march', 'april'],
   year_round: ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'],
 }
 
@@ -114,6 +124,8 @@ interface AddSupplierProductFormProps {
 
 export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSupplierProductFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [productSearchQuery, setProductSearchQuery] = useState('')
+  const [isProductPopoverOpen, setIsProductPopoverOpen] = useState(false)
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { productSpecs, isLoading: isLoadingSpecs } = useProductSpecs()
@@ -128,13 +140,30 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
       available_from_date: '',
       available_till_date: '',
       recurring_start_month: '',
-      recurring_start_day: 1,
+      recurring_start_day: undefined,
       recurring_end_month: '',
-      recurring_end_day: 1,
+      recurring_end_day: undefined,
     },
   })
 
   const selectedSeason = form.watch('season')
+
+  const filteredSpecs = productSpecs?.filter(spec => {
+    if (!productSearchQuery || productSearchQuery.length === 0) return false
+
+    const searchTerm = productSearchQuery.toLowerCase()
+    const productName = spec.products?.name?.toLowerCase() || ''
+    const packagingName = spec.packaging_options?.label?.toLowerCase() || ''
+    const sizeName = spec.size_options?.name?.toLowerCase() || ''
+    const palletName = spec.pallets?.label?.toLowerCase() || ''
+
+    return (
+      productName.includes(searchTerm) ||
+      packagingName.includes(searchTerm) ||
+      sizeName.includes(searchTerm) ||
+      palletName.includes(searchTerm)
+    )
+  }) || []
 
   // Auto-populate fields when season is selected
   useEffect(() => {
@@ -254,70 +283,116 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
             <FormField
               control={form.control}
               name="product_packaging_spec_ids"
-              render={() => (
+              render={({ field }) => (
                 <FormItem>
-                  <div className="mb-4">
-                    <FormLabel className="text-base">Product Specifications *</FormLabel>
-                    <div className="text-sm text-muted-foreground">
-                      Select one or more product specifications to link with the same availability information
-                    </div>
-                    <div className="flex gap-2 mt-2">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          const allIds = productSpecs?.map((spec: any) => spec.id) || []
-                          form.setValue('product_packaging_spec_ids', allIds)
-                        }}
-                      >
-                        Select All
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => form.setValue('product_packaging_spec_ids', [])}
-                      >
-                        Clear All
-                      </Button>
-                    </div>
+                  <FormLabel className="text-base">Product Specifications *</FormLabel>
+                  <div className="text-sm text-muted-foreground">
+                    Search for product specifications to link with the same availability information
                   </div>
-                  <div className="grid gap-3 max-h-80 overflow-y-auto border rounded-lg p-3">
-                    {productSpecs?.map((spec: any) => (
-                      <FormField
-                        key={spec.id}
-                        control={form.control}
-                        name="product_packaging_spec_ids"
-                        render={({ field }) => {
-                          return (
-                            <FormItem
-                              key={spec.id}
-                              className="flex flex-row items-start space-x-3 space-y-0"
+
+                  {field.value && field.value.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {field.value.map((specId) => {
+                        const spec = productSpecs?.find((item) => item.id === specId)
+                        return (
+                          <div key={specId} className="flex items-center bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm">
+                            <span className="max-w-[240px] truncate">
+                              {spec ? `${spec.products?.name} - ${spec.packaging_options?.label} (${spec.size_options?.name})` : 'Unknown specification'}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto p-0 ml-2"
+                              onClick={() => field.onChange(field.value.filter((id) => id !== specId))}
                             >
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(spec.id)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...field.value || [], spec.id])
-                                      : field.onChange(
-                                          field.value?.filter(
-                                            (value) => value !== spec.id
-                                          )
-                                        )
-                                  }}
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )
+                      })}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto px-2 py-1"
+                        onClick={() => field.onChange([])}
+                      >
+                        Clear all
+                      </Button>
+                    </div>
+                  )}
+
+                  <Popover open={isProductPopoverOpen} onOpenChange={(open) => {
+                    setIsProductPopoverOpen(open)
+                    if (!open) {
+                      setProductSearchQuery('')
+                    }
+                  }}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={isProductPopoverOpen}
+                          className="w-full justify-between mt-3"
+                        >
+                          {field.value && field.value.length > 0
+                            ? `${field.value.length} selected`
+                            : 'Search and select product specifications...'}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[520px] p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Type to search products..."
+                          value={productSearchQuery}
+                          onValueChange={setProductSearchQuery}
+                        />
+                        <CommandEmpty>
+                          {isLoadingSpecs
+                            ? 'Loading product specifications...'
+                            : productSearchQuery.length === 0
+                              ? 'Type at least one character to search...'
+                              : 'No product specifications found.'}
+                        </CommandEmpty>
+                        {filteredSpecs.length > 0 && (
+                          <CommandGroup className="max-h-64 overflow-auto">
+                            {filteredSpecs.map((spec) => (
+                              <CommandItem
+                                key={spec.id}
+                                value={`${spec.products?.name} ${spec.packaging_options?.label} ${spec.size_options?.name} ${spec.pallets?.label}`}
+                                onSelect={() => {
+                                  const isSelected = field.value?.includes(spec.id)
+                                  if (isSelected) {
+                                    field.onChange(field.value.filter((id) => id !== spec.id))
+                                  } else {
+                                    field.onChange([...(field.value || []), spec.id])
+                                  }
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    'mr-2 h-4 w-4',
+                                    field.value?.includes(spec.id) ? 'opacity-100' : 'opacity-0'
+                                  )}
                                 />
-                              </FormControl>
-                              <FormLabel className="text-sm font-normal leading-5">
-                                {spec.products?.name || 'Unknown Product'} - {spec.packaging_options?.label} - {spec.size_options?.name}
-                              </FormLabel>
-                            </FormItem>
-                          )
-                        }}
-                      />
-                    ))}
-                  </div>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{spec.products?.name}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                    {spec.packaging_options?.label} ({spec.size_options?.name}) on {spec.pallets?.label}
+                                  </span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        )}
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+
                   <FormMessage />
                 </FormItem>
               )}
@@ -329,20 +404,21 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Season</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select season..." />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {seasonOptions.map((season) => (
-                        <SelectItem key={season.value} value={season.value}>
-                          {season.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchableSelect
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value)
+                        // Auto-select months based on season
+                        if (value && seasonToMonths[value as keyof typeof seasonToMonths]) {
+                          form.setValue('available_months', seasonToMonths[value as keyof typeof seasonToMonths])
+                        }
+                      }}
+                      options={seasonOptions}
+                      placeholder="Select season..."
+                      searchPlaceholder="Search seasons..."
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -441,20 +517,15 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                     name="recurring_start_month"
                     render={({ field }) => (
                       <FormItem className="flex-1">
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Month" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {monthOptions.map((month) => (
-                              <SelectItem key={month.value} value={month.value}>
-                                {month.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <SearchableSelect
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            options={monthOptions}
+                            placeholder="Month"
+                            searchPlaceholder="Search months..."
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -471,7 +542,11 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                             max="31"
                             placeholder="Day"
                             value={field.value || ''}
-                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : 1)}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              field.onChange(value === '' ? undefined : parseInt(value))
+                            }}
+                            onFocus={(e) => e.target.select()}
                           />
                         </FormControl>
                         <FormMessage />
@@ -489,20 +564,15 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                     name="recurring_end_month"
                     render={({ field }) => (
                       <FormItem className="flex-1">
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Month" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {monthOptions.map((month) => (
-                              <SelectItem key={month.value} value={month.value}>
-                                {month.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <SearchableSelect
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            options={monthOptions}
+                            placeholder="Month"
+                            searchPlaceholder="Search months..."
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -519,7 +589,11 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                             max="31"
                             placeholder="Day"
                             value={field.value || ''}
-                            onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : 1)}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              field.onChange(value === '' ? undefined : parseInt(value))
+                            }}
+                            onFocus={(e) => e.target.select()}
                           />
                         </FormControl>
                         <FormMessage />

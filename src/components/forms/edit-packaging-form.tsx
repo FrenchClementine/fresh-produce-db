@@ -22,15 +22,20 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  SearchableSelect,
+} from '@/components/ui/searchable-select'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
+
+const unitTypeOptions = [
+  { value: 'box', label: 'Box' },
+  { value: 'bag', label: 'Bag' },
+  { value: 'container', label: 'Container' },
+  { value: 'crate', label: 'Crate' },
+  { value: 'tray', label: 'Tray' },
+  { value: 'bulk', label: 'Bulk' },
+]
 
 const editPackagingSchema = z.object({
   label: z.string().min(1, 'Label is required'),
@@ -145,21 +150,15 @@ export function EditPackagingForm({ packaging, open, onOpenChange }: EditPackagi
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Unit Type</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select unit type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="box">Box</SelectItem>
-                      <SelectItem value="bag">Bag</SelectItem>
-                      <SelectItem value="container">Container</SelectItem>
-                      <SelectItem value="crate">Crate</SelectItem>
-                      <SelectItem value="tray">Tray</SelectItem>
-                      <SelectItem value="bulk">Bulk</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchableSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      options={unitTypeOptions}
+                      placeholder="Select unit type"
+                      searchPlaceholder="Search unit types..."
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -186,7 +185,17 @@ export function EditPackagingForm({ packaging, open, onOpenChange }: EditPackagi
                 <FormItem>
                   <FormLabel>Deposit Fee (€)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={field.value || ''}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        field.onChange(value === '' ? undefined : parseFloat(value))
+                      }}
+                      onFocus={(e) => e.target.select()}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -200,7 +209,17 @@ export function EditPackagingForm({ packaging, open, onOpenChange }: EditPackagi
                 <FormItem>
                   <FormLabel>Rent Fee (€)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={field.value || ''}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        field.onChange(value === '' ? undefined : parseFloat(value))
+                      }}
+                      onFocus={(e) => e.target.select()}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

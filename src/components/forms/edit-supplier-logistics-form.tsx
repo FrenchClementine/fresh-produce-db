@@ -20,13 +20,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -105,7 +99,7 @@ export function EditSupplierLogisticsForm({
       origin_hub_id: '',
       destination_hub_id: '',
       mode: undefined,
-      typical_lead_time_days: 1,
+      typical_lead_time_days: undefined,
       fixed_operational_days: [],
       notes: '',
     },
@@ -174,9 +168,9 @@ export function EditSupplierLogisticsForm({
     }
   }
 
-  const handleSelectAllDays = () => {
-    const allDays = daysOfWeek.map(day => day.id)
-    form.setValue('fixed_operational_days', allDays)
+  const handleSelectAllWeekdays = () => {
+    const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+    form.setValue('fixed_operational_days', weekdays)
   }
 
   const handleClearAllDays = () => {
@@ -202,20 +196,16 @@ export function EditSupplierLogisticsForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Origin Hub *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select origin hub" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {hubs?.map((hub) => (
-                          <SelectItem key={hub.id} value={hub.id}>
-                            {hub.name} ({hub.hub_code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      options={hubs?.map((hub) => ({
+                        value: hub.id,
+                        label: `${hub.name} (${hub.hub_code})`,
+                      })) || []}
+                      placeholder="Select origin hub"
+                      searchPlaceholder="Search hubs..."
+                    />
                     <FormMessage />
                   </FormItem>
                 )}
@@ -230,24 +220,19 @@ export function EditSupplierLogisticsForm({
                       Destination Hub {!isExWorks && '*'}
                       {isExWorks && <span className="text-sm text-muted-foreground ml-1">(Not needed for Ex Works)</span>}
                     </FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      disabled={isExWorks}
-                    >
-                      <FormControl>
-                        <SelectTrigger className={isExWorks ? "opacity-50" : ""}>
-                          <SelectValue placeholder={isExWorks ? "N/A for Ex Works" : "Select destination hub"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {hubs?.filter(hub => hub.id !== form.watch('origin_hub_id')).map((hub) => (
-                          <SelectItem key={hub.id} value={hub.id}>
-                            {hub.name} ({hub.hub_code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className={isExWorks ? "opacity-50" : ""}>
+                      <SearchableSelect
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        options={hubs?.filter(hub => hub.id !== form.watch('origin_hub_id')).map((hub) => ({
+                          value: hub.id,
+                          label: `${hub.name} (${hub.hub_code})`,
+                        })) || []}
+                        placeholder={isExWorks ? "N/A for Ex Works" : "Select destination hub"}
+                        searchPlaceholder="Search hubs..."
+                        disabled={isExWorks}
+                      />
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -261,20 +246,16 @@ export function EditSupplierLogisticsForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Delivery Mode *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select delivery mode" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {deliveryModes.map((mode) => (
-                          <SelectItem key={mode.value} value={mode.value}>
-                            {mode.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      options={deliveryModes.map((mode) => ({
+                        value: mode.value,
+                        label: mode.label,
+                      }))}
+                      placeholder="Select delivery mode"
+                      searchPlaceholder="Search delivery modes..."
+                    />
                     <FormMessage />
                   </FormItem>
                 )}
@@ -291,8 +272,12 @@ export function EditSupplierLogisticsForm({
                         type="number"
                         min="1"
                         placeholder="e.g. 2"
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          field.onChange(value === '' ? undefined : parseInt(value))
+                        }}
+                        onFocus={(e) => e.target.select()}
                       />
                     </FormControl>
                     <FormMessage />
@@ -309,8 +294,8 @@ export function EditSupplierLogisticsForm({
                   <div className="mb-4">
                     <FormLabel className="text-base">Operational Days (Optional)</FormLabel>
                     <div className="flex gap-2 mt-2">
-                      <Button type="button" variant="outline" size="sm" onClick={handleSelectAllDays}>
-                        Select All
+                      <Button type="button" variant="outline" size="sm" onClick={handleSelectAllWeekdays}>
+                        Select All Weekdays
                       </Button>
                       <Button type="button" variant="outline" size="sm" onClick={handleClearAllDays}>
                         Clear All

@@ -1,6 +1,6 @@
 # Complete Database Schema Documentation
 
-> Last updated: 2025-09-12
+> Last updated: 2025-09-16
 > Generated from Supabase production database
 
 ## Table of Contents
@@ -226,6 +226,13 @@ CREATE TABLE "public"."suppliers" (
     "zip_code" TEXT,
     "country" TEXT,
     "delivery_modes" delivery_mode_enum[] DEFAULT '{}',
+    "agent_id" UUID REFERENCES staff(id) ON DELETE SET NULL,
+    "latitude" DECIMAL(10,8),
+    "longitude" DECIMAL(11,8),
+    "coordinates_last_updated" TIMESTAMPTZ,
+    "coordinates_source" TEXT DEFAULT 'nominatim',
+    "geocoding_failed" BOOLEAN DEFAULT false,
+    "geocoding_attempts" INTEGER DEFAULT 0,
     "is_active" BOOLEAN DEFAULT true NOT NULL,
     "notes" TEXT,
     "created_at" TIMESTAMPTZ DEFAULT now() NOT NULL
@@ -244,7 +251,7 @@ CREATE TABLE "public"."certifications" (
 ```
 
 #### `hubs`
-Logistics hubs for routing and distribution
+Logistics hubs for routing and distribution (supports multi-hop transshipment) with automatic geocoding
 ```sql
 CREATE TABLE "public"."hubs" (
     "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -254,6 +261,15 @@ CREATE TABLE "public"."hubs" (
     "city_name" TEXT,
     "region" TEXT,
     "is_active" BOOLEAN DEFAULT true NOT NULL,
+    "can_transship" BOOLEAN DEFAULT false,
+    "transship_handling_time_hours" INTEGER DEFAULT 0,
+    "transship_cost_per_pallet" DECIMAL(10,2) DEFAULT 0,
+    "latitude" DECIMAL(10,8), -- Latitude coordinate (WGS84) automatically geocoded from city_name and country_code
+    "longitude" DECIMAL(11,8), -- Longitude coordinate (WGS84) automatically geocoded from city_name and country_code
+    "coordinates_last_updated" TIMESTAMPTZ, -- Timestamp when coordinates were last successfully geocoded
+    "coordinates_source" TEXT DEFAULT 'nominatim', -- Source of geocoding (nominatim)
+    "geocoding_failed" BOOLEAN DEFAULT false, -- True if geocoding attempts have failed
+    "geocoding_attempts" INTEGER DEFAULT 0, -- Number of geocoding attempts made
     "created_at" TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 ```
@@ -312,6 +328,174 @@ CREATE TABLE "public"."supplier_logistics_capabilities" (
 
 **Note**: `destination_hub_id` is nullable to support "Ex Works" delivery mode where buyer picks up at origin location.
 
+### 👥 Customer Management Tables
+
+#### `staff`
+Internal staff members who handle customer relationships
+```sql
+CREATE TABLE "public"."staff" (
+    "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "name" TEXT NOT NULL,
+    "email" TEXT UNIQUE,
+    "phone_number" TEXT,
+    "role" TEXT, -- e.g., "Account Manager", "Sales Representative"
+    "department" TEXT, -- e.g., "Sales", "Customer Service"
+    "is_active" BOOLEAN DEFAULT true NOT NULL,
+    "auth_user_id" UUID REFERENCES auth.users(id) ON DELETE SET NULL UNIQUE, -- Links to Supabase auth user (one-to-one)
+    "created_at" TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+```
+
+**Constraints:**
+- `staff_auth_user_id_unique` - UNIQUE constraint on auth_user_id to ensure one-to-one relationship between staff and auth users
+
+#### `customers`
+Customer information and contact details with agent assignment and automatic geocoding
+```sql
+CREATE TABLE "public"."customers" (
+    "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "name" TEXT NOT NULL,
+    "email" TEXT UNIQUE,
+    "phone_number" TEXT,
+    "address" TEXT,
+    "warehouse_address" TEXT,
+    "city" TEXT,
+    "zip_code" TEXT,
+    "country" TEXT,
+    "delivery_modes" delivery_mode_enum[] DEFAULT '{}',
+    "agent_id" UUID REFERENCES staff(id), -- Responsible internal staff member
+    "latitude" DECIMAL(10,8), -- Latitude coordinate (WGS84) automatically geocoded from city and country
+    "longitude" DECIMAL(11,8), -- Longitude coordinate (WGS84) automatically geocoded from city and country
+    "coordinates_last_updated" TIMESTAMPTZ, -- Timestamp when coordinates were last successfully geocoded
+    "coordinates_source" TEXT DEFAULT 'nominatim', -- Source of geocoding (nominatim)
+    "geocoding_failed" BOOLEAN DEFAULT false, -- True if geocoding attempts have failed
+    "geocoding_attempts" INTEGER DEFAULT 0, -- Number of geocoding attempts made
+    "is_active" BOOLEAN DEFAULT true NOT NULL,
+    "notes" TEXT,
+    "created_at" TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+```
+
+#### `customer_product_packaging_spec`
+Products required by customers with local vs import seasonality
+```sql
+CREATE TABLE "public"."customer_product_packaging_spec" (
+    "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "customer_id" UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    "product_packaging_spec_id" UUID NOT NULL REFERENCES product_packaging_specs(id),
+    "notes" TEXT,
+    "season" season_enum,
+    "available_months" month_enum[],
+    "local_production_from_date" DATE,
+    "local_production_till_date" DATE CHECK (local_production_till_date >= local_production_from_date),
+    "import_period_from_date" DATE,
+    "import_period_till_date" DATE CHECK (import_period_till_date >= import_period_from_date),
+    "recurring_local_start_month" month_enum,
+    "recurring_local_start_day" INTEGER CHECK (recurring_local_start_day BETWEEN 1 AND 31),
+    "recurring_local_end_month" month_enum,
+    "recurring_local_end_day" INTEGER CHECK (recurring_local_end_day BETWEEN 1 AND 31),
+    "recurring_import_start_month" month_enum,
+    "recurring_import_start_day" INTEGER CHECK (recurring_import_start_day BETWEEN 1 AND 31),
+    "recurring_import_end_month" month_enum,
+    "recurring_import_end_day" INTEGER CHECK (recurring_import_end_day BETWEEN 1 AND 31),
+    "created_at" TIMESTAMPTZ DEFAULT now() NOT NULL,
+    UNIQUE(customer_id, product_packaging_spec_id)
+);
+```
+
+#### `customer_certifications`
+Certification requirements for customers (what they require from suppliers)
+```sql
+CREATE TABLE "public"."customer_certifications" (
+    "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "customer_id" UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    "certification_id" UUID NOT NULL REFERENCES certifications(id) ON DELETE CASCADE,
+    "is_required" BOOLEAN DEFAULT true NOT NULL, -- Whether this certification is mandatory
+    "notes" TEXT, -- Additional requirements or notes about the certification
+    "created_at" TIMESTAMPTZ DEFAULT now() NOT NULL,
+    UNIQUE(customer_id, certification_id)
+);
+```
+
+#### `customer_logistics_capabilities`
+Customer delivery/pickup preferences and capabilities between hubs
+```sql
+CREATE TABLE "public"."customer_logistics_capabilities" (
+    "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "customer_id" UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    "mode" delivery_mode_enum NOT NULL,
+    "origin_hub_id" UUID NOT NULL REFERENCES hubs(id),
+    "destination_hub_id" UUID REFERENCES hubs(id),
+    "typical_lead_time_days" INTEGER CHECK (typical_lead_time_days > 0),
+    "fixed_operational_days" day_of_week_enum[],
+    "preferred_delivery_time" TEXT, -- e.g., "Morning", "Afternoon", "Evening"
+    "special_requirements" TEXT, -- e.g., "Refrigerated truck required", "Forklift access needed"
+    "notes" TEXT,
+    "created_at" TIMESTAMPTZ DEFAULT now() NOT NULL,
+    CHECK (destination_hub_id IS NULL OR origin_hub_id != destination_hub_id)
+);
+```
+
+**Note**: `destination_hub_id` is nullable to support "Ex Works" pickup mode where customer picks up at origin location.
+
+### 🚛 Transporter System Tables
+
+#### `transporters`
+Third-party logistics providers for internal logistics planning
+```sql
+CREATE TABLE "public"."transporters" (
+    "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "name" TEXT NOT NULL,
+    "email" TEXT,
+    "phone_number" TEXT,
+    "address" TEXT,
+    "city" TEXT,
+    "zip_code" TEXT,
+    "country" TEXT,
+    "diesel_surcharge_percentage" NUMERIC(5,2) DEFAULT 0.00 CHECK (diesel_surcharge_percentage >= 0 AND diesel_surcharge_percentage <= 100),
+    "agent_id" UUID REFERENCES staff(id) ON DELETE SET NULL,
+    "notes" TEXT,
+    "is_active" BOOLEAN DEFAULT true NOT NULL,
+    "created_at" TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+```
+
+#### `transporter_routes`
+Hub-to-hub transportation services offered by transporters
+```sql
+CREATE TABLE "public"."transporter_routes" (
+    "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "transporter_id" UUID NOT NULL REFERENCES transporters(id) ON DELETE CASCADE,
+    "origin_hub_id" UUID NOT NULL REFERENCES hubs(id),
+    "destination_hub_id" UUID NOT NULL REFERENCES hubs(id),
+    "transport_duration_days" INTEGER NOT NULL CHECK (transport_duration_days > 0),
+    "fixed_departure_days" day_of_week_enum[], -- e.g. ['monday', 'wednesday', 'friday']
+    "customs_cost_per_shipment" NUMERIC(10,2) DEFAULT 0.00 CHECK (customs_cost_per_shipment >= 0),
+    "customs_description" TEXT, -- Optional description of customs requirements
+    "notes" TEXT,
+    "is_active" BOOLEAN DEFAULT true NOT NULL,
+    "created_at" TIMESTAMPTZ DEFAULT now() NOT NULL,
+    UNIQUE(transporter_id, origin_hub_id, destination_hub_id),
+    CHECK (origin_hub_id != destination_hub_id)
+);
+```
+
+#### `transporter_route_price_bands`
+Tiered pricing for different pallet quantities and dimensions
+```sql
+CREATE TABLE "public"."transporter_route_price_bands" (
+    "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    "transporter_route_id" UUID NOT NULL REFERENCES transporter_routes(id) ON DELETE CASCADE,
+    "pallet_dimensions" TEXT NOT NULL CHECK (pallet_dimensions IN ('120x80', '120x100')), -- Standard dimensions in cm
+    "min_pallets" INTEGER NOT NULL CHECK (min_pallets > 0),
+    "max_pallets" INTEGER CHECK (max_pallets IS NULL OR max_pallets >= min_pallets),
+    "price_per_pallet" NUMERIC(10,2) NOT NULL CHECK (price_per_pallet > 0),
+    "created_at" TIMESTAMPTZ DEFAULT now() NOT NULL,
+    "last_updated_at" TIMESTAMPTZ DEFAULT now() NOT NULL,
+    UNIQUE(transporter_route_id, pallet_dimensions, min_pallets) -- Prevent overlapping bands for same pallet size
+);
+```
+
 ---
 
 ## Relationships
@@ -336,6 +520,26 @@ graph LR
     supplier_logistics_capabilities --> suppliers
     supplier_logistics_capabilities --> hubs[origin_hub]
     supplier_logistics_capabilities --> hubs[destination_hub]
+    
+    %% Customer Relations
+    customers --> staff[agent]
+
+    customer_certifications --> customers
+    customer_certifications --> certifications
+
+    customer_product_packaging_spec --> customers
+    customer_product_packaging_spec --> product_packaging_specs
+
+    customer_logistics_capabilities --> customers
+    customer_logistics_capabilities --> hubs[origin_hub]
+    customer_logistics_capabilities --> hubs[destination_hub]
+
+    %% Transporter Relations
+    transporter_routes --> transporters
+    transporter_routes --> hubs[origin_hub]
+    transporter_routes --> hubs[destination_hub]
+
+    transporter_route_price_bands --> transporter_routes
 ```
 
 ---
@@ -356,8 +560,14 @@ graph LR
 - `idx_suppliers_is_active` - on suppliers(is_active)
 - `idx_suppliers_country` - on suppliers(country)
 - `idx_suppliers_city` - on suppliers(city)
+- `idx_suppliers_agent_id` - on suppliers(agent_id)
+- `idx_suppliers_coordinates` - on suppliers(latitude, longitude) WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+- `idx_suppliers_needs_geocoding` - on suppliers(geocoding_failed, coordinates_last_updated) WHERE latitude IS NULL
 - `idx_hubs_country_code` - on hubs(country_code)
 - `idx_hubs_is_active` - on hubs(is_active)
+- `idx_hubs_can_transship` - on hubs(can_transship) WHERE can_transship = true
+- `idx_hubs_coordinates` - on hubs(latitude, longitude) WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+- `idx_hubs_needs_geocoding` - on hubs(geocoding_failed, coordinates_last_updated) WHERE latitude IS NULL
 - `idx_supplier_certifications_supplier_id` - on supplier_certifications(supplier_id)
 - `idx_supplier_certifications_certification_id` - on supplier_certifications(certification_id)
 - `idx_supplier_certifications_expires_at` - on supplier_certifications(expires_at)
@@ -368,6 +578,44 @@ graph LR
 - `idx_supplier_logistics_capabilities_origin_hub` - on supplier_logistics_capabilities(origin_hub_id)
 - `idx_supplier_logistics_capabilities_destination_hub` - on supplier_logistics_capabilities(destination_hub_id)
 - `idx_supplier_logistics_capabilities_mode` - on supplier_logistics_capabilities(mode)
+
+### Customer Management Indexes
+- `idx_staff_is_active` - on staff(is_active)
+- `idx_staff_role` - on staff(role)
+- `idx_staff_department` - on staff(department)
+- `idx_staff_auth_user_id` - on staff(auth_user_id) WHERE auth_user_id IS NOT NULL
+- `idx_customers_is_active` - on customers(is_active)
+- `idx_customers_country` - on customers(country)
+- `idx_customers_city` - on customers(city)
+- `idx_customers_agent_id` - on customers(agent_id)
+- `idx_customers_coordinates` - on customers(latitude, longitude) WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+- `idx_customers_needs_geocoding` - on customers(geocoding_failed, coordinates_last_updated) WHERE latitude IS NULL
+- `idx_customer_product_packaging_spec_customer_id` - on customer_product_packaging_spec(customer_id)
+- `idx_customer_product_packaging_spec_product_id` - on customer_product_packaging_spec(product_packaging_spec_id)
+- `idx_customer_product_packaging_spec_season` - on customer_product_packaging_spec(season)
+- `idx_customer_certifications_customer_id` - on customer_certifications(customer_id)
+- `idx_customer_certifications_certification_id` - on customer_certifications(certification_id)
+- `idx_customer_certifications_required` - on customer_certifications(is_required)
+- `idx_customer_logistics_capabilities_customer_id` - on customer_logistics_capabilities(customer_id)
+- `idx_customer_logistics_capabilities_origin_hub` - on customer_logistics_capabilities(origin_hub_id)
+- `idx_customer_logistics_capabilities_destination_hub` - on customer_logistics_capabilities(destination_hub_id)
+- `idx_customer_logistics_capabilities_mode` - on customer_logistics_capabilities(mode)
+
+### Transporter System Indexes
+- `idx_transporters_is_active` - on transporters(is_active)
+- `idx_transporters_country` - on transporters(country)
+- `idx_transporters_city` - on transporters(city)
+- `idx_transporters_agent_id` - on transporters(agent_id)
+- `idx_transporter_routes_transporter_id` - on transporter_routes(transporter_id)
+- `idx_transporter_routes_origin_hub` - on transporter_routes(origin_hub_id)
+- `idx_transporter_routes_destination_hub` - on transporter_routes(destination_hub_id)
+- `idx_transporter_routes_is_active` - on transporter_routes(is_active)
+- `idx_transporter_routes_departure_days` (GIN) - on transporter_routes(fixed_departure_days)
+- `idx_transporter_route_price_bands_route_id` - on transporter_route_price_bands(transporter_route_id)
+- `idx_transporter_route_price_bands_dimensions` - on transporter_route_price_bands(pallet_dimensions)
+- `idx_transporter_route_price_bands_pallets` - on transporter_route_price_bands(min_pallets, max_pallets)
+- `idx_transporter_route_price_bands_updated` - on transporter_route_price_bands(last_updated_at DESC)
+- `idx_transporter_route_price_bands_composite` - on transporter_route_price_bands(transporter_route_id, pallet_dimensions)
 
 ---
 
@@ -396,6 +644,74 @@ GRANT ALL ON TABLE [table_name] TO "service_role";
 - ✅ supplier_certifications
 - ✅ supplier_product_packaging_spec
 - ✅ supplier_logistics_capabilities
+- ✅ staff
+- ✅ customers
+- ✅ customer_product_packaging_spec
+- ✅ customer_certifications
+- ✅ customer_logistics_capabilities
+- ✅ transporters
+- ✅ transporter_routes
+- ✅ transporter_route_price_bands
+
+---
+
+## Database Functions
+
+### Distance Calculation Functions
+
+#### `calculate_distance_km(lat1, lon1, lat2, lon2)`
+Calculates distance in kilometers between two coordinate points using Haversine formula
+```sql
+SELECT calculate_distance_km(52.5200, 13.4050, 51.5074, -0.1278) as distance_berlin_to_london;
+-- Returns: 933.14 km
+```
+
+#### `get_supplier_hub_distances(supplier_id)`
+Gets distances from specific supplier to all active hubs, ordered by distance
+```sql
+SELECT * FROM get_supplier_hub_distances('supplier-uuid-here');
+-- Returns: hub_id, hub_name, hub_code, hub_city, hub_country, distance_km, is_long_distance
+```
+
+#### `get_customer_hub_distances(customer_id)`
+Gets distances from specific customer to all active hubs, ordered by distance
+```sql
+SELECT * FROM get_customer_hub_distances('customer-uuid-here');
+-- Returns: hub_id, hub_name, hub_code, hub_city, hub_country, distance_km, is_long_distance
+```
+
+#### `get_supplier_hub_distance(supplier_id, hub_id)`
+Get distance between specific supplier and hub
+```sql
+SELECT get_supplier_hub_distance('supplier-uuid', 'hub-uuid') as distance_km;
+```
+
+#### `get_customer_hub_distance(customer_id, hub_id)`
+Get distance between specific customer and hub
+```sql
+SELECT get_customer_hub_distance('customer-uuid', 'hub-uuid') as distance_km;
+```
+
+### Database Views
+
+#### `supplier_nearest_hubs`
+View showing each supplier with their nearest hub and distance
+```sql
+SELECT * FROM supplier_nearest_hubs WHERE distance_km < 100;
+```
+
+#### `customer_nearest_hubs`
+View showing each customer with their nearest hub and distance
+```sql
+SELECT * FROM customer_nearest_hubs WHERE distance_km < 150;
+```
+
+### Automatic Geocoding System
+
+- **Triggers**: Automatically reset coordinates when location data (city/country) changes
+- **Rate Limiting**: Nominatim geocoding respects 1.1 second intervals between requests
+- **Retry Logic**: Failed geocoding attempts are tracked and limited to 3 retries
+- **Distance Warnings**: Functions include `is_long_distance` flag for distances >150km
 
 ---
 

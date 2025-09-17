@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 export interface ProductCalendarData {
   product_id: string
   product_name: string
+  intended_use?: string
   country: string
   available_months: string[]
   suppliers: Array<{
@@ -43,7 +44,8 @@ async function fetchProductCalendarData(filters: CalendarFilters = {}): Promise<
         products!inner(
           id,
           name,
-          category
+          category,
+          intended_use
         ),
         packaging_options(
           label
@@ -99,6 +101,7 @@ async function fetchProductCalendarData(filters: CalendarFilters = {}): Promise<
   data?.forEach((item: any) => {
     const productId = item.product_packaging_specs.products.id
     const productName = item.product_packaging_specs.products.name
+    const intendedUse = item.product_packaging_specs.products.intended_use
     const country = item.suppliers.country
     const key = `${productId}-${country}`
 
@@ -106,6 +109,7 @@ async function fetchProductCalendarData(filters: CalendarFilters = {}): Promise<
       processed.set(key, {
         product_id: productId,
         product_name: productName,
+        intended_use: intendedUse,
         country: country,
         available_months: [],
         suppliers: []

@@ -23,9 +23,17 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
+import { useActiveStaff } from '@/hooks/use-staff'
 
 const editSupplierSchema = z.object({
   name: z.string().min(1, 'Supplier name is required'),
@@ -37,6 +45,7 @@ const editSupplierSchema = z.object({
   zip_code: z.string().optional(),
   country: z.string().optional(),
   delivery_modes: z.array(z.string()).optional(),
+  agent_id: z.string().optional(),
   notes: z.string().optional(),
   is_active: z.boolean().default(true),
 })
@@ -59,6 +68,7 @@ export function EditSupplierForm({ open, onOpenChange, supplier }: EditSupplierF
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const { activeStaff, isLoading: staffLoading } = useActiveStaff()
 
   const form = useForm<EditSupplierFormValues>({
     resolver: zodResolver(editSupplierSchema),
@@ -72,6 +82,7 @@ export function EditSupplierForm({ open, onOpenChange, supplier }: EditSupplierF
       zip_code: '',
       country: '',
       delivery_modes: [],
+      agent_id: 'none',
       notes: '',
       is_active: true,
     },
@@ -90,6 +101,7 @@ export function EditSupplierForm({ open, onOpenChange, supplier }: EditSupplierF
         zip_code: supplier.zip_code || '',
         country: supplier.country || '',
         delivery_modes: supplier.delivery_modes || [],
+        agent_id: supplier.agent_id || 'none',
         notes: supplier.notes || '',
         is_active: supplier.is_active ?? true,
       })
@@ -113,6 +125,7 @@ export function EditSupplierForm({ open, onOpenChange, supplier }: EditSupplierF
           zip_code: values.zip_code || null,
           country: values.country || null,
           delivery_modes: values.delivery_modes || [],
+          agent_id: values.agent_id === 'none' ? null : values.agent_id,
           notes: values.notes || null,
           is_active: values.is_active,
         })
@@ -313,6 +326,36 @@ export function EditSupplierForm({ open, onOpenChange, supplier }: EditSupplierF
                       />
                     ))}
                   </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="agent_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Assigned Agent</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an agent" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">No agent assigned</SelectItem>
+                      {staffLoading ? (
+                        <SelectItem value="" disabled>Loading agents...</SelectItem>
+                      ) : (
+                        activeStaff?.map((staff) => (
+                          <SelectItem key={staff.id} value={staff.id}>
+                            {staff.name} {staff.role && `(${staff.role})`}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

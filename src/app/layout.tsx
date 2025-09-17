@@ -5,6 +5,8 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as SonnerToaster } from 'sonner'
 import { MainNav } from '@/components/layout/main-nav'
 import { QueryProvider } from '@/components/providers/query-provider'
+import { AuthProvider } from '@/contexts/auth-context'
+import { AuthWrapper } from '@/components/auth/auth-wrapper'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -22,14 +24,18 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <QueryProvider>
-          <div className="min-h-screen bg-background">
-            <MainNav />
-            <main className="container mx-auto py-6">
-              {children}
-            </main>
-          </div>
-          <Toaster />
-          <SonnerToaster />
+          <AuthProvider>
+            <AuthWrapper>
+              <div className="min-h-screen bg-background">
+                <MainNav />
+                <main className="container mx-auto py-6">
+                  {children}
+                </main>
+              </div>
+            </AuthWrapper>
+            <Toaster />
+            <SonnerToaster />
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>

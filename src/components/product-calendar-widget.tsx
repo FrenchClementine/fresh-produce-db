@@ -95,12 +95,15 @@ interface ProductSectionProps {
 }
 
 function ProductSection({ productName, countries, onCountryClick }: ProductSectionProps) {
+  // Get intended use from the first country's data (should be same for all)
+  const intendedUse = countries[0]?.intended_use
+  
   return (
     <Card className="mb-6">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
           <Calendar className="h-5 w-5 text-green-600" />
-          {productName}
+          {productName}{intendedUse ? ` (${intendedUse})` : ''}
         </CardTitle>
         <CardDescription>
           Available in {countries.length} countr{countries.length !== 1 ? 'ies' : 'y'}

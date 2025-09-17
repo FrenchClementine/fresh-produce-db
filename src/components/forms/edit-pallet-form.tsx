@@ -153,7 +153,17 @@ export function EditPalletForm({ pallet, open, onOpenChange }: EditPalletFormPro
                 <FormItem>
                   <FormLabel>Brutto Weight (kg)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.1" placeholder="25.0" {...field} />
+                    <Input
+                      type="number"
+                      step="0.1"
+                      placeholder="25.0"
+                      value={field.value || ''}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        field.onChange(value === '' ? undefined : parseFloat(value))
+                      }}
+                      onFocus={(e) => e.target.select()}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -167,7 +177,16 @@ export function EditPalletForm({ pallet, open, onOpenChange }: EditPalletFormPro
                 <FormItem>
                   <FormLabel>Pallets per Truck</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="33" {...field} />
+                    <Input
+                      type="number"
+                      placeholder="33"
+                      value={field.value || ''}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        field.onChange(value === '' ? undefined : parseInt(value))
+                      }}
+                      onFocus={(e) => e.target.select()}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -181,7 +200,17 @@ export function EditPalletForm({ pallet, open, onOpenChange }: EditPalletFormPro
                 <FormItem>
                   <FormLabel>Deposit Fee (€)</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={field.value || ''}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        field.onChange(value === '' ? undefined : parseFloat(value))
+                      }}
+                      onFocus={(e) => e.target.select()}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
