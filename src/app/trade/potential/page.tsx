@@ -362,7 +362,7 @@ function AddPriceModal({
   const [formData, setFormData] = useState({
     price_per_unit: '',
     currency: 'EUR',
-    delivery_mode: '' as const,
+    delivery_mode: '',
     valid_from: new Date().toISOString().split('T')[0],
     valid_until: '',
     hub_id: '',
