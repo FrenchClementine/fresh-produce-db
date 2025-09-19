@@ -154,7 +154,11 @@ export default function SuppliersPage() {
               </TableHeader>
               <TableBody>
                 {filteredSuppliers.map((supplier: any) => (
-                  <TableRow key={supplier.id}>
+                  <TableRow
+                    key={supplier.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => router.push(`/suppliers/${supplier.id}`)}
+                  >
                     <TableCell>
                       <div className="font-medium">{supplier.name}</div>
                       {supplier.staff && (
@@ -215,27 +219,24 @@ export default function SuppliersPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
-                          onClick={() => router.push(`/suppliers/${supplier.id}`)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation()
                             setSupplierToEdit(supplier)
                             setIsEditDialogOpen(true)
                           }}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
-                          onClick={() => setSupplierToDelete(supplier)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSupplierToDelete(supplier)
+                          }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

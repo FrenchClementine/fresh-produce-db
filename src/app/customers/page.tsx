@@ -157,7 +157,11 @@ export default function CustomersPage() {
               </TableHeader>
               <TableBody>
                 {filteredCustomers.map((customer: any) => (
-                  <TableRow key={customer.id}>
+                  <TableRow
+                    key={customer.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => router.push(`/customers/${customer.id}`)}
+                  >
                     <TableCell>
                       <div className="font-medium">{customer.name}</div>
                       {customer.notes && (
@@ -231,14 +235,8 @@ export default function CustomersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => router.push(`/customers/${customer.id}`)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation()
                             setCustomerToEdit(customer)
                             setIsEditDialogOpen(true)
                           }}
@@ -248,7 +246,10 @@ export default function CustomersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setCustomerToDelete(customer)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setCustomerToDelete(customer)
+                          }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
