@@ -48,6 +48,14 @@ export interface CurrentSupplierPrice extends SupplierPrice {
     weight_unit: string
   }
   created_by_name?: string
+  suppliers?: {
+    agent_id: string | null
+    staff: {
+      id: string
+      name: string
+      role: string
+    } | null
+  }
 }
 
 // Fetch current active prices from the view
@@ -57,7 +65,17 @@ export function useCurrentSupplierPrices(supplierId?: string) {
     queryFn: async () => {
       let query = supabase
         .from('current_supplier_prices')
-        .select('*')
+        .select(`
+          *,
+          suppliers:supplier_id (
+            agent_id,
+            staff:agent_id (
+              id,
+              name,
+              role
+            )
+          )
+        `)
         .order('product_name', { ascending: true })
 
       if (supplierId) {

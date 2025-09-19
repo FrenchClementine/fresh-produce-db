@@ -44,6 +44,30 @@ import { useCurrentStaffMember } from '@/hooks/use-staff'
 import { supabase } from '@/lib/supabase'
 
 export default function InputPricesPage() {
+  // Helper function to get expiry status
+  const getExpiryStatus = (validUntil: string) => {
+    const now = new Date()
+    const expiryDate = new Date(validUntil)
+    const timeDiff = expiryDate.getTime() - now.getTime()
+    const hoursDiff = timeDiff / (1000 * 3600)
+
+    if (hoursDiff < 0) return 'expired'
+    if (hoursDiff <= 24) return 'expiring-soon'
+    return 'valid'
+  }
+
+  // Helper function to get status styles
+  const getExpiryStyles = (status: string) => {
+    switch (status) {
+      case 'expired':
+        return 'bg-red-50 text-red-700 border-red-200'
+      case 'expiring-soon':
+        return 'bg-yellow-50 text-yellow-700 border-yellow-200'
+      default:
+        return ''
+    }
+  }
+
   const [selectedSupplier, setSelectedSupplier] = useState('')
   const [selectedProduct, setSelectedProduct] = useState('')
   const [selectedDeliveryMode, setSelectedDeliveryMode] = useState('')
@@ -590,13 +614,28 @@ export default function InputPricesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPrices.map(price => (
-                    <TableRow key={price.id}>
+                  {filteredPrices.map(price => {
+                    const expiryStatus = getExpiryStatus(price.valid_until)
+                    const expiryStyles = getExpiryStyles(expiryStatus)
+
+                    return (
+                    <TableRow
+                      key={price.id}
+                      className={expiryStyles ? `${expiryStyles} border` : ''}
+                    >
                       {/* Grower */}
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <Building2 className="h-4 w-4" />
-                          {price.supplier_name}
+                          <div>
+                            <div>{price.supplier_name}</div>
+                            {(price.suppliers as any)?.staff && (
+                              <div className="text-sm text-blue-600 font-medium mt-1">
+                                Agent: {(price.suppliers as any).staff.name}
+                                {(price.suppliers as any).staff.role && ` (${(price.suppliers as any).staff.role})`}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
 
@@ -662,7 +701,17 @@ export default function InputPricesPage() {
                             className="h-7 w-32 text-sm"
                           />
                         ) : (
-                          new Date(price.valid_until).toLocaleDateString()
+                          <div className="flex items-center gap-2">
+                            {expiryStatus === 'expired' && (
+                              <div className="w-2 h-2 bg-red-500 rounded-full" title="Expired" />
+                            )}
+                            {expiryStatus === 'expiring-soon' && (
+                              <div className="w-2 h-2 bg-yellow-500 rounded-full" title="Expiring within 24 hours" />
+                            )}
+                            <span className={expiryStatus === 'expired' ? 'text-red-600 font-medium' : expiryStatus === 'expiring-soon' ? 'text-yellow-600 font-medium' : ''}>
+                              {new Date(price.valid_until).toLocaleDateString()}
+                            </span>
+                          </div>
                         )}
                       </TableCell>
 
@@ -709,7 +758,8 @@ export default function InputPricesPage() {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                    )
+                  })}
                 </TableBody>
               </Table>
 

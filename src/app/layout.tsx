@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as SonnerToaster } from 'sonner'
-import { MainNav } from '@/components/layout/main-nav'
+import { SidebarLayout } from '@/components/layout/sidebar-layout'
 import { QueryProvider } from '@/components/providers/query-provider'
 import { AuthProvider } from '@/contexts/auth-context'
 import { AuthWrapper } from '@/components/auth/auth-wrapper'
@@ -26,12 +26,9 @@ export default function RootLayout({
         <QueryProvider>
           <AuthProvider>
             <AuthWrapper>
-              <div className="min-h-screen bg-background">
-                <MainNav />
-                <main className="container mx-auto py-6">
-                  {children}
-                </main>
-              </div>
+              <SidebarLayout>
+                {children}
+              </SidebarLayout>
             </AuthWrapper>
             <Toaster />
             <SonnerToaster />
