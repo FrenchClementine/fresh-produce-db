@@ -151,9 +151,9 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
   customerRequirements?.forEach(customerReq => {
     const customer = customerReq.customers
     const customerSpec = customerReq.product_packaging_specs
-    const product = customerSpec.products
-    const packaging = customerSpec.packaging_options
-    const size = customerSpec.size_options
+    const product = (customerSpec as any).products?.[0] || (customerSpec as any).products
+    const packaging = (customerSpec as any).packaging_options?.[0] || (customerSpec as any).packaging_options
+    const size = (customerSpec as any).size_options?.[0] || (customerSpec as any).size_options
 
     // Find suppliers who can provide this product
     const matchingSuppliers = supplierCapabilities?.filter(
@@ -161,7 +161,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
     ) || []
 
     matchingSuppliers.forEach(supplierCap => {
-      const supplier = supplierCap.suppliers
+      const supplier = (supplierCap.suppliers as any)?.[0] || supplierCap.suppliers
 
       // Check if supplier has pricing for this product
       const supplierPrice = existingPrices?.find(
@@ -170,7 +170,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
       )
 
       // Check certification compliance
-      const customerCertReqs = customerCertRequirements?.filter(req => req.customer_id === customer.id) || []
+      const customerCertReqs = customerCertRequirements?.filter(req => req.customer_id === (customer as any)?.id) || []
       const supplierCerts = supplierCertifications?.filter(cert => cert.supplier_id === supplier.id) || []
 
       const hasCertificationCompliance = customerCertReqs.length === 0 || customerCertReqs.every(req =>
@@ -178,7 +178,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
       )
 
       // Get customer logistics capabilities for this customer
-      const customerLogisticsCaps = customerLogistics?.filter(cap => cap.customer_id === customer.id) || []
+      const customerLogisticsCaps = customerLogistics?.filter(cap => cap.customer_id === (customer as any)?.id) || []
 
       // Check logistics/transport solution
       let hasTransport = false
@@ -248,16 +248,16 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
       const completionScore = (hasPrice ? 50 : 0) + (hasTransport ? 50 : 0)
 
       const potential: TradePotential = {
-        id: `${customer.id}-${supplier.id}-${customerReq.product_packaging_spec_id}`,
+        id: `${(customer as any)?.id}-${supplier.id}-${customerReq.product_packaging_spec_id}`,
         customer: {
-          id: customer.id,
-          name: customer.name,
-          city: customer.city || '',
-          country: customer.country || '',
+          id: (customer as any)?.id,
+          name: (customer as any)?.name,
+          city: (customer as any)?.city || '',
+          country: (customer as any)?.country || '',
           agent: {
-            id: customer.staff?.id || '',
-            name: customer.staff?.name || '',
-            role: customer.staff?.role || ''
+            id: (customer as any)?.staff?.[0]?.id || (customer as any)?.staff?.id || '',
+            name: (customer as any)?.staff?.[0]?.name || (customer as any)?.staff?.name || '',
+            role: (customer as any)?.staff?.[0]?.role || (customer as any)?.staff?.role || ''
           }
         },
         supplier: {
@@ -275,7 +275,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
           packagingLabel: packaging.label,
           sizeName: size.name,
           soldBy: product.sold_by,
-          specId: customerSpec.id
+          specId: (customerSpec as any)?.id
         },
         status,
         hasSupplierPrice: hasPrice,
@@ -294,7 +294,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
         canAddPrice: !hasPrice,
         canAddTransport: !hasTransport,
         completionScore,
-        logisticsSolution
+        logisticsSolution: logisticsSolution as any
       }
 
       potentials.push(potential)

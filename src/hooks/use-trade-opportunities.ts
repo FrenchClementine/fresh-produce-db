@@ -196,11 +196,11 @@ async function getCustomerRequirements(): Promise<CustomerRequirement[]> {
   if (error) throw error
 
   return data.map(item => {
-    const customer = item.customers
-    const spec = item.product_packaging_specs
-    const product = spec.products
-    const packaging = spec.packaging_options
-    const size = spec.size_options
+    const customer = (item.customers as any)?.[0] || item.customers
+    const spec = (item.product_packaging_specs as any)?.[0] || item.product_packaging_specs
+    const product = (spec as any).products?.[0] || (spec as any).products
+    const packaging = (spec as any).packaging_options?.[0] || (spec as any).packaging_options
+    const size = (spec as any).size_options?.[0] || (spec as any).size_options
 
     // Calculate units per pallet based on sold_by
     let unitsPerPallet = 0
@@ -302,11 +302,11 @@ async function findMatchingSuppliers(requirements: CustomerRequirement[]): Promi
 
   // Convert suppliers without pricing to the same format
   const suppliersWithoutPricingFormatted = filteredSuppliersWithoutPricing.map(item => {
-    const supplier = item.suppliers
-    const spec = item.product_packaging_specs
-    const product = spec.products
-    const packaging = spec.packaging_options
-    const size = spec.size_options
+    const supplier = (item.suppliers as any)?.[0] || item.suppliers
+    const spec = (item.product_packaging_specs as any)?.[0] || item.product_packaging_specs
+    const product = (spec as any).products?.[0] || (spec as any).products
+    const packaging = (spec as any).packaging_options?.[0] || (spec as any).packaging_options
+    const size = (spec as any).size_options?.[0] || (spec as any).size_options
 
     // Calculate units per pallet based on sold_by
     let unitsPerPallet = 0
@@ -423,7 +423,7 @@ async function findDirectTransport(originHubId: string, destinationHubId: string
   let cheapestPrice = Infinity
 
   routesWithPricing.forEach(route => {
-    const transporter = route.transporters
+    const transporter = (route.transporters as any)?.[0] || route.transporters
     const priceBands = route.transporter_route_price_bands
 
     console.log(`       - ${transporter.name}: ${priceBands.length} price bands`)
@@ -451,19 +451,19 @@ async function findDirectTransport(originHubId: string, destinationHubId: string
     return null
   }
 
-  console.log(`     → Using cheapest: ${cheapestRoute.transporter_name} - €${cheapestRoute.price_per_pallet}/pallet`)
+  console.log(`     → Using cheapest: ${(cheapestRoute as any).transporter_name} - €${(cheapestRoute as any).price_per_pallet}/pallet`)
 
   return {
-    route_id: cheapestRoute.route_id,
-    transporter_name: cheapestRoute.transporter_name,
-    agent_name: cheapestRoute.agent_name,
+    route_id: (cheapestRoute as any).route_id,
+    transporter_name: (cheapestRoute as any).transporter_name,
+    agent_name: (cheapestRoute as any).agent_name,
     origin_hub_id: originHubId,
     destination_hub_id: destinationHubId,
-    transport_days: cheapestRoute.transport_days,
-    base_cost: cheapestRoute.price_per_pallet,
+    transport_days: (cheapestRoute as any).transport_days,
+    base_cost: (cheapestRoute as any).price_per_pallet,
     diesel_surcharge: 0, // Not tracking separately in this simple version
     customs_cost: 0, // Not tracking separately in this simple version
-    total_cost: cheapestRoute.price_per_pallet,
+    total_cost: (cheapestRoute as any).price_per_pallet,
     price_age_days: 0 // Not tracking age in this simple version
   }
 }
@@ -497,7 +497,7 @@ async function validateSupplierDelivery(
     return {
       type: 'SUPPLIER_DELIVERY',
       supplierHub: supplier.hub_name,
-      customerHub: delivery.destination_hub_id, // TODO: Get hub name
+      customerHub: delivery.destination_hub_id || '', // TODO: Get hub name
       transportCostPerPallet: 0,
       transportCostPerUnit: 0,
       durationDays: delivery.typical_lead_time_days,
@@ -603,7 +603,7 @@ async function validateTransitLogistics(
     return {
       type: 'SUPPLIER_TRANSIT',
       supplierHub: supplier.hub_name,
-      customerHub: transit.destination_hub_id, // TODO: Get hub name
+      customerHub: transit.destination_hub_id || '', // TODO: Get hub name
       transportCostPerPallet: 0,
       transportCostPerUnit: 0,
       durationDays: transit.typical_lead_time_days,

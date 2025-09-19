@@ -258,7 +258,7 @@ export function useSupplierHubs(supplierId: string) {
       logistics?.forEach(item => {
         // Add origin hubs (for Ex Works)
         if (item.origin_hub) {
-          const hubId = item.origin_hub.id
+          const hubId = (item.origin_hub as any)?.id || (item.origin_hub as any)?.[0]?.id
           if (!hubsMap.has(hubId)) {
             hubsMap.set(hubId, {
               ...item.origin_hub,
@@ -274,7 +274,7 @@ export function useSupplierHubs(supplierId: string) {
 
         // Add destination hubs (for Delivery)
         if (item.destination_hub) {
-          const hubId = item.destination_hub.id
+          const hubId = (item.destination_hub as any)?.id || (item.destination_hub as any)?.[0]?.id
           if (!hubsMap.has(hubId)) {
             hubsMap.set(hubId, {
               ...item.destination_hub,

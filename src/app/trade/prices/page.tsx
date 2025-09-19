@@ -343,7 +343,7 @@ export default function InputPricesPage() {
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-2">
                               <Package className="h-4 w-4" />
-                              {product.product_packaging_specs.products.name} - {product.product_packaging_specs.packaging_options.label} - {product.product_packaging_specs.size_options.name}
+                              {(product.product_packaging_specs as any)?.[0]?.products?.name} - {(product.product_packaging_specs as any)?.[0]?.packaging_options?.label} - {(product.product_packaging_specs as any)?.[0]?.size_options?.name}
                             </div>
                           </div>
                         </SelectItem>
@@ -430,7 +430,7 @@ export default function InputPricesPage() {
                   <div className="grid gap-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Price per {supplierProducts.find(p => p.id === selectedProduct)?.product_packaging_specs?.products?.sold_by || 'Unit'} *</Label>
+                        <Label>Price per {(supplierProducts.find(p => p.id === selectedProduct)?.product_packaging_specs as any)?.[0]?.products?.sold_by || 'Unit'} *</Label>
                         <div className="relative">
                           <Euro className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                           <Input

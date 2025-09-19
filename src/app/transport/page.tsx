@@ -408,7 +408,7 @@ export default function TransportPage() {
           max_pallets: maxPallets === 999 ? null : maxPallets,
           pallet_dimensions: allPricing[0]?.pallet_dimensions || '120x80',
           // Include all price bands with diesel surcharge
-          price_bands: pricingData.map(p => ({
+          price_bands: pricingData.map((p: any) => ({
             id: p.id,
             pallet_dimensions: p.pallet_dimensions,
             min_pallets: p.min_pallets,
@@ -454,11 +454,12 @@ export default function TransportPage() {
   };
 
   const searchAlternativeRoutes = async (requestedFromHubId: string, requestedToHubId: string) => {
+    // Set a timeout for alternative route search to prevent long waits
+    const timeoutId = setTimeout(() => {
+      toast.info('Alternative route search is taking longer than expected');
+    }, 10000); // 10 second warning
+
     try {
-      // Set a timeout for alternative route search to prevent long waits
-      const timeoutId = setTimeout(() => {
-        toast.info('Alternative route search is taking longer than expected');
-      }, 10000); // 10 second warning
       const requestedFromHub = hubs.find(h => h.id === requestedFromHubId);
       const requestedToHub = hubs.find(h => h.id === requestedToHubId);
 
@@ -655,7 +656,7 @@ export default function TransportPage() {
               : 'On demand',
             is_active: route.is_active,
             // Include all price bands with diesel surcharge
-            price_bands: pricingData.map(p => ({
+            price_bands: pricingData.map((p: any) => ({
               id: p.id,
               pallet_dimensions: p.pallet_dimensions,
               min_pallets: p.min_pallets,
@@ -952,7 +953,7 @@ export default function TransportPage() {
                               <p className="text-sm text-gray-500">Price Range</p>
                               <p className="font-medium">
                                 {match.base_rate_per_pallet > 0
-                                  ? `${match.price_range.replace(/€/g, '')}/pallet`
+                                  ? `${match.price_range?.replace(/€/g, '') || ''}/pallet`
                                   : 'Price on request'
                                 }
                               </p>
