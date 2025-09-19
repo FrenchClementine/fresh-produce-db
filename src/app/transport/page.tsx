@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,11 +16,16 @@ import {
   ArrowRight,
   Package,
   Clock,
-  DollarSign,
+  Euro,
   Loader2,
   Info,
   Route,
-  AlertCircle
+  AlertCircle,
+  User,
+  Mail,
+  Tag,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { geocodeWithNominatim } from '@/lib/nominatim-geocoding';
@@ -67,6 +72,7 @@ interface RouteInfo {
     contactEmail?: string;
     agentName?: string;
   };
+  actualRouteCoordinates?: [number, number][];
 }
 
 interface TransportMatch {
@@ -90,7 +96,24 @@ interface TransportMatch {
   price_range?: string;
   similarity?: number;
   totalDeviation?: number;
+  price_bands?: Array<{
+    id: string;
+    pallet_dimensions: string;
+    min_pallets: number;
+    max_pallets?: number;
+    price_per_pallet: number;
+  }>;
+  agent_name?: string;
+  agent_email?: string;
+  agent_role?: string;
+  diesel_surcharge_percentage?: number;
 }
+
+// Helper function to calculate price with diesel surcharge
+const calculatePriceWithDieselSurcharge = (basePrice: number, dieselSurchargePercentage: number): number => {
+  if (dieselSurchargePercentage === 0) return basePrice;
+  return Math.round(basePrice * (1 + dieselSurchargePercentage / 100) * 100) / 100;
+};
 
 export default function TransportPage() {
   const [fromLocation, setFromLocation] = useState('');
@@ -98,8 +121,22 @@ export default function TransportPage() {
   const [hubs, setHubs] = useState<Hub[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingTransport, setIsLoadingTransport] = useState(false);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   const [transportMatches, setTransportMatches] = useState<TransportMatch[]>([]);
+  const [expandedPriceBands, setExpandedPriceBands] = useState<Set<string>>(new Set());
+
+
+  // Toggle price bands dropdown
+  const togglePriceBands = (transporterId: string) => {
+    const newExpanded = new Set(expandedPriceBands);
+    if (newExpanded.has(transporterId)) {
+      newExpanded.delete(transporterId);
+    } else {
+      newExpanded.add(transporterId);
+    }
+    setExpandedPriceBands(newExpanded);
+  };
 
   // Load all hubs with coordinates
   useEffect(() => {
@@ -123,6 +160,7 @@ export default function TransportPage() {
       toast.error('Failed to load hubs');
     }
   };
+
 
   const findNearestHub = (latitude: number, longitude: number, excludeHub?: Hub): Hub | null => {
     if (hubs.length === 0) return null;
@@ -223,6 +261,9 @@ export default function TransportPage() {
         [toHub.latitude, toHub.longitude]
       ];
 
+      // Get actual route coordinates if available
+      const actualRouteCoordinates = routeResult.coordinates;
+
       const originOffset = calculateDistance(
         fromGeoResult.coordinates.latitude,
         fromGeoResult.coordinates.longitude,
@@ -247,10 +288,12 @@ export default function TransportPage() {
         isRoadDistance: routeResult.success,
         estimatedDuration: routeResult.duration,
         originOffsetKm: Math.round(originOffset),
-        destinationOffsetKm: Math.round(destinationOffset)
+        destinationOffsetKm: Math.round(destinationOffset),
+        actualRouteCoordinates
       });
 
       // Search for transport matches
+      setIsLoadingTransport(true);
       await searchTransportMatches(fromHub.id, toHub.id);
 
     } catch (error) {
@@ -258,6 +301,7 @@ export default function TransportPage() {
       toast.error(error instanceof Error ? error.message : 'Failed to search route');
     } finally {
       setIsSearching(false);
+      setIsLoadingTransport(false);
     }
   };
 
@@ -270,7 +314,16 @@ export default function TransportPage() {
           *,
           transporters:transporter_id (
             id,
-            name
+            name,
+            email,
+            phone_number,
+            diesel_surcharge_percentage,
+            agent:agent_id (
+              id,
+              name,
+              email,
+              role
+            )
           )
         `)
         .eq('origin_hub_id', fromHubId)
@@ -325,7 +378,10 @@ export default function TransportPage() {
         const standardPricing = pricingData.filter((p: any) => p.pallet_dimensions === '120x80');
         const allPricing = standardPricing.length > 0 ? standardPricing : pricingData;
 
-        const prices = allPricing.map((p: any) => p.price_per_pallet).filter((p: any) => p > 0);
+        const dieselSurcharge = route.transporters?.diesel_surcharge_percentage || 0;
+        const prices = allPricing.map((p: any) =>
+          calculatePriceWithDieselSurcharge(p.price_per_pallet, dieselSurcharge)
+        ).filter((p: any) => p > 0);
         const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
         const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
 
@@ -351,8 +407,20 @@ export default function TransportPage() {
           min_pallets: minPallets,
           max_pallets: maxPallets === 999 ? null : maxPallets,
           pallet_dimensions: allPricing[0]?.pallet_dimensions || '120x80',
-          agent_name: route.contact_person || null,
-          agent_email: route.contact_email || null
+          // Include all price bands with diesel surcharge
+          price_bands: pricingData.map(p => ({
+            id: p.id,
+            pallet_dimensions: p.pallet_dimensions,
+            min_pallets: p.min_pallets,
+            max_pallets: p.max_pallets,
+            price_per_pallet: calculatePriceWithDieselSurcharge(p.price_per_pallet, dieselSurcharge)
+          })),
+          // Include agent information
+          agent_name: route.transporters?.agent?.name || null,
+          agent_email: route.transporters?.agent?.email || route.transporters?.email || null,
+          agent_role: route.transporters?.agent?.role || null,
+          // Include diesel surcharge information
+          diesel_surcharge_percentage: route.transporters?.diesel_surcharge_percentage || 0
         };
       });
 
@@ -373,17 +441,24 @@ export default function TransportPage() {
 
       // If no direct routes found, look for alternative routes
       if (matches.length === 0) {
+        setRouteInfo(prev => prev ? ({ ...prev, suggestedTransporter: undefined }) : prev);
         console.log('No direct routes found, searching for alternatives...');
         await searchAlternativeRoutes(fromHubId, toHubId);
       }
 
     } catch (error) {
       console.error('Error searching transport matches:', error);
+    } finally {
+      setIsLoadingTransport(false);
     }
   };
 
   const searchAlternativeRoutes = async (requestedFromHubId: string, requestedToHubId: string) => {
     try {
+      // Set a timeout for alternative route search to prevent long waits
+      const timeoutId = setTimeout(() => {
+        toast.info('Alternative route search is taking longer than expected');
+      }, 10000); // 10 second warning
       const requestedFromHub = hubs.find(h => h.id === requestedFromHubId);
       const requestedToHub = hubs.find(h => h.id === requestedToHubId);
 
@@ -415,7 +490,16 @@ export default function TransportPage() {
           ),
           transporters:transporter_id (
             id,
-            name
+            name,
+            email,
+            phone_number,
+            diesel_surcharge_percentage,
+            agent:agent_id (
+              id,
+              name,
+              email,
+              role
+            )
           )
         `)
         .eq('is_active', true);
@@ -428,7 +512,7 @@ export default function TransportPage() {
       // Calculate distances and find closest alternatives
       const routesWithDistances = [];
 
-      // Process routes in batches to avoid API rate limits
+      // Process routes in batches to avoid API rate limits - limit to 5 for faster response
       const validRoutes = (allRoutes || []).filter(route =>
         route.origin_hub?.latitude && route.destination_hub?.latitude
       );
@@ -442,47 +526,67 @@ export default function TransportPage() {
       );
       const requestedDistance = requestedDistanceResult.distance;
 
-      for (const route of validRoutes.slice(0, 10)) { // Limit to first 10 routes to avoid too many API calls
-        try {
-          // Calculate distances with small delays to respect API limits
-          const [originResult, destinationResult, routeResult] = await Promise.all([
-            calculateRouteDistance(
-              requestedFromHub.latitude,
-              requestedFromHub.longitude,
-              route.origin_hub.latitude,
-              route.origin_hub.longitude
-            ),
-            calculateRouteDistance(
-              route.destination_hub.latitude,
-              route.destination_hub.longitude,
-              requestedToHub.latitude,
-              requestedToHub.longitude
-            ),
-            calculateRouteDistance(
-              route.origin_hub.latitude,
-              route.origin_hub.longitude,
-              route.destination_hub.latitude,
-              route.destination_hub.longitude
-            )
-          ]);
+      // Pre-filter routes by straight-line distance and country to improve performance
+      const routesWithBasicDistance = validRoutes
+        .filter(route =>
+          route.origin_hub?.country_code === requestedFromHub.country_code && // Filter by departure country
+          route.destination_hub?.country_code === requestedToHub.country_code  // Filter by arrival country
+        )
+        .map(route => {
+          const straightLineDistance = calculateDistance(
+            requestedFromHub.latitude,
+            requestedFromHub.longitude,
+            route.origin_hub.latitude,
+            route.origin_hub.longitude
+          ) + calculateDistance(
+            route.destination_hub.latitude,
+            route.destination_hub.longitude,
+            requestedToHub.latitude,
+            requestedToHub.longitude
+          );
+          return { ...route, basicDistance: straightLineDistance };
+        })
+        .sort((a, b) => a.basicDistance - b.basicDistance)
+        .slice(0, 3); // Reduce to top 3 for speed
 
-          const originDistance = originResult.distance;
-          const destinationDistance = destinationResult.distance;
-          const routeDistance = routeResult.distance;
+      // Use straight-line distance approximation instead of API calls for faster results
+      for (const route of routesWithBasicDistance) {
+        try {
+          // Use straight-line distances with road factors for speed
+          const originStraightLine = calculateDistance(
+            requestedFromHub.latitude,
+            requestedFromHub.longitude,
+            route.origin_hub.latitude,
+            route.origin_hub.longitude
+          );
+          const destinationStraightLine = calculateDistance(
+            route.destination_hub.latitude,
+            route.destination_hub.longitude,
+            requestedToHub.latitude,
+            requestedToHub.longitude
+          );
+          const routeStraightLine = calculateDistance(
+            route.origin_hub.latitude,
+            route.origin_hub.longitude,
+            route.destination_hub.latitude,
+            route.destination_hub.longitude
+          );
+
+          // Apply road factors for estimation (1.3x for approximation)
+          const originDistance = Math.round(originStraightLine * 1.3);
+          const destinationDistance = Math.round(destinationStraightLine * 1.3);
+          const routeDistance = Math.round(routeStraightLine * 1.3);
           const totalDeviation = originDistance + destinationDistance;
 
           routesWithDistances.push({
             ...route,
-            originDistance: Math.round(originDistance),
-            destinationDistance: Math.round(destinationDistance),
-            routeDistance: Math.round(routeDistance),
+            originDistance,
+            destinationDistance,
+            routeDistance,
             requestedDistance: Math.round(requestedDistance),
-            totalDeviation: Math.round(totalDeviation),
+            totalDeviation,
             similarity: Math.max(0, 100 - (totalDeviation / requestedDistance) * 100)
           });
-
-          // Small delay between API calls
-          await new Promise(resolve => setTimeout(resolve, 200));
         } catch (error) {
           console.warn(`Failed to calculate distances for route ${route.id}:`, error);
         }
@@ -491,7 +595,7 @@ export default function TransportPage() {
       // Sort by similarity (closest alternatives first)
       const sortedAlternatives = routesWithDistances
         .sort((a, b) => a.totalDeviation - b.totalDeviation)
-        .slice(0, 5); // Show top 5 alternatives
+        .slice(0, 3); // Show top 3 alternatives for speed
 
       if (sortedAlternatives.length > 0) {
         // Get pricing for alternative routes
@@ -528,7 +632,10 @@ export default function TransportPage() {
           const standardPricing = pricingData.filter((p: any) => p.pallet_dimensions === '120x80');
           const allPricing = standardPricing.length > 0 ? standardPricing : pricingData;
 
-          const prices = allPricing.map((p: any) => p.price_per_pallet).filter((p: any) => p > 0);
+          const dieselSurcharge = route.transporters?.diesel_surcharge_percentage || 0;
+          const prices = allPricing.map((p: any) =>
+            calculatePriceWithDieselSurcharge(p.price_per_pallet, dieselSurcharge)
+          ).filter((p: any) => p > 0);
           const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
           const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
 
@@ -547,6 +654,20 @@ export default function TransportPage() {
               ? `${route.fixed_departure_days.length} days/week`
               : 'On demand',
             is_active: route.is_active,
+            // Include all price bands with diesel surcharge
+            price_bands: pricingData.map(p => ({
+              id: p.id,
+              pallet_dimensions: p.pallet_dimensions,
+              min_pallets: p.min_pallets,
+              max_pallets: p.max_pallets,
+              price_per_pallet: calculatePriceWithDieselSurcharge(p.price_per_pallet, dieselSurcharge)
+            })),
+            // Include agent information
+            agent_name: route.transporters?.agent?.name || null,
+            agent_email: route.transporters?.agent?.email || route.transporters?.email || null,
+            agent_role: route.transporters?.agent?.role || null,
+            // Include diesel surcharge information
+            diesel_surcharge_percentage: route.transporters?.diesel_surcharge_percentage || 0,
             // Alternative route specific data
             isAlternative: true,
             originHub: route.origin_hub,
@@ -566,8 +687,10 @@ export default function TransportPage() {
         toast.info('No alternative routes found');
       }
 
+      clearTimeout(timeoutId);
     } catch (error) {
       console.error('Error searching alternative routes:', error);
+      clearTimeout(timeoutId);
     }
   };
 
@@ -580,9 +703,9 @@ export default function TransportPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Panel - Search and Results */}
-        <div className="lg:col-span-1 space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Search Section */}
+        <div>
           {/* Search Card */}
           <Card>
             <CardHeader>
@@ -602,7 +725,12 @@ export default function TransportPage() {
                   placeholder="e.g., Amsterdam, Netherlands"
                   value={fromLocation}
                   onChange={(e) => setFromLocation(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && searchRoute()}
+                  onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    searchRoute();
+                  }
+                }}
                 />
               </div>
 
@@ -613,7 +741,12 @@ export default function TransportPage() {
                   placeholder="e.g., Madrid, Spain"
                   value={toLocation}
                   onChange={(e) => setToLocation(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && searchRoute()}
+                  onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    searchRoute();
+                  }
+                }}
                 />
               </div>
 
@@ -637,87 +770,149 @@ export default function TransportPage() {
             </CardContent>
           </Card>
 
-          {/* Route Information */}
-          {routeInfo && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Route Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
+
+        </div>
+
+        {/* Route Details and Transport Results */}
+        {routeInfo && (
+          <div className="space-y-6">
+            {/* Compact Route Summary */}
+            <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 border space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-green-600" />
+                    <span className="font-medium">{routeInfo.fromHub?.name}</span>
+                    <span className="text-sm text-gray-500">({routeInfo.fromHub?.city_name})</span>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-gray-400" />
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-red-600" />
+                    <span className="font-medium">{routeInfo.toHub?.name}</span>
+                    <span className="text-sm text-gray-500">({routeInfo.toHub?.city_name})</span>
+                  </div>
+                </div>
+                <Badge variant="secondary" className="ml-auto">
+                  {routeInfo.distance} km
+                </Badge>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 text-sm text-gray-600">
+                {typeof routeInfo.originOffsetKm === 'number' && routeInfo.fromLocation && (
                   <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 text-green-600 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-500">Origin Hub</p>
-                      <p className="font-medium">{routeInfo.fromHub?.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {routeInfo.fromHub?.city_name}, {routeInfo.fromHub?.country_code}
+                    <MapPin className="h-4 w-4 text-green-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-gray-700">Nearest origin hub</p>
+                      <p>
+                        {routeInfo.fromHub?.name} is about {routeInfo.originOffsetKm} km from
+                        {' '}<span className="font-medium text-gray-800">{routeInfo.fromLocation}</span>.
                       </p>
                     </div>
                   </div>
-
-                  <div className="flex items-center justify-center">
-                    <ArrowRight className="h-4 w-4 text-gray-400" />
-                  </div>
-
+                )}
+                {typeof routeInfo.destinationOffsetKm === 'number' && routeInfo.toLocation && (
                   <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 text-red-600 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-500">Destination Hub</p>
-                      <p className="font-medium">{routeInfo.toHub?.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {routeInfo.toHub?.city_name}, {routeInfo.toHub?.country_code}
+                    <MapPin className="h-4 w-4 text-red-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-gray-700">Nearest destination hub</p>
+                      <p>
+                        {routeInfo.toHub?.name} is about {routeInfo.destinationOffsetKm} km from
+                        {' '}<span className="font-medium text-gray-800">{routeInfo.toLocation}</span>.
                       </p>
                     </div>
                   </div>
-                </div>
+                )}
+                {routeInfo.suggestedTransporter && (
+                  <div className="flex items-start gap-3 md:col-span-2">
+                    <Truck className="h-4 w-4 text-blue-600 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-gray-700">Suggested transporter contact</p>
+                      <p>
+                        {routeInfo.suggestedTransporter.name}
+                        {routeInfo.suggestedTransporter.agentName ? (
+                          <> · speak with <span className="font-medium">{routeInfo.suggestedTransporter.agentName}</span></>
+                        ) : (
+                          <span className="text-gray-500"> · contact their logistics team</span>
+                        )}
+                        {routeInfo.suggestedTransporter.contactEmail && (
+                          <> · <a
+                            className="text-blue-600 underline"
+                            href={`mailto:${routeInfo.suggestedTransporter.contactEmail}`}
+                          >
+                            {routeInfo.suggestedTransporter.contactEmail}
+                          </a></>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Distance</span>
-                  <Badge variant="secondary">
-                    {routeInfo.distance} km
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Transport Matches */}
-          {routeInfo && (
-            <Card>
+            {/* Map Section */}
+            <Card className="h-[500px]">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Truck className="h-5 w-5" />
-                  Available Transport
+                  <Navigation className="h-5 w-5" />
+                  Route Map
                 </CardTitle>
                 <CardDescription>
-                  {transportMatches.length} route{transportMatches.length !== 1 ? 's' : ''} found
+                  Visual representation of your transport route
                 </CardDescription>
               </CardHeader>
+              <CardContent className="p-0 h-[400px]">
+                <TransportMap
+                  key={`map-${hubs.length}-${routeInfo?.distance || 0}`}
+                  hubs={hubs}
+                  routeInfo={routeInfo}
+                  onHubClick={(hub) => {
+                    console.log('Hub clicked:', hub);
+                  }}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Transport Options */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Truck className="h-5 w-5" />
+                    <CardTitle>Available Transport Options</CardTitle>
+                  </div>
+                  <Badge variant="outline">
+                    {transportMatches.length} route{transportMatches.length !== 1 ? 's' : ''}
+                  </Badge>
+                </div>
+              </CardHeader>
               <CardContent>
-                <div className="h-[300px] overflow-y-auto">
-                  {transportMatches.length > 0 ? (
-                    <div className="space-y-3">
-                      {transportMatches.map((match) => (
-                        <div
-                          key={match.id}
-                          className={`p-3 border rounded-lg hover:bg-gray-50 transition-colors ${
-                            match.isAlternative ? 'border-orange-200 bg-orange-50' : ''
-                          }`}
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <p className="font-medium">{match.transporter_name}</p>
-                                {match.isAlternative && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    Alternative
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-sm text-gray-500">{match.route_name}</p>
+                <div className="space-y-4">
+                  {isLoadingTransport ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
+                        <p className="text-gray-500">Searching for transport routes...</p>
+                        <p className="text-sm text-gray-400">This may take a few moments</p>
+                      </div>
+                    </div>
+                  ) : transportMatches.length > 0 ? (
+                    transportMatches.map((match) => (
+                      <div
+                        key={match.id}
+                        className={`p-6 border rounded-lg hover:shadow-md transition-all duration-200 ${
+                          match.isAlternative ? 'border-orange-200 bg-orange-50' : 'border-gray-200 bg-white hover:border-blue-200'
+                        }`}
+                      >
+                        {/* Header */}
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold">{match.transporter_name}</h3>
+                              {match.isAlternative && (
+                                <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700 border-orange-300">
+                                  Alternative Route
+                                </Badge>
+                              )}
+                            </div>
 
                               {/* Show hub details for alternatives */}
                               {match.isAlternative && match.originHub && match.destinationHub && (
@@ -736,51 +931,153 @@ export default function TransportPage() {
                                   </div>
                                 </div>
                               )}
-                            </div>
-                            <Badge variant="outline" className="ml-2">
-                              {match.frequency}
-                            </Badge>
                           </div>
+                          <Badge variant="outline" className="ml-auto">
+                            {match.frequency}
+                          </Badge>
+                        </div>
 
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3 text-gray-400" />
-                              <span>{match.transit_days} days</span>
+                        {/* Key Details Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <Clock className="h-5 w-5 text-blue-600" />
+                            <div>
+                              <p className="text-sm text-gray-500">Transit Time</p>
+                              <p className="font-medium">{match.transit_days} days</p>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <DollarSign className="h-3 w-3 text-gray-400" />
-                              <span className="font-medium">
+                          </div>
+                          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <Euro className="h-5 w-5 text-green-600" />
+                            <div>
+                              <p className="text-sm text-gray-500">Price Range</p>
+                              <p className="font-medium">
                                 {match.base_rate_per_pallet > 0
-                                  ? `${match.price_range}/pallet`
+                                  ? `${match.price_range.replace(/€/g, '')}/pallet`
                                   : 'Price on request'
                                 }
-                              </span>
+                              </p>
                             </div>
                           </div>
+                          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <Truck className="h-5 w-5 text-purple-600" />
+                            <div>
+                              <p className="text-sm text-gray-500">Frequency</p>
+                              <p className="font-medium">{match.frequency}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Additional Details */}
+                        <div className="space-y-4">
+                          {/* Agent Information */}
+                          {match.agent_name && (
+                            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                              <User className="h-5 w-5 text-blue-600" />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900">{match.agent_name}</p>
+                                <div className="flex items-center gap-2">
+                                  {match.agent_role && (
+                                    <Badge variant="outline" className="text-xs">
+                                      {match.agent_role}
+                                    </Badge>
+                                  )}
+                                  {match.agent_email && (
+                                    <div className="flex items-center gap-1 text-xs text-gray-600">
+                                      <Mail className="h-3 w-3" />
+                                      <span>Contact available</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Price Bands Dropdown */}
+                          {match.price_bands && match.price_bands.length > 0 && (
+                            <div className="space-y-2">
+                              <button
+                                onClick={() => togglePriceBands(match.id)}
+                                className="flex items-center justify-between w-full p-3 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Tag className="h-4 w-4 text-green-600" />
+                                  <span className="font-medium text-gray-900">
+                                    View Price Bands ({match.price_bands.length})
+                                  </span>
+                                </div>
+                                {expandedPriceBands.has(match.id) ? (
+                                  <ChevronUp className="h-4 w-4 text-gray-600" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4 text-gray-600" />
+                                )}
+                              </button>
+
+                              {expandedPriceBands.has(match.id) && (
+                                <div className="grid gap-2 mt-2">
+                                  {match.price_bands.map((band, index) => (
+                                    <div key={band.id} className="flex items-center justify-between p-3 bg-gray-50 rounded border">
+                                      <div>
+                                        <p className="font-medium text-gray-900">{band.pallet_dimensions}cm pallets</p>
+                                        <p className="text-sm text-gray-600">
+                                          {band.min_pallets}{band.max_pallets ? `-${band.max_pallets}` : '+'} pallets
+                                        </p>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="font-bold text-green-700">€{band.price_per_pallet}</p>
+                                        <p className="text-xs text-gray-500">per pallet</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Diesel Surcharge Information */}
+                          {match.diesel_surcharge_percentage && match.diesel_surcharge_percentage > 0 && (
+                            <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                              <span className="text-lg">⛽</span>
+                              <div>
+                                <p className="text-sm font-medium text-amber-800">Diesel Surcharge Included</p>
+                                <p className="text-xs text-amber-600">Prices include {match.diesel_surcharge_percentage}% diesel surcharge</p>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Show route distance comparison for alternatives */}
                           {match.isAlternative && (
-                            <div className="mt-2 pt-2 border-t border-gray-200">
-                              <div className="flex justify-between text-xs text-gray-600">
-                                <span>Route distance: {match.routeDistance}km</span>
-                                <span>
-                                  {match.routeDistance && match.requestedDistance && match.routeDistance > match.requestedDistance
-                                    ? `+${match.routeDistance - match.requestedDistance}km vs requested`
-                                    : match.routeDistance && match.requestedDistance
-                                    ? `${match.requestedDistance - match.routeDistance}km shorter`
-                                    : 'Distance comparison unavailable'
-                                  }
-                                </span>
-                              </div>
-                              <div className="flex justify-between text-xs text-gray-600 mt-1">
-                                <span>Similarity: {match.similarity}%</span>
-                                <span>Total deviation: {match.totalDeviation}km</span>
+                            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                              <h5 className="font-medium text-gray-900 mb-2">Route Comparison</h5>
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <p className="text-gray-500">Route Distance</p>
+                                  <p className="font-medium">{match.routeDistance}km</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500">vs Requested</p>
+                                  <p className="font-medium">
+                                    {match.routeDistance && match.requestedDistance && match.routeDistance > match.requestedDistance
+                                      ? `+${match.routeDistance - match.requestedDistance}km longer`
+                                      : match.routeDistance && match.requestedDistance
+                                      ? `${match.requestedDistance - match.routeDistance}km shorter`
+                                      : 'N/A'
+                                    }
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500">Similarity</p>
+                                  <p className="font-medium">{match.similarity}%</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500">Total Deviation</p>
+                                  <p className="font-medium">{match.totalDeviation}km</p>
+                                </div>
                               </div>
                             </div>
                           )}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))
                   ) : (
                     <div className="text-center py-8 text-gray-500">
                       <Truck className="h-12 w-12 mx-auto mb-3 text-gray-300" />
@@ -793,24 +1090,8 @@ export default function TransportPage() {
                 </div>
               </CardContent>
             </Card>
-          )}
-        </div>
-
-        {/* Right Panel - Map */}
-        <div className="lg:col-span-2">
-          <Card className="h-[800px]">
-            <CardContent className="p-0 h-full">
-              <TransportMap
-                key={`map-${hubs.length}-${routeInfo?.distance || 0}`}
-                hubs={hubs}
-                routeInfo={routeInfo}
-                onHubClick={(hub) => {
-                  console.log('Hub clicked:', hub);
-                }}
-              />
-            </CardContent>
-          </Card>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -12,7 +13,7 @@ import {
   NavigationMenuContent,
   NavigationMenuLink,
 } from '@/components/ui/navigation-menu'
-import { Building, Package, Users, Search, Menu, Truck, Settings } from 'lucide-react'
+import { Building, Package, Users, Search, Menu, Truck, Settings, TrendingUp, Euro, BarChart3, Network } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { UserMenu } from '@/components/auth/user-menu'
 import { useState } from 'react'
@@ -35,6 +36,33 @@ const adminRoutes = [
     label: 'Customers',
     description: 'Oversee customer requirements and availability.',
     icon: Users,
+  },
+]
+
+const tradeRoutes = [
+  {
+    href: '/trade',
+    label: 'Trade Overview',
+    description: 'Dashboard for trade operations and pricing.',
+    icon: TrendingUp,
+  },
+  {
+    href: '/trade/prices',
+    label: 'Input Prices',
+    description: 'Manage supplier pricing and market data.',
+    icon: Euro,
+  },
+  {
+    href: '/trade/trader',
+    label: 'Trade Opportunities',
+    description: 'Discover customer-supplier matching opportunities.',
+    icon: BarChart3,
+  },
+  {
+    href: '/trade/potential',
+    label: 'Trade Potential',
+    description: 'View all possible connections and missing links.',
+    icon: Network,
   },
 ]
 
@@ -76,16 +104,20 @@ export function MainNav() {
   const [open, setOpen] = useState(false)
   const isAdminActive = adminRoutes.some((route) => pathname?.startsWith(route.href))
   const isProductSourcingActive = productSourcingRoutes.some((route) => pathname?.startsWith(route.href))
+  const isTradeActive = pathname?.startsWith('/trade')
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Building className="h-6 w-6" />
-            <span className="hidden font-bold sm:inline-block">
-              Product Catalog
-            </span>
+          <Link href="/" className="mr-6 flex items-center">
+            <Image
+              src="/Produce-Services-Europe-Logo-RGB (1).jpg"
+              alt="Produce Services Europe"
+              width={150}
+              height={36}
+              className="h-9 w-auto"
+            />
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             {primaryRoutes
@@ -124,6 +156,50 @@ export function MainNav() {
                         </li>
                       ))}
                     </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+
+            <NavigationMenu>
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className={cn(
+                    isTradeActive ? 'bg-accent/50 text-accent-foreground' : 'text-foreground/70'
+                  )}>
+                    Trade
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="p-4 w-[280px]">
+                      <div className="mb-4 text-center">
+                        <div className="text-lg font-bold text-orange-600 tracking-wide">
+                          UNDER DEVELOPMENT
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Features are being actively developed
+                        </div>
+                      </div>
+                      <ul className="grid gap-3">
+                        {tradeRoutes.map((route) => {
+                          const Icon = route.icon
+                          return (
+                            <li key={route.href}>
+                              <NavigationMenuLink asChild className="block rounded-md p-3 hover:bg-accent hover:text-accent-foreground transition-colors">
+                                <Link href={route.href}>
+                                  <div className="flex items-center gap-3">
+                                    <Icon className="h-5 w-5" />
+                                    <div className="flex flex-col">
+                                      <span className="text-sm font-medium">{route.label}</span>
+                                      <span className="text-xs text-muted-foreground">{route.description}</span>
+                                    </div>
+                                  </div>
+                                </Link>
+                              </NavigationMenuLink>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
                   </NavigationMenuContent>
                 </NavigationMenuItem>
               </NavigationMenuList>
@@ -189,9 +265,14 @@ export function MainNav() {
           </SheetTrigger>
           <SheetContent side="left">
             <div className="flex flex-col space-y-4 mt-8">
-              <Link href="/" className="flex items-center space-x-2 mb-4">
-                <Building className="h-6 w-6" />
-                <span className="font-bold">Product Catalog</span>
+              <Link href="/" className="flex items-center mb-4">
+                <Image
+                  src="/Produce-Services-Europe-Logo-RGB (1).jpg"
+                  alt="Produce Services Europe"
+                  width={130}
+                  height={32}
+                  className="h-8 w-auto"
+                />
               </Link>
               {primaryRoutes.map((route) => {
                 const Icon = route.icon
@@ -227,6 +308,29 @@ export function MainNav() {
                       <span>{route.label}</span>
                     </Link>
                   ))}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Trade</p>
+                <div className="space-y-2">
+                  {tradeRoutes.map((route) => {
+                    const Icon = route.icon
+                    return (
+                      <Link
+                        key={route.href}
+                        href={route.href}
+                        onClick={() => setOpen(false)}
+                        className={cn(
+                          'flex items-center space-x-3 rounded-md px-2 py-2 transition-colors hover:bg-accent hover:text-accent-foreground',
+                          pathname?.startsWith(route.href) ? 'bg-accent/40 text-foreground' : 'text-foreground/60'
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{route.label}</span>
+                      </Link>
+                    )
+                  })}
                 </div>
               </div>
 

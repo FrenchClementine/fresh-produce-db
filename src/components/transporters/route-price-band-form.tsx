@@ -61,6 +61,7 @@ const priceBandSchema = z.object({
   min_pallets: z.number().min(1, 'Minimum pallets must be at least 1'),
   max_pallets: z.number().optional(),
   price_per_pallet: z.number().min(0.01, 'Price must be greater than 0'),
+  valid_till: z.string().optional(),
 }).refine((data) => {
   if (data.max_pallets !== undefined) {
     return data.max_pallets >= data.min_pallets
@@ -103,6 +104,7 @@ export function RoutePriceBandForm({ priceBandId, routeId, onSuccess, onCancel }
       min_pallets: 1,
       max_pallets: undefined,
       price_per_pallet: 0,
+      valid_till: undefined,
     },
     values: currentPriceBand ? {
       transporter_route_id: currentPriceBand.transporter_route_id,
@@ -110,12 +112,14 @@ export function RoutePriceBandForm({ priceBandId, routeId, onSuccess, onCancel }
       min_pallets: currentPriceBand.min_pallets,
       max_pallets: currentPriceBand.max_pallets || undefined,
       price_per_pallet: currentPriceBand.price_per_pallet || 0,
+      valid_till: currentPriceBand.valid_till || undefined,
     } : newRouteId ? {
       transporter_route_id: newRouteId,
       pallet_dimensions: '120x100',
       min_pallets: 1,
       max_pallets: undefined,
       price_per_pallet: 0,
+      valid_till: undefined,
     } : undefined,
   })
 
@@ -400,8 +404,8 @@ export function RoutePriceBandForm({ priceBandId, routeId, onSuccess, onCancel }
               <FormItem>
                 <FormLabel>Maximum Pallets</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
+                  <Input
+                    type="number"
                     min="1"
                     placeholder="15 (leave empty for unlimited)"
                     value={field.value || ''}
@@ -415,10 +419,32 @@ export function RoutePriceBandForm({ priceBandId, routeId, onSuccess, onCancel }
                   />
                 </FormControl>
                 <FormDescription>
-                  {pricingMode === 'full_truck' 
-                    ? 'Set to full truck capacity' 
+                  {pricingMode === 'full_truck'
+                    ? 'Set to full truck capacity'
                     : 'Maximum quantity for this tier (optional)'
                   }
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="valid_till"
+            render={({ field }) => (
+              <FormItem className="col-span-2">
+                <FormLabel>Valid Until</FormLabel>
+                <FormControl>
+                  <Input
+                    type="date"
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Date until which this price band is valid (optional)
                 </FormDescription>
                 <FormMessage />
               </FormItem>

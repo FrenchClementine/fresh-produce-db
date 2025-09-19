@@ -40,6 +40,7 @@ export interface TransporterRoutePriceBand {
   min_pallets: number
   max_pallets?: number
   price_per_pallet: number
+  valid_till?: string
   created_at: string
   last_updated_at: string
 }

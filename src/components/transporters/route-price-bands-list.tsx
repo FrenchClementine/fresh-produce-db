@@ -227,6 +227,7 @@ export function RoutePriceBandsList() {
                   <TableHead>Pallet Size</TableHead>
                   <TableHead>Quantity Range</TableHead>
                   <TableHead>Price per Pallet</TableHead>
+                  <TableHead>Valid Until</TableHead>
                   <TableHead>Price Age</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -234,7 +235,7 @@ export function RoutePriceBandsList() {
               <TableBody>
                 {filteredBands.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       {searchTerm || selectedRoute !== 'all' ? 'No price bands found matching your filters.' : 'No price bands added yet.'}
                     </TableCell>
                   </TableRow>
@@ -273,6 +274,15 @@ export function RoutePriceBandsList() {
                           <div className="font-medium">
                             €{band.price_per_pallet.toFixed(2)}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {band.valid_till ? (
+                            <div className="text-sm">
+                              {new Date(band.valid_till).toLocaleDateString('en-GB')}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">No expiry</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge variant={getPriceAgeVariant(daysOld)} className="text-xs">
