@@ -170,7 +170,7 @@ export default function InputPricesPage() {
           hub_id: hubId || availableHubs[0]?.id,
           price_per_unit: parseFloat(priceData.price),
           currency: 'EUR',
-          delivery_mode: selectedDeliveryMode as 'Ex Works' | 'Delivery',
+          delivery_mode: selectedDeliveryMode as any,
           valid_from: new Date(priceData.validFrom).toISOString(),
           valid_until: new Date(priceData.validUntil).toISOString(),
           is_active: true,
