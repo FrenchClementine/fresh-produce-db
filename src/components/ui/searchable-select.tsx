@@ -70,12 +70,12 @@ export function SearchableSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
+      <PopoverContent className="w-full p-0" align="start" style={{ maxHeight: 'min(500px, 80vh)' }}>
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
-          <CommandList>
+          <CommandList style={{ maxHeight: '400px', overflowY: 'auto' }}>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
-            <CommandGroup>
+            <CommandGroup style={{ maxHeight: '380px', overflowY: 'auto' }}>
               {options.map((option) => (
                 <CommandItem
                   key={option.value}

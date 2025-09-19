@@ -20,6 +20,15 @@ export function formatWeight(kg: number) {
   return `${kg}kg`
 }
 
+export function formatCurrency(amount: number, currency: string = 'EUR') {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount)
+}
+
 export function getCountryFlag(countryCode: string) {
   const flags: Record<string, string> = {
     'Spain': '🇪🇸',

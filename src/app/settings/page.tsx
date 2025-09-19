@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Package, Box, Layers, Ruler, Settings, Plus, Edit, Trash2, MapPin, Award, Tag, UserCheck } from 'lucide-react'
+import { Package, Box, Layers, Ruler, Settings, Plus, Edit, Trash2, MapPin, Award, Tag, UserCheck, Loader2 } from 'lucide-react'
 import { useProducts, usePackagingOptions, usePallets, useSizeOptions, useHubs, useCertifications, useProductCategories } from '@/hooks/use-products'
 import { useStaffWithCustomerCount } from '@/hooks/use-staff'
 import {
@@ -32,6 +32,7 @@ import { EditHubForm } from '@/components/forms/edit-hub-form'
 import { AddCertificationForm } from '@/components/forms/add-certification-form'
 import { AddStaffForm } from '@/components/forms/add-staff-form'
 import { EditStaffForm } from '@/components/forms/edit-staff-form'
+import { useCoordinateResolution } from '@/hooks/use-coordinate-resolution'
 
 // Category emojis mapping
 const categoryEmojis: Record<string, string> = {
@@ -85,6 +86,9 @@ export default function SettingsPage() {
   const [showAddStaff, setShowAddStaff] = useState(false)
   const queryClient = useQueryClient()
 
+  // Coordinate resolution hook
+  const { resolveEntityCoordinates, isBatchProcessing } = useCoordinateResolution()
+
   const handleDelete = async (table: string, id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
       return
@@ -106,6 +110,21 @@ export default function SettingsPage() {
       toast.error(`Failed to delete ${name}: ${error.message}`)
     } finally {
       setIsDeleting(null)
+    }
+  }
+
+  const handleFillMissingCoordinates = async () => {
+    try {
+      const stats = await resolveEntityCoordinates('hubs', 50);
+      if (stats.processed > 0) {
+        await queryClient.invalidateQueries({ queryKey: ['hubs'] });
+        toast.success(`Geocoded ${stats.successful} hubs${stats.failed > 0 ? `, ${stats.failed} failed` : ''}`);
+      } else {
+        toast.info('All hubs already have coordinates');
+      }
+    } catch (error) {
+      console.error('Error filling missing coordinates:', error);
+      toast.error('Failed to fill missing coordinates');
     }
   }
 
@@ -605,10 +624,29 @@ export default function SettingsPage() {
                     Manage distribution and logistics hubs
                   </CardDescription>
                 </div>
-                <Button onClick={() => setShowAddHub(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Hub
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleFillMissingCoordinates}
+                    disabled={isBatchProcessing}
+                  >
+                    {isBatchProcessing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Filling...
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="mr-2 h-4 w-4" />
+                        Fill Missing Coordinates
+                      </>
+                    )}
+                  </Button>
+                  <Button onClick={() => setShowAddHub(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Hub
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>

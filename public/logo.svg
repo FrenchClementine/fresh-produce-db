@@ -1,0 +1,16 @@
+<svg width="300" height="120" viewBox="0 0 300 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Leaf icon -->
+  <g transform="translate(20, 30)">
+    <!-- Green leaf shape -->
+    <path d="M0 20 C0 0, 20 0, 30 10 C25 5, 35 15, 30 30 C25 35, 15 30, 10 25 C5 30, 0 25, 0 20 Z" fill="#4CAF50"/>
+    <!-- Yellow leaf overlay -->
+    <path d="M10 15 C10 5, 25 5, 30 12 C28 8, 32 18, 28 25 C25 28, 18 25, 15 22 C12 25, 10 22, 10 15 Z" fill="#CDDC39"/>
+  </g>
+
+  <!-- Main text -->
+  <text x="80" y="45" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#1B5E20">Produce</text>
+  <text x="80" y="75" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#1B5E20">Services</text>
+
+  <!-- Europe text -->
+  <text x="80" y="105" font-family="Arial, sans-serif" font-size="28" font-weight="normal" fill="#4CAF50">Europe</text>
+</svg>

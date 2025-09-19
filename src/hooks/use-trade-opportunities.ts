@@ -105,6 +105,7 @@ interface SupplierPrice {
   delivery_mode: 'Ex Works' | 'DELIVERY' | 'TRANSIT'
   valid_until: string
   units_per_pallet: number
+  has_pricing?: boolean // Flag to indicate if supplier has active pricing
 }
 
 interface CustomerLogisticsCapability {
@@ -242,19 +243,114 @@ async function getCustomerRequirements(): Promise<CustomerRequirement[]> {
   })
 }
 
-// Find matching supplier prices for customer requirements
-async function findMatchingSupplierPrices(requirements: CustomerRequirement[]): Promise<SupplierPrice[]> {
+// Find matching suppliers for customer requirements (with and without active pricing)
+async function findMatchingSuppliers(requirements: CustomerRequirement[]): Promise<SupplierPrice[]> {
   const productSpecIds = requirements.map(req => req.product_packaging_spec_id)
 
-  const { data, error } = await supabase
+  // First, get suppliers with active pricing
+  const { data: suppliersWithPricing, error: pricingError } = await supabase
     .from('current_supplier_prices')
     .select('*')
     .in('product_packaging_spec_id', productSpecIds)
     .eq('is_active', true)
 
-  if (error) throw error
+  if (pricingError) throw pricingError
 
-  return data
+  // Then, get suppliers without pricing but who offer these products
+  const { data: suppliersWithoutPricing, error: noPricingError } = await supabase
+    .from('supplier_product_packaging_spec')
+    .select(`
+      supplier_id,
+      product_packaging_spec_id,
+      suppliers!inner(
+        id,
+        name,
+        is_active
+      ),
+      product_packaging_specs!inner(
+        id,
+        boxes_per_pallet,
+        weight_per_box,
+        weight_per_pallet,
+        weight_unit,
+        pieces_per_box,
+        products!inner(
+          id,
+          name,
+          category,
+          sold_by,
+          intended_use
+        ),
+        packaging_options!inner(
+          label
+        ),
+        size_options!inner(
+          name
+        )
+      )
+    `)
+    .in('product_packaging_spec_id', productSpecIds)
+    .eq('suppliers.is_active', true)
+
+  if (noPricingError) throw noPricingError
+
+  // Filter out suppliers that already have pricing
+  const suppliersWithPricingIds = new Set(suppliersWithPricing?.map(s => s.supplier_id) || [])
+  const filteredSuppliersWithoutPricing = suppliersWithoutPricing?.filter(
+    s => !suppliersWithPricingIds.has(s.supplier_id)
+  ) || []
+
+  // Convert suppliers without pricing to the same format
+  const suppliersWithoutPricingFormatted = filteredSuppliersWithoutPricing.map(item => {
+    const supplier = item.suppliers
+    const spec = item.product_packaging_specs
+    const product = spec.products
+    const packaging = spec.packaging_options
+    const size = spec.size_options
+
+    // Calculate units per pallet based on sold_by
+    let unitsPerPallet = 0
+    switch (product.sold_by) {
+      case 'kg':
+        unitsPerPallet = spec.weight_per_pallet
+        break
+      case 'piece':
+        unitsPerPallet = spec.pieces_per_box ? spec.pieces_per_box * spec.boxes_per_pallet : spec.boxes_per_pallet
+        break
+      case 'box':
+      case 'punnet':
+      case 'bag':
+        unitsPerPallet = spec.boxes_per_pallet
+        break
+      default:
+        unitsPerPallet = spec.boxes_per_pallet
+    }
+
+    return {
+      id: `no-price-${item.supplier_id}-${item.product_packaging_spec_id}`,
+      supplier_id: supplier.id,
+      supplier_name: supplier.name,
+      hub_id: '', // Unknown - no hub info without pricing
+      hub_name: 'No Hub Info',
+      hub_code: '',
+      product_packaging_spec_id: spec.id,
+      price_per_unit: 0, // No pricing available
+      currency: 'EUR',
+      delivery_mode: 'Ex Works' as const, // Default assumption
+      valid_until: '',
+      units_per_pallet: unitsPerPallet,
+      has_pricing: false // Flag to indicate no pricing
+    }
+  })
+
+  // Add has_pricing flag to suppliers with pricing
+  const suppliersWithPricingFlagged = (suppliersWithPricing || []).map(supplier => ({
+    ...supplier,
+    has_pricing: true
+  }))
+
+  // Combine both lists
+  return [...suppliersWithPricingFlagged, ...suppliersWithoutPricingFormatted]
 }
 
 // Get customer logistics capabilities
@@ -549,7 +645,7 @@ async function generateTradeOpportunities(): Promise<TradeOpportunity[]> {
   console.log(`📋 Found ${requirements.length} customer requirements`)
 
   // 2. Find matching supplier prices
-  const supplierPrices = await findMatchingSupplierPrices(requirements)
+  const supplierPrices = await findMatchingSuppliers(requirements)
   console.log(`💰 Found ${supplierPrices.length} supplier prices`)
 
   // 3. Get logistics capabilities
@@ -597,15 +693,27 @@ async function generateTradeOpportunities(): Promise<TradeOpportunity[]> {
       if (logisticsSolution) {
         console.log(`   ✅ Found logistics solution: ${logisticsSolution.type}`)
 
-        // Calculate pricing with 10% margin
-        const basePricePerUnit = supplierPrice.price_per_unit
-        const transportCostPerUnit = logisticsSolution.transportCostPerUnit
-        const subtotalPerUnit = basePricePerUnit + transportCostPerUnit
-        const marginPercentage = 10
-        const marginPerUnit = subtotalPerUnit * (marginPercentage / 100)
-        const finalPricePerUnit = subtotalPerUnit + marginPerUnit
+        // Calculate pricing with 10% margin (only if supplier has pricing)
+        let basePricePerUnit, transportCostPerUnit, subtotalPerUnit, marginPercentage, marginPerUnit, finalPricePerUnit
 
-        console.log(`   💰 Pricing: Base €${basePricePerUnit} + Transport €${transportCostPerUnit} + Margin €${marginPerUnit} = €${finalPricePerUnit}`)
+        if (supplierPrice.has_pricing) {
+          basePricePerUnit = supplierPrice.price_per_unit
+          transportCostPerUnit = logisticsSolution.transportCostPerUnit
+          subtotalPerUnit = basePricePerUnit + transportCostPerUnit
+          marginPercentage = 10
+          marginPerUnit = subtotalPerUnit * (marginPercentage / 100)
+          finalPricePerUnit = subtotalPerUnit + marginPerUnit
+          console.log(`   💰 Pricing: Base €${basePricePerUnit} + Transport €${transportCostPerUnit} + Margin €${marginPerUnit} = €${finalPricePerUnit}`)
+        } else {
+          // Supplier without pricing - show as TBD
+          basePricePerUnit = 0
+          transportCostPerUnit = 0
+          subtotalPerUnit = 0
+          marginPercentage = 10
+          marginPerUnit = 0
+          finalPricePerUnit = 0
+          console.log(`   💰 Pricing: TBD (supplier has no active pricing)`)
+        }
 
         const opportunity: TradeOpportunity = {
           id: `${requirement.customer_id}-${supplierPrice.supplier_id}-${requirement.product_packaging_spec_id}`,
@@ -681,7 +789,44 @@ async function generateTradeOpportunities(): Promise<TradeOpportunity[]> {
 export function useTradeOpportunities(filters?: TradeOpportunityFilters) {
   return useQuery({
     queryKey: ['trade-opportunities', filters],
-    queryFn: generateTradeOpportunities,
+    queryFn: async () => {
+      const opportunities = await generateTradeOpportunities()
+
+      // Apply filters
+      let filtered = opportunities
+
+      // Filter by staff ID
+      if (filters?.staffId && filters.staffId !== 'all') {
+        if (filters.staffId === 'me') {
+          // TODO: Filter by current user's ID
+          // For now, this will return all
+        } else {
+          filtered = filtered.filter(opp => opp.customer.agent.id === filters.staffId)
+        }
+      }
+
+      // Filter by customer ID
+      if (filters?.customerId) {
+        filtered = filtered.filter(opp => opp.customer.id === filters.customerId)
+      }
+
+      // Filter by product category
+      if (filters?.productCategory) {
+        filtered = filtered.filter(opp => opp.product.category === filters.productCategory)
+      }
+
+      // Filter by priority
+      if (filters?.priority) {
+        filtered = filtered.filter(opp => opp.priority.toLowerCase() === filters.priority?.toLowerCase())
+      }
+
+      // Filter by status (if implemented)
+      if (filters?.status) {
+        // TODO: Implement status filtering when status is tracked
+      }
+
+      return filtered
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   })

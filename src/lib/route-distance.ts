@@ -6,11 +6,45 @@ export async function calculateRouteDistance(
   startLng: number,
   endLat: number,
   endLng: number
-): Promise<{ distance: number; duration: number; success: boolean }> {
+): Promise<{ distance: number; duration: number; success: boolean; coordinates?: [number, number][] }> {
   try {
-    // Due to CORS restrictions, we'll use an improved estimation approach
-    // that provides more accurate road distance estimates
+    // First try to get actual routing data from OSRM (Open Source Routing Machine)
+    try {
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`
 
+      const response = await fetch(osrmUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+
+        if (data.routes && data.routes.length > 0) {
+          const route = data.routes[0]
+          const distance = Math.round(route.distance / 1000) // Convert from meters to km
+          const duration = Math.round(route.duration / 3600) // Convert from seconds to hours
+
+          // Convert coordinates from [lng, lat] to [lat, lng] for Leaflet
+          const coordinates: [number, number][] = route.geometry.coordinates.map(
+            (coord: [number, number]) => [coord[1], coord[0]]
+          )
+
+          return {
+            distance,
+            duration,
+            success: true,
+            coordinates
+          }
+        }
+      }
+    } catch (routingError) {
+      console.warn('OSRM routing failed, falling back to estimation:', routingError)
+    }
+
+    // Fallback to estimation if routing fails
     // Calculate straight-line distance using Haversine formula
     const straightDistance = calculateStraightLineDistance(startLat, startLng, endLat, endLng);
 

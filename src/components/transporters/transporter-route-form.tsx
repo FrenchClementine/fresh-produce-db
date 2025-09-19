@@ -38,7 +38,7 @@ import {
   useUpdateTransporterRoute,
   useTransporters
 } from '@/hooks/use-transporters'
-import { useHubs } from '@/hooks/use-products'
+import { useAllHubs } from '@/hooks/use-hubs'
 import { HubForm } from './hub-form'
 import { LocationHubSelector } from './location-hub-selector'
 import { toast } from 'sonner'
@@ -85,7 +85,7 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
   
   const { data: route, isLoading: routeLoading } = useTransporterRoute(routeId)
   const { data: transporters, isLoading: transportersLoading } = useTransporters()
-  const { hubs, isLoading: hubsLoading, error: hubsError } = useHubs()
+  const { data: hubs, isLoading: hubsLoading, error: hubsError } = useAllHubs()
   const createRoute = useCreateTransporterRoute()
   const updateRoute = useUpdateTransporterRoute()
 

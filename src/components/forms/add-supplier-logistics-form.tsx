@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -21,18 +21,31 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { SearchableSelect } from '@/components/ui/searchable-select'
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from '@/components/ui/popover'
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from '@/components/ui/command'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
-import { useHubs } from '@/hooks/use-products'
+import { useAllHubs, type Hub } from '@/hooks/use-hubs'
 import { useDistanceAdvisory } from '@/hooks/use-distance-advisory'
 import { DistanceAdvisory } from '@/components/distance-advisory'
 import { useNearestHubs } from '@/hooks/use-nearest-hubs'
 import { NearestHubsSuggestion } from '@/components/nearest-hubs-suggestion'
-import { Plus } from 'lucide-react'
+import { Plus, ChevronsUpDown, Check } from 'lucide-react'
 
 const addLogisticsSchema = z.object({
   origin_hub_id: z.string().min(1, 'Origin hub is required'),
@@ -92,10 +105,14 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
   const [newHubData, setNewHubData] = useState({ name: '', hub_code: '', country_code: '', city_name: '', region: '' })
   const [showCreateHub, setShowCreateHub] = useState(false)
   const [hubType, setHubType] = useState<'origin' | 'destination' | null>(null)
+  const [originSearchQuery, setOriginSearchQuery] = useState('')
+  const [destinationSearchQuery, setDestinationSearchQuery] = useState('')
+  const [originPopoverOpen, setOriginPopoverOpen] = useState(false)
+  const [destinationPopoverOpen, setDestinationPopoverOpen] = useState(false)
 
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { hubs } = useHubs()
+  const { data: hubs } = useAllHubs()
 
   // Fetch supplier data for distance calculations
   const { data: supplier } = useQuery({
@@ -136,6 +153,40 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
   const selectedOriginHubId = form.watch('origin_hub_id')
   const selectedDestinationHubId = form.watch('destination_hub_id')
   const isExWorks = selectedMode === 'Ex Works'
+
+  const formatHubLabel = useCallback((hub: Hub) => {
+    const parts: string[] = [hub.name]
+    if (hub.hub_code) parts.push(`(${hub.hub_code})`)
+    const locationParts = [hub.city_name, hub.country_code].filter(Boolean).join(', ')
+    return locationParts ? `${parts.join(' ')} • ${locationParts}` : parts.join(' ')
+  }, [])
+
+  const filterHubs = useCallback((query: string) => {
+    const trimmed = query.trim().toLowerCase()
+    if (!trimmed) return (hubs || []) as Hub[]
+    return ((hubs || []) as Hub[]).filter((hub) => {
+      const values = [hub.name, hub.hub_code, hub.city_name, hub.country_code]
+        .filter(Boolean)
+        .map((value) => value!.toLowerCase())
+      return values.some((value) => value.includes(trimmed))
+    })
+  }, [hubs])
+
+  const selectedOriginHub = (hubs || []).find((h) => h.id === selectedOriginHubId)
+  const selectedDestinationHub = (hubs || []).find((h) => h.id === selectedDestinationHubId)
+  const filteredOriginHubs = useMemo(() => filterHubs(originSearchQuery), [filterHubs, originSearchQuery])
+  const filteredDestinationHubs = useMemo(() => filterHubs(destinationSearchQuery), [filterHubs, destinationSearchQuery])
+
+  const availableDestinationHubs = useMemo(() => filteredDestinationHubs.filter((hub) => hub.id !== selectedOriginHubId), [filteredDestinationHubs, selectedOriginHubId])
+
+  useEffect(() => {
+    if (!open) {
+      setOriginPopoverOpen(false)
+      setDestinationPopoverOpen(false)
+      setOriginSearchQuery('')
+      setDestinationSearchQuery('')
+    }
+  }, [open])
 
   // Clear destination hub when Ex Works is selected
   useEffect(() => {
@@ -230,6 +281,7 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
       setHubType(null)
 
       // Refresh hubs data
+      queryClient.invalidateQueries({ queryKey: ['all-hubs'] })
       queryClient.invalidateQueries({ queryKey: ['hubs'] })
       
     } catch (error: any) {
@@ -344,16 +396,56 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
                   <FormItem>
                     <FormLabel>Origin Hub *</FormLabel>
                     <div className="flex gap-2">
-                      <SearchableSelect
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        options={hubs?.map((hub) => ({
-                          value: hub.id,
-                          label: `${hub.name} (${hub.hub_code})`,
-                        })) || []}
-                        placeholder="Select origin hub"
-                        searchPlaceholder="Search hubs..."
-                      />
+                      <Popover
+                        open={originPopoverOpen}
+                        onOpenChange={(open) => {
+                          setOriginPopoverOpen(open)
+                          if (!open) setOriginSearchQuery('')
+                        }}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={originPopoverOpen}
+                            className="w-full justify-between"
+                          >
+                            {selectedOriginHub ? formatHubLabel(selectedOriginHub) : 'Select origin hub'}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0">
+                          <Command>
+                            <CommandInput
+                              placeholder="Search hubs..."
+                              value={originSearchQuery}
+                              onValueChange={setOriginSearchQuery}
+                            />
+                            <CommandList>
+                              <CommandEmpty>No hubs found.</CommandEmpty>
+                              <CommandGroup className="max-h-60 overflow-auto">
+                                {filteredOriginHubs.map((hub) => (
+                                  <CommandItem
+                                    key={hub.id}
+                                    value={`${hub.name ?? ''} ${hub.hub_code ?? ''} ${hub.city_name ?? ''}`}
+                                    onSelect={() => {
+                                      field.onChange(hub.id)
+                                      setOriginPopoverOpen(false)
+                                      setOriginSearchQuery('')
+                                    }}
+                                  >
+                                    <Check
+                                      className={field.value === hub.id ? 'mr-2 h-4 w-4 opacity-100' : 'mr-2 h-4 w-4 opacity-0'}
+                                    />
+                                    {formatHubLabel(hub)}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <Button
                         type="button"
                         variant="outline"
@@ -395,19 +487,60 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
                       {isExWorks && <span className="text-sm text-muted-foreground ml-1">(Not needed for Ex Works)</span>}
                     </FormLabel>
                     <div className="flex gap-2">
-                      <div className={isExWorks ? "opacity-50" : ""}>
-                        <SearchableSelect
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          options={hubs?.filter(hub => hub.id !== form.watch('origin_hub_id')).map((hub) => ({
-                            value: hub.id,
-                            label: `${hub.name} (${hub.hub_code})`,
-                          })) || []}
-                          placeholder={isExWorks ? "N/A for Ex Works" : "Select destination hub"}
-                          searchPlaceholder="Search hubs..."
-                          disabled={isExWorks}
-                        />
-                      </div>
+                      <Popover
+                        open={!isExWorks && destinationPopoverOpen}
+                        onOpenChange={(open) => {
+                          if (isExWorks) return
+                          setDestinationPopoverOpen(open)
+                          if (!open) setDestinationSearchQuery('')
+                        }}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={!isExWorks && destinationPopoverOpen}
+                            className={isExWorks ? 'w-full justify-between opacity-50 cursor-not-allowed' : 'w-full justify-between'}
+                            disabled={isExWorks}
+                          >
+                            {selectedDestinationHub ? formatHubLabel(selectedDestinationHub) : isExWorks ? 'N/A for Ex Works' : 'Select destination hub'}
+                            {!isExWorks && <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
+                          </Button>
+                        </PopoverTrigger>
+                        {!isExWorks && (
+                          <PopoverContent className="w-[400px] p-0">
+                            <Command>
+                              <CommandInput
+                                placeholder="Search hubs..."
+                                value={destinationSearchQuery}
+                                onValueChange={setDestinationSearchQuery}
+                              />
+                              <CommandList>
+                                <CommandEmpty>No hubs found.</CommandEmpty>
+                                <CommandGroup className="max-h-60 overflow-auto">
+                                  {availableDestinationHubs.map((hub) => (
+                                    <CommandItem
+                                      key={hub.id}
+                                      value={`${hub.name ?? ''} ${hub.hub_code ?? ''} ${hub.city_name ?? ''}`}
+                                      onSelect={() => {
+                                        field.onChange(hub.id)
+                                        setDestinationPopoverOpen(false)
+                                        setDestinationSearchQuery('')
+                                      }}
+                                    >
+                                      <Check
+                                        className={field.value === hub.id ? 'mr-2 h-4 w-4 opacity-100' : 'mr-2 h-4 w-4 opacity-0'}
+                                      />
+                                      {formatHubLabel(hub)}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        )}
+                      </Popover>
                       <Button
                         type="button"
                         variant="outline"

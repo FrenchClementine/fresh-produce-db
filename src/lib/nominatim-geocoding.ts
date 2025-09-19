@@ -151,51 +151,16 @@ export async function geocodeAndUpdateEntity(
     const result = await geocodeWithNominatim(city, country);
 
     if (!result.success) {
-      // Update failed geocoding status
-      // First get current attempts count
-      const { data: currentData } = await supabase
-        .from(entityType)
-        .select('geocoding_attempts')
-        .eq('id', entityId)
-        .single();
-
-      const currentAttempts = currentData?.geocoding_attempts || 0;
-
-      const { error: updateError } = await supabase
-        .from(entityType)
-        .update({
-          geocoding_failed: true,
-          geocoding_attempts: currentAttempts + 1,
-          coordinates_last_updated: new Date().toISOString()
-        })
-        .eq('id', entityId);
-
-      if (updateError) {
-        console.error(`Failed to update geocoding failure status:`, updateError);
-      }
-
+      console.warn(`Failed to geocode ${city}, ${country} for ${entityType} ${entityId}`);
       return false;
     }
 
-    // Update with successful coordinates
-    // First get current attempts count
-    const { data: currentData3 } = await supabase
-      .from(entityType)
-      .select('geocoding_attempts')
-      .eq('id', entityId)
-      .single();
-
-    const currentAttempts3 = currentData3?.geocoding_attempts || 0;
-
+    // Update with successful coordinates - only the essential fields
     const { error: updateError } = await supabase
       .from(entityType)
       .update({
         latitude: result.coordinates!.latitude,
-        longitude: result.coordinates!.longitude,
-        coordinates_last_updated: new Date().toISOString(),
-        coordinates_source: 'nominatim',
-        geocoding_failed: false,
-        geocoding_attempts: currentAttempts3 + 1
+        longitude: result.coordinates!.longitude
       })
       .eq('id', entityId);
 
@@ -204,7 +169,7 @@ export async function geocodeAndUpdateEntity(
       return false;
     }
 
-    console.log(`Updated coordinates for ${entityType} ${entityId}: ${city}, ${country}`);
+    console.log(`Updated coordinates for ${entityType} ${entityId}: ${city}, ${country} -> ${result.coordinates!.latitude}, ${result.coordinates!.longitude}`);
     return true;
 
   } catch (error) {
@@ -231,14 +196,13 @@ export async function batchGeocodeEntities(
     const cityField = entityType === 'hubs' ? 'city_name' : 'city';
     const countryField = entityType === 'hubs' ? 'country_code' : 'country';
 
+    // Simple query - just get entities without coordinates
     const { data: entities, error } = await supabase
       .from(entityType)
-      .select(`id, ${cityField}, ${countryField}, geocoding_attempts`)
+      .select(`id, ${cityField}, ${countryField}`)
       .is('latitude', null)
-      .eq('geocoding_failed', false)
       .not(cityField, 'is', null)
       .not(countryField, 'is', null)
-      .lt('geocoding_attempts', 3) // Don't retry more than 3 times
       .limit(limit);
 
     if (error) {

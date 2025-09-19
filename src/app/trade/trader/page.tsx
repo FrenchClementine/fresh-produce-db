@@ -51,8 +51,8 @@ import {
   Route
 } from 'lucide-react'
 import { useTradeOpportunities, useTradeOpportunityStats, type TradeOpportunityFilters } from '@/hooks/use-trade-opportunities'
-import { useActiveStaff } from '@/hooks/use-staff'
-import { useActiveCustomers } from '@/hooks/use-customers'
+import { useAllStaff } from '@/hooks/use-staff'
+import { useAllCustomers } from '@/hooks/use-customers'
 import { useProducts } from '@/hooks/use-products'
 import { format } from 'date-fns'
 
@@ -67,8 +67,8 @@ export default function TraderPage() {
   // Fetch data
   const { data: opportunities = [], isLoading, error } = useTradeOpportunities(filters)
   const { stats, isLoading: statsLoading } = useTradeOpportunityStats(filters)
-  const { activeStaff = [] } = useActiveStaff()
-  const { activeCustomers = [] } = useActiveCustomers()
+  const { allStaff = [] } = useAllStaff()
+  const { allCustomers = [] } = useAllCustomers()
   const { products = [] } = useProducts()
 
   // Get unique product categories for filtering
@@ -157,7 +157,7 @@ export default function TraderPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-transition">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Trade Opportunities</h1>
@@ -247,7 +247,7 @@ export default function TraderPage() {
                 <SelectContent>
                   <SelectItem value="all">All staff</SelectItem>
                   <SelectItem value="me">My customers only</SelectItem>
-                  {activeStaff.map(staff => (
+                  {allStaff.map(staff => (
                     <SelectItem key={staff.id} value={staff.id}>
                       {staff.name}
                     </SelectItem>
@@ -317,7 +317,7 @@ export default function TraderPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All customers</SelectItem>
-                  {activeCustomers.map(customer => (
+                  {allCustomers.map(customer => (
                     <SelectItem key={customer.id} value={customer.id}>
                       {customer.name}
                     </SelectItem>
@@ -426,13 +426,13 @@ export default function TraderPage() {
                       <TableCell className="text-right">
                         <div>
                           <div className="font-semibold text-green-700">
-                            {formatCurrency(opportunity.pricing.finalPricePerUnit)}
+                            {opportunity.pricing.finalPricePerUnit === 0 ? 'Price TBD' : formatCurrency(opportunity.pricing.finalPricePerUnit)}
                           </div>
                           <div className="text-sm text-gray-500">
-                            Margin: {opportunity.pricing.marginPercentage.toFixed(1)}%
+                            {opportunity.pricing.finalPricePerUnit === 0 ? 'Contact supplier' : `Margin: ${opportunity.pricing.marginPercentage.toFixed(1)}%`}
                           </div>
                           <div className="text-xs text-gray-400">
-                            Base: {formatCurrency(opportunity.pricing.basePricePerUnit)}
+                            Base: {opportunity.pricing.basePricePerUnit === 0 ? 'TBD' : formatCurrency(opportunity.pricing.basePricePerUnit)}
                           </div>
                           {opportunity.pricing.transportCostPerUnit > 0 && (
                             <div className="text-xs text-gray-400">
@@ -545,12 +545,16 @@ export default function TraderPage() {
                                     <div className="border-t pt-2">
                                       <div className="flex justify-between font-semibold">
                                         <span>Final Price per {opportunity.product.soldBy}:</span>
-                                        <span className="text-green-700">{formatCurrency(opportunity.pricing.finalPricePerUnit)}</span>
+                                        <span className="text-green-700">
+                                          {opportunity.pricing.finalPricePerUnit === 0 ? 'Price TBD' : formatCurrency(opportunity.pricing.finalPricePerUnit)}
+                                        </span>
                                       </div>
                                     </div>
-                                    <div className="text-xs text-gray-500 pt-2">
-                                      Per pallet: {formatCurrency(opportunity.pricing.finalPricePerUnit * opportunity.product.unitsPerPallet)}
-                                    </div>
+                                    {opportunity.pricing.finalPricePerUnit > 0 && (
+                                      <div className="text-xs text-gray-500 pt-2">
+                                        Per pallet: {formatCurrency(opportunity.pricing.finalPricePerUnit * opportunity.product.unitsPerPallet)}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
 

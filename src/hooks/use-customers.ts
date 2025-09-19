@@ -184,3 +184,32 @@ export function useCustomerLogistics(customerId: string) {
     error
   }
 }
+
+// Get ALL customers (including inactive) - for comprehensive filtering
+export function useAllCustomers() {
+  const { data: allCustomers, isLoading, error } = useQuery({
+    queryKey: ['all-customers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('customers')
+        .select(`
+          *,
+          staff:agent_id(id, name, role)
+        `)
+        .order('name')
+
+      if (error) {
+        console.error('Error fetching all customers:', error)
+        throw error
+      }
+
+      return data
+    }
+  })
+
+  return {
+    allCustomers,
+    isLoading,
+    error
+  }
+}

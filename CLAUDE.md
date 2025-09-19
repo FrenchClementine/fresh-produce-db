@@ -114,3 +114,5 @@ If encountering errors:
 ---
 
 **Remember**: This document should be your first reference point for any development work. When in doubt, always check the database schema and existing patterns before proceeding.
+
+NEVER NEVER COMMIT WITH ASKING ME

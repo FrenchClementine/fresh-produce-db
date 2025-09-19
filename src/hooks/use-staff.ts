@@ -83,3 +83,59 @@ export function useStaffWithCustomerCount() {
     error
   }
 }
+
+// Get current staff member based on auth user ID
+export function useCurrentStaffMember() {
+  return useQuery({
+    queryKey: ['current-staff-member'],
+    queryFn: async () => {
+      // Get current auth user
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        return null
+      }
+
+      // Find staff member with matching auth_user_id
+      const { data, error } = await supabase
+        .from('staff')
+        .select('*')
+        .eq('auth_user_id', user.id)
+        .eq('is_active', true)
+        .single()
+
+      if (error) {
+        console.error('Error fetching current staff member:', error)
+        return null // Return null if no staff record found
+      }
+
+      return data
+    }
+  })
+}
+
+// Get ALL staff members (including inactive) - for comprehensive filtering
+export function useAllStaff() {
+  const { data: allStaff, isLoading, error } = useQuery({
+    queryKey: ['all-staff'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('staff')
+        .select('*')
+        .order('name')
+
+      if (error) {
+        console.error('Error fetching all staff:', error)
+        throw error
+      }
+
+      return data
+    }
+  })
+
+  return {
+    allStaff,
+    isLoading,
+    error
+  }
+}

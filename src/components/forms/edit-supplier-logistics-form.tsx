@@ -27,7 +27,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
-import { useHubs } from '@/hooks/use-products'
+import { useAllHubs } from '@/hooks/use-hubs'
 
 const editLogisticsSchema = z.object({
   origin_hub_id: z.string().min(1, 'Origin hub is required'),
@@ -91,7 +91,7 @@ export function EditSupplierLogisticsForm({
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { hubs } = useHubs()
+  const { data: hubs } = useAllHubs()
 
   const form = useForm<EditLogisticsFormValues>({
     resolver: zodResolver(editLogisticsSchema),

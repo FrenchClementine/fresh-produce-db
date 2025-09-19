@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -54,19 +54,46 @@ export function LocationHubSelector({
   const [nearestHubs, setNearestHubs] = useState<NearestHub[]>([])
   const [searchError, setSearchError] = useState<string | null>(null)
   const [foundCoordinates, setFoundCoordinates] = useState<{ latitude: number; longitude: number } | null>(null)
+  const searchCacheRef = useRef<Map<string, { coordinates: { latitude: number; longitude: number }; hubs: NearestHub[] }>>(new Map())
 
   const { hubs, isLoading: hubsLoading } = useHubs()
 
+  useEffect(() => {
+    searchCacheRef.current.clear()
+  }, [hubs])
+
   const selectedHub = hubs?.find(h => h.id === value)
 
-  const searchNearestHubs = async (location: string) => {
+  const haversineDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const toRadians = (deg: number) => (deg * Math.PI) / 180
+    const R = 6371
+    const dLat = toRadians(lat2 - lat1)
+    const dLon = toRadians(lon2 - lon1)
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    return R * c
+  }, [])
+
+  const searchNearestHubs = useCallback(async (location: string) => {
     if (!location.trim()) return
 
     setIsSearching(true)
     setSearchError(null)
-    setNearestHubs([])
 
     try {
+      const normalizedQuery = location.trim().toLowerCase()
+
+      if (searchCacheRef.current.has(normalizedQuery)) {
+        const cached = searchCacheRef.current.get(normalizedQuery)!
+        setFoundCoordinates(cached.coordinates)
+        setNearestHubs(cached.hubs)
+        setIsSearching(false)
+        return
+      }
+
       // Geocode the location
       const geoResult = await geocodeWithNominatim(location, '')
 
@@ -88,30 +115,48 @@ export function LocationHubSelector({
         return
       }
 
-      // Calculate distances to all hubs
-      const destinations = activeHubs.map((hub: any) => ({
+      const withStraightLine = activeHubs
+        .map((hub: any) => ({
+          hub,
+          straightDistance: haversineDistance(
+            geoResult.coordinates!.latitude,
+            geoResult.coordinates!.longitude,
+            hub.latitude!,
+            hub.longitude!
+          )
+        }))
+        .sort((a, b) => a.straightDistance - b.straightDistance)
+
+      const topCandidates = withStraightLine.slice(0, 10)
+
+      const destinations = topCandidates.map(({ hub }) => ({
         lat: hub.latitude!,
         lng: hub.longitude!,
         id: hub.id
       }))
 
-      const distanceResults = await calculateMultipleRouteDistances(
-        geoResult.coordinates.latitude,
-        geoResult.coordinates.longitude,
-        destinations
-      )
+      let distanceResults: { id: string; distance: number; success: boolean }[] = []
+
+      if (destinations.length > 0) {
+        distanceResults = await calculateMultipleRouteDistances(
+          geoResult.coordinates.latitude,
+          geoResult.coordinates.longitude,
+          destinations
+        )
+      }
 
       // Combine hub data with distance results
-      const hubsWithDistances = activeHubs
-        .map(hub => {
+      const hubsWithDistances = topCandidates
+        .map(({ hub, straightDistance }) => {
           const distanceData = distanceResults.find(d => d.id === hub.id)
+          const distance = distanceData?.distance ?? Math.round(straightDistance)
           return {
             id: hub.id,
             name: hub.name,
             hub_code: hub.hub_code,
             city_name: hub.city_name,
             country_code: hub.country_code,
-            distance: distanceData?.distance || 0,
+            distance,
             isRoadDistance: distanceData?.success || false
           }
         })
@@ -120,6 +165,10 @@ export function LocationHubSelector({
         .slice(0, 3) // Get top 3 nearest hubs
 
       setNearestHubs(hubsWithDistances)
+      searchCacheRef.current.set(normalizedQuery, {
+        coordinates: geoResult.coordinates,
+        hubs: hubsWithDistances
+      })
 
     } catch (error) {
       console.error('Location search error:', error)
@@ -127,11 +176,14 @@ export function LocationHubSelector({
     } finally {
       setIsSearching(false)
     }
-  }
+  }, [hubs, haversineDistance])
 
-  const handleLocationSearch = () => {
-    searchNearestHubs(locationInput)
-  }
+
+  const handleLocationSearch = useCallback(() => {
+    if (!isSearching) {
+      searchNearestHubs(locationInput)
+    }
+  }, [isSearching, locationInput, searchNearestHubs])
 
   const handleHubSelect = (hubId: string) => {
     onChange(hubId)
@@ -208,7 +260,12 @@ export function LocationHubSelector({
               placeholder="e.g., Kapellen, BE or Amsterdam, Netherlands"
               value={locationInput}
               onChange={(e) => setLocationInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleLocationSearch()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleLocationSearch()
+                }
+              }}
             />
             <Button
               type="button"

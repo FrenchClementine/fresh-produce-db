@@ -22,6 +22,7 @@ interface RouteInfo {
   distance: number
   routeCoordinates: [number, number][]
   isRoadDistance?: boolean
+  actualRouteCoordinates?: [number, number][]
 }
 
 interface TransportMapProps {
@@ -196,8 +197,8 @@ export default function TransportMap({ hubs, routeInfo, onHubClick }: TransportM
       const L = await import('leaflet')
       routeLayer.clearLayers()
 
-      // Create route path
-      const routePath = createCurvedPath(
+      // Use actual route coordinates if available, otherwise create curved path
+      const routePath = routeInfo.actualRouteCoordinates || createCurvedPath(
         [routeInfo.fromHub.latitude, routeInfo.fromHub.longitude],
         [routeInfo.toHub.latitude, routeInfo.toHub.longitude]
       )
@@ -209,12 +210,12 @@ export default function TransportMap({ hubs, routeInfo, onHubClick }: TransportM
         opacity: 0.1
       })
 
-      // Add main route line
+      // Add main route line with different styling for actual vs estimated routes
       const routeLine = L.polyline(routePath, {
-        color: '#3b82f6',
-        weight: 4,
-        opacity: 0.8,
-        dashArray: '10, 10'
+        color: routeInfo.actualRouteCoordinates ? '#10b981' : '#3b82f6', // Green for actual routes, blue for estimated
+        weight: routeInfo.actualRouteCoordinates ? 5 : 4,
+        opacity: 0.9,
+        dashArray: routeInfo.actualRouteCoordinates ? undefined : '10, 10' // Solid line for actual routes, dashed for estimated
       })
 
       routeLayer.addLayer(shadowLine)
@@ -237,7 +238,7 @@ export default function TransportMap({ hubs, routeInfo, onHubClick }: TransportM
               font-size: 14px;
               box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             ">
-              ${routeInfo.distance} km ${routeInfo.isRoadDistance ? '🛣️' : '📏'}
+              ${routeInfo.distance} km ${routeInfo.actualRouteCoordinates ? '🚛' : routeInfo.isRoadDistance ? '🛣️' : '📏'}
             </div>
           `,
           className: '',

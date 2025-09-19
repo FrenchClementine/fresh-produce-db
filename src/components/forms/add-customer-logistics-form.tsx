@@ -47,7 +47,7 @@ import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useToast } from '@/hooks/use-toast'
 import { useQueryClient, useQuery } from '@tanstack/react-query'
-import { useHubs } from '@/hooks/use-products'
+import { useAllHubs } from '@/hooks/use-hubs'
 import { useDistanceAdvisory } from '@/hooks/use-distance-advisory'
 import { DistanceAdvisory } from '@/components/distance-advisory'
 import { useNearestHubs } from '@/hooks/use-nearest-hubs'
@@ -93,7 +93,7 @@ export function AddCustomerLogisticsForm({ open, onOpenChange, customerId }: Add
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const { toast } = useToast()
   const queryClient = useQueryClient()
-  const { hubs } = useHubs()
+  const { data: hubs } = useAllHubs()
 
   // Fetch customer data for distance calculations
   const { data: customer } = useQuery({
@@ -258,8 +258,8 @@ export function AddCustomerLogisticsForm({ open, onOpenChange, customerId }: Add
                 render={({ field }) => {
                   const selectedHub = hubs?.find(h => h.id === field.value)
                   const filteredHubs = hubs?.filter(hub => {
-                    if (!hub.is_active) return false
-                    if (!searchQuery || searchQuery.length === 0) return false
+                    // Show all hubs if no search query, otherwise filter by search
+                    if (!searchQuery || searchQuery.length === 0) return true
 
                     const searchTerm = searchQuery.toLowerCase()
                     const hubName = hub.name?.toLowerCase() || ''
@@ -303,10 +303,7 @@ export function AddCustomerLogisticsForm({ open, onOpenChange, customerId }: Add
                               onValueChange={setSearchQuery}
                             />
                             <CommandEmpty>
-                              {searchQuery.length === 0
-                                ? "Type at least one character to search..."
-                                : "No hubs found."
-                              }
+                              No hubs found.
                             </CommandEmpty>
                             {filteredHubs.length > 0 && (
                               <CommandGroup className="max-h-64 overflow-auto">
