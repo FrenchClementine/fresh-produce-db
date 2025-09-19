@@ -130,7 +130,7 @@ export default function ManageSupplierProductsPage() {
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4" />
                           <span className="text-sm">
-                            {item.origin_hub?.name} ({item.origin_hub?.hub_code})
+                            {(item.origin_hub as any)?.name} ({(item.origin_hub as any)?.hub_code})
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
