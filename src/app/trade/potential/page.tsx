@@ -5,35 +5,100 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, Plus, MoreHorizontal, Eye, CheckCircle, AlertCircle, XCircle, MinusCircle } from 'lucide-react'
-import { useTradePotential, useAddSupplierPrice } from '@/hooks/use-trade-potential'
+import { Switch } from '@/components/ui/switch'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command'
+import { Loader2, Plus, Eye, CheckCircle, AlertCircle, XCircle, MinusCircle, Target, ExternalLink, Check, ChevronsUpDown, Ban, RefreshCw } from 'lucide-react'
+import { useTradePotential } from '@/hooks/use-trade-potential'
+import { useExcludePotential, extractExclusionData } from '@/hooks/use-excluded-potentials'
 import { useHubs } from '@/hooks/use-hubs'
-import { useSupplierHubs } from '@/hooks/use-suppliers'
+import { useSupplierHubs, useSuppliers } from '@/hooks/use-suppliers'
+import { useCustomers } from '@/hooks/use-customers'
+import { useActiveStaff } from '@/hooks/use-staff'
 import React from 'react'
-import { TradePotential, PotentialStatus, NewSupplierPrice } from '@/types/trade-potential'
+import { TradePotential, PotentialStatus } from '@/types/trade-potential'
+import { CreateOpportunityModal } from '@/components/forms/create-opportunity-form'
+import { BuildOpportunityModal } from '@/components/forms/build-opportunity-modal'
+import { toast } from 'sonner'
+import Link from 'next/link'
+import { format } from 'date-fns'
+import { cn } from '@/lib/utils'
+
 // Simple currency formatter
 const formatCurrency = (amount: number, currency: string = 'EUR') => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency,
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 4,
   }).format(amount)
 }
-import { toast } from 'sonner'
 
 export default function TradePotentialPage() {
   const [statusFilter, setStatusFilter] = useState<PotentialStatus>('all')
   const [selectedPotential, setSelectedPotential] = useState<TradePotential | null>(null)
-  const [addPriceOpen, setAddPriceOpen] = useState(false)
+  const [buildOpportunityOpen, setBuildOpportunityOpen] = useState(false)
+  const [createOpportunityOpen, setCreateOpportunityOpen] = useState(false)
+  const [showOpportunityFilter, setShowOpportunityFilter] = useState(false)
+  const [customerFilter, setCustomerFilter] = useState<string>('all')
+  const [supplierFilter, setSupplierFilter] = useState<string>('all')
+  const [agentFilter, setAgentFilter] = useState<string>('all')
+  const [customerOpen, setCustomerOpen] = useState(false)
+  const [supplierOpen, setSupplierOpen] = useState(false)
+  const [agentOpen, setAgentOpen] = useState(false)
 
   const { data, isLoading, error } = useTradePotential(statusFilter)
-  const addPriceMutation = useAddSupplierPrice()
+  const { customers } = useCustomers()
+  const { data: suppliers } = useSuppliers()
+  const { activeStaff } = useActiveStaff()
+  const excludePotentialMutation = useExcludePotential()
+
+  // Helper functions to get display labels
+  const getCustomerLabel = (id: string) => {
+    if (id === 'all') return 'All Customers'
+    return customers?.find(c => c.id === id)?.name || 'Select customer...'
+  }
+
+  const getSupplierLabel = (id: string) => {
+    if (id === 'all') return 'All Suppliers'
+    return suppliers?.find(s => s.id === id)?.name || 'Select supplier...'
+  }
+
+  const getAgentLabel = (id: string) => {
+    if (id === 'all') return 'All Agents'
+    return activeStaff?.find(s => s.id === id)?.name || 'Select agent...'
+  }
+
+  // Helper function to get price comparison data
+  const getAlternativeSuppliers = (currentPotential: TradePotential, allPotentials: TradePotential[]) => {
+    // Find other potentials for the same customer and product
+    const alternatives = allPotentials.filter(potential =>
+      potential.customer.id === currentPotential.customer.id &&
+      potential.product.specId === currentPotential.product.specId &&
+      potential.supplier.id !== currentPotential.supplier.id &&
+      potential.supplierPrice && // Must have a price to compare
+      potential.status === 'complete' // Must be complete to be a viable alternative
+    )
+
+    // Find if there's an active opportunity for this customer-product combination
+    const activeOpportunity = allPotentials.find(potential =>
+      potential.customer.id === currentPotential.customer.id &&
+      potential.product.specId === currentPotential.product.specId &&
+      potential.hasOpportunity &&
+      potential.opportunity?.isActive
+    )
+
+    return {
+      alternatives: alternatives.sort((a, b) =>
+        (a.supplierPrice?.pricePerUnit || 0) - (b.supplierPrice?.pricePerUnit || 0)
+      ),
+      activeOpportunity
+    }
+  }
 
   if (isLoading) {
     return (
@@ -62,7 +127,42 @@ export default function TradePotentialPage() {
     )
   }
 
-  const { potentials, summary } = data || { potentials: [], summary: { total: 0, complete: 0, missingPrice: 0, missingTransport: 0, missingBoth: 0, completionRate: 0 } }
+  const { potentials, summary } = data || {
+    potentials: [],
+    summary: {
+      total: 0,
+      complete: 0,
+      missingPrice: 0,
+      missingTransport: 0,
+      missingBoth: 0,
+      completionRate: 0
+    }
+  }
+
+  // Filter potentials based on all filters
+  const filteredPotentials = potentials.filter(potential => {
+    // Opportunity filter
+    if (showOpportunityFilter && potential.hasOpportunity) {
+      return false
+    }
+
+    // Customer filter
+    if (customerFilter !== 'all' && potential.customer.id !== customerFilter) {
+      return false
+    }
+
+    // Supplier filter
+    if (supplierFilter !== 'all' && potential.supplier.id !== supplierFilter) {
+      return false
+    }
+
+    // Agent filter
+    if (agentFilter !== 'all' && potential.customer.agent?.id !== agentFilter) {
+      return false
+    }
+
+    return true
+  })
 
   const statusConfig = {
     complete: { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50 border-green-200', label: 'Complete' },
@@ -71,26 +171,78 @@ export default function TradePotentialPage() {
     missing_both: { icon: MinusCircle, color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', label: 'Missing Both' }
   }
 
-  const handleAddPrice = async (priceData: NewSupplierPrice) => {
-    try {
-      await addPriceMutation.mutateAsync(priceData)
-      toast.success('Price added successfully!')
-      setAddPriceOpen(false)
-      setSelectedPotential(null)
-    } catch (error) {
-      console.error('Failed to add price:', error)
-      toast.error('Failed to add price')
+  const handleBuildOpportunity = (potential: TradePotential) => {
+    setSelectedPotential(potential)
+    setBuildOpportunityOpen(true)
+  }
+
+  const handleCreateOpportunity = (potential: TradePotential) => {
+    setSelectedPotential(potential)
+    setCreateOpportunityOpen(true)
+  }
+
+  const handleExcludePotential = (potential: TradePotential) => {
+    const exclusionData = extractExclusionData(potential, 'business_decision', 'Marked as non-viable from potential list')
+    excludePotentialMutation.mutate(exclusionData)
+  }
+
+  const handleSwitchSupplier = (currentOpportunity: TradePotential, newSupplier: TradePotential) => {
+    // TODO: Implement switch supplier logic
+    // This would involve updating the opportunity to use the new supplier's pricing and logistics
+    console.log('Switch supplier from', currentOpportunity.supplier.name, 'to', newSupplier.supplier.name)
+    toast.success(`Switched to ${newSupplier.supplier.name} (${formatCurrency(Math.abs((newSupplier.supplierPrice?.pricePerUnit || 0) - (currentOpportunity.supplierPrice?.pricePerUnit || 0)))} saved)`)
+  }
+
+  const getOpportunityStatusBadge = (potential: TradePotential) => {
+    if (!potential.opportunity) return null
+
+    const isExpired = potential.opportunity.validTill && new Date(potential.opportunity.validTill) < new Date()
+    const statusColors = {
+      draft: 'bg-gray-100 text-gray-800',
+      active: 'bg-blue-100 text-blue-800',
+      negotiating: 'bg-yellow-100 text-yellow-800',
+      offered: 'bg-purple-100 text-purple-800',
+      confirmed: 'bg-green-100 text-green-800',
+      cancelled: 'bg-red-100 text-red-800',
+      completed: 'bg-green-100 text-green-800',
     }
+
+    return (
+      <div className="flex items-center gap-2">
+        <Target className="h-4 w-4 text-blue-600" />
+        <Badge className={statusColors[potential.opportunity.status]}>
+          {potential.opportunity.status}
+        </Badge>
+        {!potential.opportunity.isActive && (
+          <Badge variant="secondary" className="text-xs">
+            Inactive
+          </Badge>
+        )}
+        {isExpired && (
+          <Badge variant="destructive" className="text-xs">
+            Expired
+          </Badge>
+        )}
+      </div>
+    )
   }
 
   return (
     <div className="container mx-auto py-8 space-y-6 page-transition">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Trade Potential</h1>
-        <p className="text-muted-foreground">
-          All possible customer-supplier connections and missing links
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Trade Potential</h1>
+          <p className="text-muted-foreground">
+            All possible customer-supplier connections and their opportunity status
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/trade/trader">
+            <ExternalLink className="mr-2 h-4 w-4" />
+            View Opportunities
+          </Link>
+        </Button>
       </div>
 
       {/* Summary Cards */}
@@ -149,421 +301,369 @@ export default function TradePotentialPage() {
         </Card>
       </div>
 
-      {/* Status Filters */}
-      <div className="flex gap-2 flex-wrap">
-        <Button
-          variant={statusFilter === 'all' ? 'default' : 'outline'}
-          onClick={() => setStatusFilter('all')}
-          size="sm"
-        >
-          All ({summary.total})
-        </Button>
-        <Button
-          variant={statusFilter === 'complete' ? 'default' : 'outline'}
-          onClick={() => setStatusFilter('complete')}
-          size="sm"
-          className="text-green-600 border-green-200 hover:bg-green-50"
-        >
-          <CheckCircle className="h-4 w-4 mr-2" />
-          Complete ({summary.complete})
-        </Button>
-        <Button
-          variant={statusFilter === 'missing_price' ? 'default' : 'outline'}
-          onClick={() => setStatusFilter('missing_price')}
-          size="sm"
-          className="text-yellow-600 border-yellow-200 hover:bg-yellow-50"
-        >
-          <AlertCircle className="h-4 w-4 mr-2" />
-          Missing Price ({summary.missingPrice})
-        </Button>
-        <Button
-          variant={statusFilter === 'missing_transport' ? 'default' : 'outline'}
-          onClick={() => setStatusFilter('missing_transport')}
-          size="sm"
-          className="text-red-600 border-red-200 hover:bg-red-50"
-        >
-          <XCircle className="h-4 w-4 mr-2" />
-          Missing Transport ({summary.missingTransport})
-        </Button>
-        <Button
-          variant={statusFilter === 'missing_both' ? 'default' : 'outline'}
-          onClick={() => setStatusFilter('missing_both')}
-          size="sm"
-          className="text-gray-600 border-gray-200 hover:bg-gray-50"
-        >
-          <MinusCircle className="h-4 w-4 mr-2" />
-          Missing Both ({summary.missingBoth})
-        </Button>
-      </div>
-
-      {/* Main Table */}
+      {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Trade Potential Connections</CardTitle>
-          <CardDescription>
-            Showing {potentials.length} potential connections
-          </CardDescription>
+          <CardTitle>Filters</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Transport</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {potentials.map((potential) => {
-                const config = statusConfig[potential.status]
-                const Icon = config.icon
-
-                return (
-                  <TableRow key={potential.id} className={config.bg}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{potential.customer.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {potential.customer.city}, {potential.customer.country}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Agent: {potential.customer.agent.name}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{potential.product.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {potential.product.packagingLabel} | {potential.product.sizeName}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {potential.product.category}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{potential.supplier.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {potential.supplier.city}, {potential.supplier.country}
-                        </div>
-                        {potential.supplier.defaultHubName && (
-                          <div className="text-xs text-muted-foreground">
-                            Hub: {potential.supplier.defaultHubName}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`${config.color} border-current`}>
-                        <Icon className="h-3 w-3 mr-1" />
-                        {config.label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {potential.hasSupplierPrice ? (
-                        <div>
-                          <div className="font-medium text-green-600">
-                            {formatCurrency(potential.supplierPrice!.pricePerUnit)}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {potential.supplierPrice!.deliveryMode}
-                          </div>
-                        </div>
-                      ) : potential.logisticsSolution === 'SAME_LOCATION' ? (
-                        <div className="text-green-600 font-medium text-sm">
-                          Same Location - No Pricing Needed
-                        </div>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedPotential(potential)
-                            setAddPriceOpen(true)
-                          }}
-                        >
-                          <Plus className="h-3 w-3 mr-1" />
-                          Add Price
-                        </Button>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {potential.hasTransportRoute ? (
-                        <div className="text-green-600 font-medium">Available</div>
-                      ) : (
-                        <Button size="sm" variant="outline">
-                          <Plus className="h-3 w-3 mr-1" />
-                          Add Route
-                        </Button>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                          {potential.status === 'complete' && (
-                            <DropdownMenuItem>
-                              Create Opportunity
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Add Price Modal */}
-      <AddPriceModal
-        open={addPriceOpen}
-        onOpenChange={setAddPriceOpen}
-        potential={selectedPotential}
-        onSubmit={handleAddPrice}
-        isLoading={addPriceMutation.isPending}
-      />
-    </div>
-  )
-}
-
-function AddPriceModal({
-  open,
-  onOpenChange,
-  potential,
-  onSubmit,
-  isLoading
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  potential: TradePotential | null
-  onSubmit: (data: NewSupplierPrice) => Promise<void>
-  isLoading: boolean
-}) {
-  const { data: hubs } = useHubs()
-  const { data: supplierHubs = [] } = useSupplierHubs(potential?.supplier.id || '')
-  const [selectedDeliveryMode, setSelectedDeliveryMode] = useState('')
-  const [formData, setFormData] = useState({
-    price_per_unit: '',
-    currency: 'EUR',
-    delivery_mode: '',
-    valid_from: new Date().toISOString().split('T')[0],
-    valid_until: '',
-    hub_id: '',
-    min_order_quantity: '',
-    notes: ''
-  })
-
-  // Get available delivery modes for this supplier
-  const availableDeliveryModes = React.useMemo(() => {
-    if (!supplierHubs.length) return []
-    const allModes = [...new Set(supplierHubs.flatMap(hub => hub.delivery_modes))]
-    return allModes
-  }, [supplierHubs])
-
-  // Get available hubs for selected delivery mode
-  const availableHubs = React.useMemo(() => {
-    if (!selectedDeliveryMode || !supplierHubs.length) return []
-
-    if (selectedDeliveryMode === 'Ex Works') {
-      return supplierHubs.filter(hub => hub.delivery_modes.includes('Ex Works'))
-    } else if (selectedDeliveryMode === 'DELIVERY') {
-      return supplierHubs.filter(hub => hub.delivery_modes.includes('DELIVERY'))
-    } else {
-      return supplierHubs.filter(hub => hub.delivery_modes.includes(selectedDeliveryMode))
-    }
-  }, [selectedDeliveryMode, supplierHubs])
-
-  // Auto-select hub if only one available
-  React.useEffect(() => {
-    if (availableHubs.length === 1 && formData.hub_id !== availableHubs[0].id) {
-      setFormData(prev => ({ ...prev, hub_id: availableHubs[0].id }))
-    } else if (availableHubs.length === 0 && formData.hub_id !== '') {
-      setFormData(prev => ({ ...prev, hub_id: '' }))
-    }
-  }, [availableHubs, formData.hub_id])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!potential) return
-
-    if (!formData.price_per_unit || !formData.valid_until || !selectedDeliveryMode || !formData.hub_id) {
-      toast.error('Please fill in all required fields')
-      return
-    }
-
-    const priceData: NewSupplierPrice = {
-      supplier_id: potential.supplier.id,
-      product_packaging_spec_id: potential.product.specId,
-      hub_id: formData.hub_id,
-      price_per_unit: parseFloat(formData.price_per_unit),
-      currency: formData.currency,
-      delivery_mode: selectedDeliveryMode as any,
-      valid_until: new Date(formData.valid_until).toISOString(),
-      min_order_quantity: formData.min_order_quantity ? parseInt(formData.min_order_quantity) : undefined,
-      is_active: true
-    }
-
-    await onSubmit(priceData)
-
-    // Reset form
-    setFormData({
-      price_per_unit: '',
-      currency: 'EUR',
-      delivery_mode: '',
-      valid_from: new Date().toISOString().split('T')[0],
-      valid_until: '',
-      hub_id: '',
-      min_order_quantity: '',
-      notes: ''
-    })
-    setSelectedDeliveryMode('')
-  }
-
-  if (!potential) return null
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add Supplier Price</DialogTitle>
-          <DialogDescription>
-            Add pricing for {potential.supplier.name} - {potential.product.name}
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="price">Price per {potential.product.soldBy} *</Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                value={formData.price_per_unit}
-                onChange={(e) => setFormData(prev => ({ ...prev, price_per_unit: e.target.value }))}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="currency">Currency</Label>
-              <Select value={formData.currency} onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="EUR">EUR</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="GBP">GBP</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+          <div>
+            <Label htmlFor="status-filter">Status Filter</Label>
+            <Select value={statusFilter} onValueChange={(value: PotentialStatus) => setStatusFilter(value)}>
+              <SelectTrigger id="status-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="complete">Complete Only</SelectItem>
+                <SelectItem value="missing_price">Missing Price</SelectItem>
+                <SelectItem value="missing_transport">Missing Transport</SelectItem>
+                <SelectItem value="missing_both">Missing Both</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
-            <Label htmlFor="delivery_mode">Delivery Mode *</Label>
-            <Select value={selectedDeliveryMode} onValueChange={(value) => {
-              setSelectedDeliveryMode(value)
-              setFormData(prev => ({ ...prev, delivery_mode: value, hub_id: '' }))
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select delivery mode" />
+            <Label htmlFor="customer-filter">Customer</Label>
+            <Select value={customerFilter} onValueChange={setCustomerFilter}>
+              <SelectTrigger id="customer-filter">
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {availableDeliveryModes.map(mode => (
-                  <SelectItem key={mode} value={mode}>{mode}</SelectItem>
+                <SelectItem value="all">All Customers</SelectItem>
+                {customers?.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {selectedDeliveryMode && (
-            <div>
-              <Label htmlFor="hub">Hub Location *</Label>
-              <Select value={formData.hub_id} onValueChange={(value) => setFormData(prev => ({ ...prev, hub_id: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select hub location" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableHubs.map(hub => (
-                    <SelectItem key={hub.id} value={hub.id}>
-                      {hub.hub_name} ({hub.hub_code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="valid_from">Valid From</Label>
-              <Input
-                id="valid_from"
-                type="date"
-                value={formData.valid_from}
-                onChange={(e) => setFormData(prev => ({ ...prev, valid_from: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="valid_until">Valid Until *</Label>
-              <Input
-                id="valid_until"
-                type="date"
-                value={formData.valid_until}
-                onChange={(e) => setFormData(prev => ({ ...prev, valid_until: e.target.value }))}
-                required
-              />
-            </div>
+          <div>
+            <Label htmlFor="supplier-filter">Supplier</Label>
+            <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+              <SelectTrigger id="supplier-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Suppliers</SelectItem>
+                {suppliers?.map((supplier) => (
+                  <SelectItem key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
-            <Label htmlFor="min_order">Minimum Order Quantity (optional)</Label>
-            <Input
-              id="min_order"
-              type="number"
-              value={formData.min_order_quantity}
-              onChange={(e) => setFormData(prev => ({ ...prev, min_order_quantity: e.target.value }))}
-            />
+            <Label htmlFor="agent-filter">Agent</Label>
+            <Select value={agentFilter} onValueChange={setAgentFilter}>
+              <SelectTrigger id="agent-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Agents</SelectItem>
+                {activeStaff?.map((staff) => (
+                  <SelectItem key={staff.id} value={staff.id}>
+                    {staff.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div>
-            <Label htmlFor="notes">Notes (optional)</Label>
-            <Input
-              id="notes"
-              placeholder="Optional notes about this price..."
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="opportunity-filter"
+              checked={showOpportunityFilter}
+              onCheckedChange={setShowOpportunityFilter}
             />
+            <Label htmlFor="opportunity-filter" className="text-sm">Hide converted</Label>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Add Price
-            </Button>
+      {/* Results Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Trade Potential ({filteredPotentials.length} results)</CardTitle>
+              <CardDescription>
+                All possible customer-supplier-product combinations
+              </CardDescription>
+            </div>
           </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Supplier</TableHead>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Opportunity</TableHead>
+                  <TableHead>Pricing</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredPotentials.map((potential) => {
+                  const StatusIcon = statusConfig[potential.status]?.icon || MinusCircle
+                  const statusColor = statusConfig[potential.status]?.color || 'text-gray-600'
+
+                  return (
+                    <TableRow key={potential.id}>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="font-medium">{potential.customer.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {potential.customer.city}, {potential.customer.country}
+                          </div>
+                          {potential.customer.agent && (
+                            <Badge variant="outline" className="text-xs">
+                              Agent: {potential.customer.agent.name}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="font-medium">{potential.supplier.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {potential.supplier.city}, {potential.supplier.country}
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="font-medium">{potential.product.name}</div>
+                          <div className="flex gap-1 flex-wrap">
+                            <Badge variant="outline" className="text-xs">{potential.product.category}</Badge>
+                            <Badge variant="outline" className="text-xs">{potential.product.packagingLabel}</Badge>
+                            <Badge variant="outline" className="text-xs">{potential.product.sizeName}</Badge>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <StatusIcon className={`h-4 w-4 ${statusColor}`} />
+                          <span className="text-sm">{statusConfig[potential.status]?.label}</span>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        {potential.hasOpportunity ? (
+                          <div className="space-y-2">
+                            {getOpportunityStatusBadge(potential)}
+                            {potential.opportunity?.assignedAgentName && (
+                              <div className="text-xs text-muted-foreground">
+                                Assigned: {potential.opportunity.assignedAgentName}
+                              </div>
+                            )}
+                            {potential.opportunity?.validTill && (
+                              <div className="text-xs text-muted-foreground">
+                                Valid until: {format(new Date(potential.opportunity.validTill), 'MMM dd, yyyy')}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">No opportunity</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="space-y-1">
+                          {potential.supplierPrice ? (
+                            <div className="text-sm">
+                              <span className="font-medium">Cost: </span>
+                              {formatCurrency(potential.supplierPrice.pricePerUnit)}
+                            </div>
+                          ) : (
+                            <div className="text-sm text-muted-foreground">
+                              <span className="font-medium">Cost: </span>
+                              No price set
+                            </div>
+                          )}
+                          {potential.opportunity?.offerPrice && potential.opportunity.isActive && (
+                            <div className="text-sm">
+                              <span className="font-medium text-green-600">Offer: </span>
+                              {formatCurrency(potential.opportunity.offerPrice, potential.opportunity.offerCurrency)}
+                            </div>
+                          )}
+                          {(() => {
+                            const { alternatives, activeOpportunity } = getAlternativeSuppliers(potential, potentials)
+
+                            // Show alternative pricing if there's an active opportunity and this is an alternative supplier
+                            if (activeOpportunity && !potential.hasOpportunity && potential.supplierPrice && activeOpportunity.supplierPrice) {
+                              const priceDiff = potential.supplierPrice.pricePerUnit - activeOpportunity.supplierPrice.pricePerUnit
+                              const isLowerPrice = priceDiff < 0
+                              return (
+                                <div className="text-xs">
+                                  <span className="text-muted-foreground">vs Active: </span>
+                                  <span className={isLowerPrice ? 'text-green-600 font-medium' : 'text-red-600'}>
+                                    {isLowerPrice ? '-' : '+'}{formatCurrency(Math.abs(priceDiff))}
+                                  </span>
+                                  {isLowerPrice && <span className="text-green-600 ml-1">cheaper</span>}
+                                </div>
+                              )
+                            }
+
+                            // Show if there are cheaper alternatives when this one has the active opportunity
+                            if (potential.hasOpportunity && potential.opportunity?.isActive && alternatives.length > 0) {
+                              const cheapestAlternative = alternatives[0]
+                              if (cheapestAlternative.supplierPrice && potential.supplierPrice) {
+                                const priceDiff = cheapestAlternative.supplierPrice.pricePerUnit - potential.supplierPrice.pricePerUnit
+                                if (priceDiff < 0) {
+                                  return (
+                                    <div className="text-xs text-orange-600">
+                                      <span className="font-medium">Alternative: </span>
+                                      {formatCurrency(Math.abs(priceDiff))} cheaper available
+                                    </div>
+                                  )
+                                }
+                              }
+                            }
+
+                            return null
+                          })()}
+                          {potential.transportRoute && (
+                            <div className="space-y-1">
+                              <div className="text-xs">
+                                <span className="font-medium">Transport: </span>
+                                <span className={potential.transportRoute.transporterName === 'Same Location' ? 'text-green-600' : 'text-blue-600'}>
+                                  {potential.transportRoute.transporterName}
+                                </span>
+                                {potential.transportRoute.pricePerPallet > 0 && (
+                                  <span className="text-muted-foreground">
+                                    {' '}({formatCurrency(potential.transportRoute.pricePerPallet)}/pallet)
+                                  </span>
+                                )}
+                              </div>
+                              {potential.transportRoute.transporterName !== 'Same Location' && (
+                                <div className="text-xs text-muted-foreground">
+                                  {potential.transportRoute.durationDays} days
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {!potential.transportRoute && potential.hasTransportRoute && (
+                            <div className="text-xs text-orange-600">
+                              <span className="font-medium">Transport: </span>
+                              Available (needs configuration)
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          {potential.hasOpportunity ? (
+                            <>
+                              <Button size="sm" variant="outline" asChild>
+                                <Link href={`/trade/opportunities/${potential.opportunity?.id}`}>
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View
+                                </Link>
+                              </Button>
+                              {(() => {
+                                const { alternatives } = getAlternativeSuppliers(potential, potentials)
+                                const cheapestAlternative = alternatives[0]
+
+                                // Show switch supplier button if this opportunity has cheaper alternatives
+                                if (potential.opportunity?.isActive && cheapestAlternative &&
+                                    cheapestAlternative.supplierPrice && potential.supplierPrice &&
+                                    cheapestAlternative.supplierPrice.pricePerUnit < potential.supplierPrice.pricePerUnit) {
+                                  return (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleSwitchSupplier(potential, cheapestAlternative)}
+                                    >
+                                      <RefreshCw className="h-4 w-4 mr-1" />
+                                      Switch Supplier
+                                    </Button>
+                                  )
+                                }
+                                return null
+                              })()}
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleExcludePotential(potential)}
+                              >
+                                <Ban className="h-4 w-4 mr-1" />
+                                Mark as Non-viable
+                              </Button>
+                            </>
+                          ) : potential.status === 'complete' ? (
+                            <>
+                              <Button
+                                size="sm"
+                                onClick={() => handleCreateOpportunity(potential)}
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Create Opportunity
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleExcludePotential(potential)}
+                              >
+                                <Ban className="h-4 w-4 mr-1" />
+                                Mark as Non-viable
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                onClick={() => handleBuildOpportunity(potential)}
+                              >
+                                <Plus className="h-4 w-4 mr-1" />
+                                Build Opportunity
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleExcludePotential(potential)}
+                              >
+                                <Ban className="h-4 w-4 mr-1" />
+                                Mark as Non-viable
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Create Opportunity Modal */}
+      <CreateOpportunityModal
+        open={createOpportunityOpen}
+        onOpenChange={setCreateOpportunityOpen}
+        potential={selectedPotential}
+      />
+
+      {/* Build Opportunity Modal */}
+      <BuildOpportunityModal
+        open={buildOpportunityOpen}
+        onClose={() => setBuildOpportunityOpen(false)}
+        potential={selectedPotential}
+      />
+    </div>
   )
 }
