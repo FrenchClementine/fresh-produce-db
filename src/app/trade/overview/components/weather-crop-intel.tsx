@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CloudRain, Sun, Cloud, CloudDrizzle, AlertTriangle, CheckCircle, Info } from 'lucide-react'
+import { CloudRain, Sun, Cloud, CloudDrizzle, AlertTriangle, CheckCircle, Info, Loader2 } from 'lucide-react'
 import { useSuppliers } from '@/hooks/use-suppliers'
 
 interface WeatherCropIntelProps {
@@ -14,39 +14,56 @@ interface WeatherDay {
   date: string
   icon: string
   temp: number
+  temp_min?: number
+  temp_max?: number
   precipitation: number
+  humidity?: number
+  conditions?: string
 }
 
 export function WeatherCropIntel({ supplierId }: WeatherCropIntelProps) {
   const { data: suppliers } = useSuppliers()
   const [weatherData, setWeatherData] = useState<{
+    location?: { city: string; country: string; lat: number; lon: number }
     historical: WeatherDay[]
     forecast: WeatherDay[]
+    current?: { temp: number; conditions: string; humidity: number }
   } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const supplier = suppliers?.find(s => s.id === supplierId)
 
-  // Mock weather data for now - will integrate real API
+  // Fetch real weather data from our API
   useEffect(() => {
-    if (supplier) {
-      // Simulate weather data
-      const mockHistorical: WeatherDay[] = Array.from({ length: 14 }, (_, i) => ({
-        date: new Date(Date.now() - (13 - i) * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        icon: ['☀️', '⛅', '☁️', '🌧️'][Math.floor(Math.random() * 4)],
-        temp: 15 + Math.random() * 10,
-        precipitation: Math.random() * 20
-      }))
-
-      const mockForecast: WeatherDay[] = Array.from({ length: 14 }, (_, i) => ({
-        date: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        icon: ['☀️', '⛅', '☁️', '🌧️'][Math.floor(Math.random() * 4)],
-        temp: 16 + Math.random() * 10,
-        precipitation: Math.random() * 15
-      }))
-
-      setWeatherData({ historical: mockHistorical, forecast: mockForecast })
+    if (!supplierId) {
+      setWeatherData(null)
+      return
     }
-  }, [supplier])
+
+    const fetchWeather = async () => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const response = await fetch(`/api/weather/${supplierId}`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch weather data')
+        }
+
+        const data = await response.json()
+        setWeatherData(data)
+      } catch (err) {
+        console.error('Weather fetch error:', err)
+        setError('Unable to load weather data')
+        setWeatherData(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchWeather()
+  }, [supplierId])
 
   if (!supplier) {
     return (
@@ -55,6 +72,51 @@ export function WeatherCropIntel({ supplierId }: WeatherCropIntelProps) {
           <div className="text-center text-terminal-muted font-mono text-sm">
             <Info className="h-12 w-12 mx-auto mb-3 opacity-50" />
             Select a supplier to view<br />weather & crop intelligence
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (loading) {
+    return (
+      <Card className="bg-terminal-panel border-terminal-border h-[calc(100vh-16rem)]">
+        <CardHeader className="border-b border-terminal-border pb-3">
+          <CardTitle className="text-terminal-text font-mono text-sm">
+            WEATHER & CROP INTEL
+          </CardTitle>
+          <div className="text-terminal-muted text-xs font-mono mt-1">
+            {supplier.city}, {supplier.country}
+          </div>
+        </CardHeader>
+        <CardContent className="p-8 flex items-center justify-center h-full">
+          <div className="text-center text-terminal-accent font-mono text-sm">
+            <Loader2 className="h-12 w-12 mx-auto mb-3 animate-spin" />
+            Loading weather data...
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-terminal-panel border-terminal-border h-[calc(100vh-16rem)]">
+        <CardHeader className="border-b border-terminal-border pb-3">
+          <CardTitle className="text-terminal-text font-mono text-sm">
+            WEATHER & CROP INTEL
+          </CardTitle>
+          <div className="text-terminal-muted text-xs font-mono mt-1">
+            {supplier.city}, {supplier.country}
+          </div>
+        </CardHeader>
+        <CardContent className="p-8 flex items-center justify-center h-full">
+          <div className="text-center text-terminal-alert font-mono text-sm">
+            <AlertTriangle className="h-12 w-12 mx-auto mb-3" />
+            {error}
+            <div className="text-xs text-terminal-muted mt-2">
+              (Using geocoding to find location)
+            </div>
           </div>
         </CardContent>
       </Card>

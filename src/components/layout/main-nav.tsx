@@ -74,7 +74,7 @@ const tradeRoutes = [
 
 const primaryRoutes = [
   {
-    href: '/',
+    href: '/trade/overview',
     label: 'Dashboard',
     icon: Building,
   },
@@ -113,7 +113,7 @@ export function MainNav() {
   const isTradeActive = pathname?.startsWith('/trade')
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-terminal-border bg-terminal-dark/95 backdrop-blur supports-[backdrop-filter]:bg-terminal-dark/60">
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center">
@@ -127,14 +127,14 @@ export function MainNav() {
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             {primaryRoutes
-              .filter((route) => route.href === '/')
+              .filter((route) => route.href === '/trade/overview')
               .map((route) => (
                 <Link
                   key={route.href}
                   href={route.href}
                   className={cn(
-                    'transition-colors hover:text-foreground/80',
-                    pathname === route.href ? 'text-foreground' : 'text-foreground/60'
+                    'transition-colors hover:text-terminal-text',
+                    pathname === route.href ? 'text-terminal-text' : 'text-terminal-muted'
                   )}
                 >
                   {route.label}
@@ -145,7 +145,8 @@ export function MainNav() {
               <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className={cn(
-                    isProductSourcingActive ? 'bg-accent/50 text-accent-foreground' : 'text-foreground/70'
+                    'bg-terminal-panel border-terminal-border text-terminal-text',
+                    isProductSourcingActive && 'bg-terminal-accent/20 text-terminal-accent'
                   )}>
                     Product Sourcing
                   </NavigationMenuTrigger>
@@ -171,7 +172,8 @@ export function MainNav() {
               <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className={cn(
-                    isTradeActive ? 'bg-accent/50 text-accent-foreground' : 'text-foreground/70'
+                    'bg-terminal-panel border-terminal-border text-terminal-text',
+                    isTradeActive && 'bg-terminal-accent/20 text-terminal-accent'
                   )}>
                     Trade
                   </NavigationMenuTrigger>
@@ -215,7 +217,8 @@ export function MainNav() {
               <NavigationMenuList>
                 <NavigationMenuItem>
                   <NavigationMenuTrigger className={cn(
-                    isAdminActive ? 'bg-accent/50 text-accent-foreground' : 'text-foreground/70'
+                    'bg-terminal-panel border-terminal-border text-terminal-text',
+                    isAdminActive && 'bg-terminal-accent/20 text-terminal-accent'
                   )}>
                     Admin
                   </NavigationMenuTrigger>
