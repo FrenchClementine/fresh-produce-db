@@ -270,8 +270,8 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[500px] p-0">
-                        <Command>
+                      <PopoverContent className="w-[500px] p-0" align="start">
+                        <Command className="max-h-96">
                           <CommandInput
                             placeholder="Type to search products..."
                             value={searchQuery}
@@ -284,7 +284,7 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
                             }
                           </CommandEmpty>
                           {filteredSpecs.length > 0 && (
-                            <CommandGroup className="max-h-64 overflow-auto">
+                            <CommandGroup className="max-h-72 overflow-y-auto overflow-x-hidden">
                               {filteredSpecs.map((spec) => (
                                 <CommandItem
                                   key={spec.id}

@@ -26,6 +26,17 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+
+    /* Bloomberg Terminal Colors */
+    --terminal-dark: 221 39% 11%;
+    --terminal-panel: 222 47% 16%;
+    --terminal-border: 223 32% 24%;
+    --terminal-text: 0 0% 100%;
+    --terminal-muted: 220 9% 57%;
+    --terminal-success: 142 71% 45%;
+    --terminal-warning: 45 93% 47%;
+    --terminal-alert: 0 72% 51%;
+    --terminal-accent: 207 90% 54%;
   }
 
   .dark {

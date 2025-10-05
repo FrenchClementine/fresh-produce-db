@@ -1,7 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { geocodeWithNominatim } from '@/lib/nominatim-geocoding';
-import { calculateMultipleRouteDistances } from '@/lib/route-distance';
 
 export interface NearestHub {
   hubId: string;
@@ -26,11 +24,54 @@ export interface NearestHubsResult {
   clearHubs: () => void;
 }
 
+// Cache for all hubs - loaded once on app start
+let allHubsCache: any[] | null = null;
+let cacheLoadPromise: Promise<void> | null = null;
+
+// Simple straight-line distance calculation for quick filtering
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+// Load all hubs once
+async function ensureHubsLoaded() {
+  if (allHubsCache) return;
+
+  if (!cacheLoadPromise) {
+    cacheLoadPromise = (async () => {
+      console.log('Loading hubs into cache...');
+      const { data } = await supabase
+        .from('hubs')
+        .select('*')
+        .eq('is_active', true);
+
+      if (data) {
+        allHubsCache = data;
+        console.log(`Loaded ${data.length} hubs into cache`);
+      }
+    })();
+  }
+
+  await cacheLoadPromise;
+}
+
 export function useNearestHubs(): NearestHubsResult {
   const [nearestHubs, setNearestHubs] = useState<NearestHub[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastQuery, setLastQuery] = useState<string>('');
+
+  // Pre-load hubs on component mount
+  useEffect(() => {
+    ensureHubsLoaded();
+  }, []);
 
   const findNearestHubs = useCallback(async (
     entityCity: string,
@@ -53,125 +94,106 @@ export function useNearestHubs(): NearestHubsResult {
     setLastQuery(queryKey);
 
     try {
-      let latitude: number;
-      let longitude: number;
+      // Ensure hubs are loaded
+      await ensureHubsLoaded();
 
-      // First check if coordinates already exist in database
+      if (!allHubsCache || allHubsCache.length === 0) {
+        setError('No hubs available');
+        return;
+      }
+
+      // Get approximate coordinates for the entity location
+      // Using a simple city-to-coordinates mapping for common locations
+      // This avoids slow geocoding API calls
+      let entityLat: number | null = null;
+      let entityLon: number | null = null;
+
+      // Check if we already have coordinates in the database
       const tableName = entityType === 'supplier' ? 'suppliers' : 'customers';
-      const cityField = entityType === 'supplier' ? 'city' : 'city';
-      const countryField = entityType === 'supplier' ? 'country' : 'country';
-
-      // Look for existing coordinates in database
-      const { data: existingEntities, error: coordError } = await supabase
+      const { data: entities } = await supabase
         .from(tableName)
         .select('latitude, longitude')
-        .eq(cityField, entityCity)
-        .eq(countryField, entityCountry)
+        .eq('city', entityCity)
+        .eq('country', entityCountry)
         .not('latitude', 'is', null)
         .not('longitude', 'is', null)
         .limit(1);
 
-      if (coordError) {
-        console.warn('Error checking existing coordinates:', coordError);
+      if (entities && entities.length > 0) {
+        entityLat = entities[0].latitude;
+        entityLon = entities[0].longitude;
       }
 
-      // Use existing coordinates if found
-      if (existingEntities && existingEntities.length > 0 && existingEntities[0].latitude && existingEntities[0].longitude) {
-        latitude = existingEntities[0].latitude;
-        longitude = existingEntities[0].longitude;
-        console.log(`Using existing coordinates for ${entityCity}, ${entityCountry}: ${latitude}, ${longitude}`);
-      } else {
-        // Only geocode if coordinates not found in database
-        console.log(`Geocoding new location: ${entityCity}, ${entityCountry}`);
-        const entityGeoResult = await geocodeWithNominatim(entityCity, entityCountry);
+      // If no coordinates found, try to find a hub in the same city as a proxy
+      if (!entityLat || !entityLon) {
+        const sameCityHub = allHubsCache.find(h =>
+          h.city_name?.toLowerCase() === entityCity.toLowerCase() ||
+          h.name?.toLowerCase().includes(entityCity.toLowerCase())
+        );
 
-        if (!entityGeoResult.success || !entityGeoResult.coordinates) {
-          throw new Error(`Unable to find location: ${entityCity}, ${entityCountry}`);
-        }
-
-        latitude = entityGeoResult.coordinates.latitude;
-        longitude = entityGeoResult.coordinates.longitude;
-
-        // Store the new coordinates for future use
-        try {
-          await supabase
-            .from(tableName)
-            .update({
-              latitude,
-              longitude,
-              coordinates_last_updated: new Date().toISOString()
-            })
-            .eq(cityField, entityCity)
-            .eq(countryField, entityCountry);
-
-          console.log(`Stored new coordinates for ${entityCity}, ${entityCountry}`);
-        } catch (updateError) {
-          console.warn('Failed to store coordinates:', updateError);
-          // Continue anyway - we still have the coordinates for distance calculation
+        if (sameCityHub && sameCityHub.latitude && sameCityHub.longitude) {
+          entityLat = sameCityHub.latitude;
+          entityLon = sameCityHub.longitude;
         }
       }
 
-      // Get all active hubs with coordinates from database
-      const { data: allHubs, error: hubsError } = await supabase
-        .from('hubs')
-        .select('*')
-        .not('latitude', 'is', null)
-        .not('longitude', 'is', null)
-        .eq('is_active', true);
+      // If still no coordinates, use country center as fallback
+      if (!entityLat || !entityLon) {
+        const countryCoordinates: { [key: string]: [number, number] } = {
+          'UK': [51.5074, -0.1278],
+          'United Kingdom': [51.5074, -0.1278],
+          'Spain': [40.4168, -3.7038],
+          'ES': [40.4168, -3.7038],
+          'France': [48.8566, 2.3522],
+          'FR': [48.8566, 2.3522],
+          'Italy': [41.9028, 12.4964],
+          'IT': [41.9028, 12.4964],
+          'Germany': [52.5200, 13.4050],
+          'DE': [52.5200, 13.4050],
+          'Netherlands': [52.3676, 4.9041],
+          'NL': [52.3676, 4.9041],
+        };
 
-      if (hubsError) {
-        throw new Error(`Database error: ${hubsError.message}`);
+        const coords = countryCoordinates[entityCountry];
+        if (coords) {
+          entityLat = coords[0];
+          entityLon = coords[1];
+        }
       }
 
-      if (!allHubs || allHubs.length === 0) {
-        setNearestHubs([]);
-        setError('No hubs with coordinates found');
+      if (!entityLat || !entityLon) {
+        setError(`Could not determine location for ${entityCity}, ${entityCountry}`);
         return;
       }
 
-      // Calculate road distances to all hubs
-      const destinations = allHubs.map(hub => ({
-        lat: hub.latitude,
-        lng: hub.longitude,
-        id: hub.id
-      }));
-
-      const roadDistances = await calculateMultipleRouteDistances(
-        latitude,
-        longitude,
-        destinations
-      );
-
-      // Combine hub data with road distances and sort by distance
-      const hubsWithDistances = allHubs
+      // Calculate distances to all hubs with coordinates
+      const hubsWithDistances = allHubsCache
+        .filter(hub => hub.latitude && hub.longitude)
         .map(hub => {
-          const distanceData = roadDistances.find(d => d.id === hub.id);
+          const distance = calculateDistance(
+            entityLat!,
+            entityLon!,
+            hub.latitude,
+            hub.longitude
+          );
           return {
             ...hub,
-            roadDistance: distanceData?.distance || null,
-            routeSuccess: distanceData?.success || false
+            distance: Math.round(distance * 1.3) // Estimate road distance as 1.3x straight line
           };
         })
-        .filter(hub => hub.roadDistance !== null && hub.roadDistance <= 500) // Filter within 500km
-        .sort((a, b) => (a.roadDistance || 0) - (b.roadDistance || 0))
-        .slice(0, 2); // Get top 2 nearest hubs
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 2); // Get top 2 nearest
 
-      if (hubsWithDistances.length === 0) {
-        setNearestHubs([]);
-        setError('No hubs found within 500km road distance');
-        return;
-      }
-
-      // Transform the results
-      const hubs: NearestHub[] = hubsWithDistances.map((hub: any) => ({
+      // Transform to NearestHub format
+      const hubs: NearestHub[] = hubsWithDistances.map(hub => ({
         hubId: hub.id,
         hubName: hub.name,
-        hubCode: hub.hub_code,
-        hubCity: hub.city_name,
-        hubCountry: hub.country_code,
-        distance: Math.round(hub.roadDistance),
-        warning: hub.roadDistance > 150,
-        isRoadDistance: hub.routeSuccess
+        hubCode: hub.hub_code || '',
+        hubCity: hub.city_name || '',
+        hubCountry: hub.country_code || '',
+        distance: hub.distance,
+        warning: hub.distance > 150,
+        isRoadDistance: false // These are estimates
       }));
 
       setNearestHubs(hubs);

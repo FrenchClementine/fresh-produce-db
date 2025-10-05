@@ -71,7 +71,7 @@ export default function TradePage() {
         </Link>
 
         {/* Trade Opportunities */}
-        <Link href="/trade/trader" className="group">
+        <Link href="/trade/opportunity" className="group">
           <Card className="h-full nav-card border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 hover:border-purple-300">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">

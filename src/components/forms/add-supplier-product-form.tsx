@@ -359,7 +359,7 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                               : 'No product specifications found.'}
                         </CommandEmpty>
                         {filteredSpecs.length > 0 && (
-                          <CommandGroup className="max-h-64 overflow-auto">
+                          <CommandGroup className="max-h-72 overflow-y-auto overflow-x-hidden">
                             {filteredSpecs.map((spec) => (
                               <CommandItem
                                 key={spec.id}

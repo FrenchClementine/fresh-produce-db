@@ -424,7 +424,7 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
                             />
                             <CommandList>
                               <CommandEmpty>No hubs found.</CommandEmpty>
-                              <CommandGroup className="max-h-60 overflow-auto">
+                              <CommandGroup className="max-h-72 overflow-y-auto overflow-x-hidden">
                                 {filteredOriginHubs.map((hub) => (
                                   <CommandItem
                                     key={hub.id}
@@ -518,7 +518,7 @@ export function AddSupplierLogisticsForm({ open, onOpenChange, supplierId }: Add
                               />
                               <CommandList>
                                 <CommandEmpty>No hubs found.</CommandEmpty>
-                                <CommandGroup className="max-h-60 overflow-auto">
+                                <CommandGroup className="max-h-72 overflow-y-auto overflow-x-hidden">
                                   {availableDestinationHubs.map((hub) => (
                                     <CommandItem
                                       key={hub.id}

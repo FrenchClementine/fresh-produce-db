@@ -337,7 +337,7 @@ export function ProductPackagingSpecForm() {
                                 ? 'Type to search products...'
                                 : 'No products found.'}
                             </CommandEmpty>
-                            <CommandGroup className="max-h-64 overflow-auto">
+                            <CommandGroup className="max-h-72 overflow-y-auto overflow-x-hidden">
                               {products?.map((product) => {
                                 const intendedUseLabel = formatIntendedUse(product.intended_use)
                                 const optionLabel = `${product.name}${intendedUseLabel ? ` (${intendedUseLabel})` : ''}`

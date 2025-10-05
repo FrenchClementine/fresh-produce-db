@@ -6,6 +6,8 @@ SELECT
     sp.*,
     s.name as supplier_name,
     h.name as hub_name,
+    h.city as hub_city,
+    h.country as hub_country,
     h.hub_code,
     h.id as hub_id,
     pps.id as product_packaging_spec_id, -- This is the key field for matching with customer requirements
@@ -38,7 +40,14 @@ SELECT
         'boxes_per_pallet', pps.boxes_per_pallet,
         'weight_per_box', pps.weight_per_box,
         'weight_unit', pps.weight_unit
-    ) as product_packaging_specs
+    ) as product_packaging_specs,
+    json_build_object(
+        'id', h.id,
+        'name', h.name,
+        'city', h.city,
+        'country', h.country,
+        'hub_code', h.hub_code
+    ) as hub
 FROM supplier_prices sp
 JOIN suppliers s ON sp.supplier_id = s.id
 JOIN hubs h ON sp.hub_id = h.id

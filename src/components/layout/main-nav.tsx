@@ -47,13 +47,19 @@ const tradeRoutes = [
     icon: TrendingUp,
   },
   {
+    href: '/trade/overview',
+    label: 'Terminal',
+    description: 'Bloomberg-style trading terminal with live data.',
+    icon: BarChart3,
+  },
+  {
     href: '/trade/prices',
     label: 'Input Prices',
     description: 'Manage supplier pricing and market data.',
     icon: Euro,
   },
   {
-    href: '/trade/trader',
+    href: '/trade/opportunity',
     label: 'Trade Opportunities',
     description: 'Discover customer-supplier matching opportunities.',
     icon: BarChart3,

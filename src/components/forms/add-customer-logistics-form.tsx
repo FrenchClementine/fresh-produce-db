@@ -306,7 +306,7 @@ export function AddCustomerLogisticsForm({ open, onOpenChange, customerId }: Add
                               No hubs found.
                             </CommandEmpty>
                             {filteredHubs.length > 0 && (
-                              <CommandGroup className="max-h-64 overflow-auto">
+                              <CommandGroup className="max-h-72 overflow-y-auto overflow-x-hidden">
                                 {filteredHubs.map((hub) => (
                                   <CommandItem
                                     key={hub.id}

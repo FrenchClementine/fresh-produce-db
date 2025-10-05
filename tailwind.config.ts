@@ -52,6 +52,17 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        terminal: {
+          dark: "hsl(var(--terminal-dark))",
+          panel: "hsl(var(--terminal-panel))",
+          border: "hsl(var(--terminal-border))",
+          text: "hsl(var(--terminal-text))",
+          muted: "hsl(var(--terminal-muted))",
+          success: "hsl(var(--terminal-success))",
+          warning: "hsl(var(--terminal-warning))",
+          alert: "hsl(var(--terminal-alert))",
+          accent: "hsl(var(--terminal-accent))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

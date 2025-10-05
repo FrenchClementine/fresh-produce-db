@@ -47,11 +47,21 @@ export interface TradePotential {
 
   transportRoute?: {
     id: string
+    transporterId: string | null
     originHubId: string
     destinationHubId: string
     transporterName: string
     durationDays: number
     pricePerPallet: number
+    pricePerUnit: number
+    unitsPerPallet: number
+    availableBands: Array<{
+      id: string
+      pallet_dimensions?: string
+      min_pallets?: number
+      max_pallets?: number
+      price_per_pallet: number
+    }>
   }
 
   // Gap analysis
@@ -67,6 +77,27 @@ export interface TradePotential {
 
   // Logistics solution type
   logisticsSolution?: 'SAME_LOCATION' | 'SUPPLIER_DELIVERY' | 'THIRD_PARTY_TRANSPORT' | 'UNKNOWN'
+
+  // Opportunity information
+  opportunity?: {
+    id: string
+    status: 'draft' | 'active' | 'negotiating' | 'offered' | 'confirmed' | 'cancelled' | 'completed'
+    priority: 'low' | 'medium' | 'high' | 'urgent'
+    isActive: boolean
+    offerPrice?: number
+    offerCurrency?: string
+    assignedAgent?: string
+    assignedAgentName?: string
+    validTill?: string
+    quoteSentDate?: string
+    quoteFeedback?: string
+    createdAt: string
+    updatedAt: string
+  }
+
+  // Calculated fields
+  hasOpportunity: boolean
+  isActiveOpportunity: boolean
 }
 
 export interface TradePotentialSummary {

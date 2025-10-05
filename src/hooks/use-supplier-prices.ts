@@ -150,9 +150,19 @@ export function useCreateSupplierPrice() {
       if (error) throw error
       return data
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['current-supplier-prices'] })
       queryClient.invalidateQueries({ queryKey: ['supplier-hub-prices'] })
+
+      // Trigger price change detection for affected opportunities
+      try {
+        await supabase.rpc('detect_opportunity_price_changes')
+        queryClient.invalidateQueries({ queryKey: ['opportunities'] })
+        queryClient.invalidateQueries({ queryKey: ['price-change-detection'] })
+      } catch (error) {
+        console.error('Error triggering price change detection:', error)
+      }
+
       toast.success('Price saved successfully!')
     },
     onError: (error: any) => {
@@ -218,9 +228,19 @@ export function useQuickUpdatePrice() {
       if (error) throw error
       return data
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['current-supplier-prices'] })
       queryClient.invalidateQueries({ queryKey: ['supplier-hub-prices'] })
+
+      // Trigger price change detection for affected opportunities
+      try {
+        await supabase.rpc('detect_opportunity_price_changes')
+        queryClient.invalidateQueries({ queryKey: ['opportunities'] })
+        queryClient.invalidateQueries({ queryKey: ['price-change-detection'] })
+      } catch (error) {
+        console.error('Error triggering price change detection:', error)
+      }
+
       toast.success('Price updated successfully!')
     },
     onError: (error: any) => {

@@ -97,6 +97,16 @@ export function CustomerProductSpecsTable({
     return { mode: 'UNAVAILABLE', variant: 'outline' as const }
   }
 
+  // Group specs by product name
+  const groupedSpecs = customerProductSpecs.reduce((acc, spec) => {
+    const productName = spec.product_packaging_specs?.products?.name || 'Unknown Product'
+    if (!acc[productName]) {
+      acc[productName] = []
+    }
+    acc[productName].push(spec)
+    return acc
+  }, {} as Record<string, any[]>)
+
   if (isLoading) {
     return <div className="text-center py-8">Loading product requirements...</div>
   }
@@ -136,35 +146,43 @@ export function CustomerProductSpecsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {customerProductSpecs.map((spec) => {
-              const productionStatus = getProductionModeStatus(spec)
+            {Object.entries(groupedSpecs).map(([productName, specs]) => {
+              // Use the first spec for common product info
+              const firstSpec = specs[0]
+              const productionStatus = getProductionModeStatus(firstSpec)
+
               return (
-                <TableRow key={spec.id}>
+                <TableRow key={productName}>
                   <TableCell>
                     <div>
-                      <div className="font-medium">
-                        {spec.product_packaging_specs?.products?.name}
-                      </div>
+                      <div className="font-medium">{productName}</div>
                       <div className="text-sm text-muted-foreground">
-                        {spec.product_packaging_specs?.products?.category}
+                        {firstSpec.product_packaging_specs?.products?.category}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="space-y-1">
-                      <div className="text-sm">
-                        {spec.product_packaging_specs?.packaging_options?.label} -
-                        {spec.product_packaging_specs?.size_options?.name}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {spec.product_packaging_specs?.pallets?.label}
-                      </div>
+                    <div className="space-y-2">
+                      {specs.map((spec, index) => (
+                        <div key={spec.id} className="space-y-1">
+                          <div className="text-sm">
+                            {spec.product_packaging_specs?.packaging_options?.label} -
+                            {spec.product_packaging_specs?.size_options?.name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {spec.product_packaging_specs?.pallets?.label}
+                          </div>
+                          {index < specs.length - 1 && (
+                            <div className="border-b border-gray-100 my-1"></div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </TableCell>
                   <TableCell>
-                    {spec.season && (
+                    {firstSpec.season && (
                       <Badge variant="outline" className="capitalize">
-                        {spec.season}
+                        {firstSpec.season}
                       </Badge>
                     )}
                   </TableCell>
@@ -175,39 +193,43 @@ export function CustomerProductSpecsTable({
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <div>{formatDate(spec.local_production_from_date)}</div>
+                      <div>{formatDate(firstSpec.local_production_from_date)}</div>
                       <div className="text-xs text-muted-foreground">
-                        to {formatDate(spec.local_production_till_date)}
+                        to {formatDate(firstSpec.local_production_till_date)}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <div>{formatDate(spec.import_period_from_date)}</div>
+                      <div>{formatDate(firstSpec.import_period_from_date)}</div>
                       <div className="text-xs text-muted-foreground">
-                        to {formatDate(spec.import_period_till_date)}
+                        to {formatDate(firstSpec.import_period_till_date)}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSpecToEdit(spec)
-                          setIsEditDialogOpen(true)
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSpecToDelete(spec)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <div className="flex flex-col items-end gap-1">
+                      {specs.map((spec) => (
+                        <div key={spec.id} className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSpecToEdit(spec)
+                              setIsEditDialogOpen(true)
+                            }}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSpecToDelete(spec)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   </TableCell>
                 </TableRow>

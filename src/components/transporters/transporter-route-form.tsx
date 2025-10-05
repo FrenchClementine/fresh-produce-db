@@ -40,7 +40,7 @@ import {
 } from '@/hooks/use-transporters'
 import { useAllHubs } from '@/hooks/use-hubs'
 import { HubForm } from './hub-form'
-import { LocationHubSelector } from './location-hub-selector'
+import { LocationHubSelectorOptimized } from './location-hub-selector-optimized'
 import { toast } from 'sonner'
 
 const routeSchema = z.object({
@@ -201,7 +201,7 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
               <FormItem>
                 <FormLabel>Origin Hub *</FormLabel>
                 <FormControl>
-                  <LocationHubSelector
+                  <LocationHubSelectorOptimized
                     value={field.value}
                     onChange={(value) => {
                       if (value === 'create-new') {
@@ -229,7 +229,7 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
               <FormItem>
                 <FormLabel>Destination Hub *</FormLabel>
                 <FormControl>
-                  <LocationHubSelector
+                  <LocationHubSelectorOptimized
                     value={field.value}
                     onChange={(value) => {
                       if (value === 'create-new') {
