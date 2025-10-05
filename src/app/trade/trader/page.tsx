@@ -29,7 +29,9 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Trash2
+  Trash2,
+  FileText,
+  Printer
 } from 'lucide-react'
 import {
   useOpportunities,
@@ -201,6 +203,88 @@ export default function TradeOpportunitiesPage() {
     return null
   }
 
+  const handlePrintPriceList = () => {
+    // Generate price list with pallet-level info
+    const priceListWindow = window.open('', '_blank')
+    if (!priceListWindow) {
+      toast.error('Please allow popups to print price list')
+      return
+    }
+
+    const priceListHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Price List - ${format(new Date(), 'MMM dd, yyyy')}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; }
+          h1 { color: #333; }
+          .header { margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+          th { background-color: #f8f9fa; font-weight: bold; }
+          tr:nth-child(even) { background-color: #f9f9f9; }
+          .price { font-weight: bold; color: #16a34a; }
+          .transport { color: #2563eb; }
+          @media print {
+            button { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Price List</h1>
+          <p><strong>Generated:</strong> ${format(new Date(), 'MMMM dd, yyyy HH:mm')}</p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Product</th>
+              <th>Packaging & Size</th>
+              <th>Price per Unit</th>
+              <th>Units per Pallet</th>
+              <th>Price per Pallet</th>
+              <th>Transport</th>
+              <th>Transport Band</th>
+              <th>Valid Until</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredOpportunities.map(opp => {
+              const spec = opp.product_packaging_specs
+              const unitsPerPallet = spec?.boxes_per_pallet || 0
+              const pricePerPallet = opp.offer_price_per_unit ? opp.offer_price_per_unit * unitsPerPallet : 0
+              const transportBand = opp.selected_transport_band
+
+              return `
+                <tr>
+                  <td>${opp.customer?.name || 'N/A'}<br/><small>${opp.customer?.city}, ${opp.customer?.country}</small></td>
+                  <td>${spec?.products.name || 'N/A'}</td>
+                  <td>${spec?.packaging_options.label || 'N/A'} - ${spec?.size_options.name || 'N/A'}</td>
+                  <td class="price">${formatCurrency(opp.offer_price_per_unit || 0, opp.offer_currency)}/${spec?.products.sold_by || 'unit'}</td>
+                  <td>${unitsPerPallet} ${spec?.products.sold_by || 'units'}</td>
+                  <td class="price">${formatCurrency(pricePerPallet, opp.offer_currency)}</td>
+                  <td class="transport">${opp.selected_transporter?.name || opp.supplier_delivery_mode || 'N/A'}</td>
+                  <td>${transportBand ? `${transportBand.min_pallets}-${transportBand.max_pallets} pallets` : 'N/A'}</td>
+                  <td>${opp.valid_till ? format(new Date(opp.valid_till), 'MMM dd, yyyy') : 'N/A'}</td>
+                </tr>
+              `
+            }).join('')}
+          </tbody>
+        </table>
+        <div style="margin-top: 30px;">
+          <button onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer;">Print</button>
+          <button onclick="window.close()" style="padding: 10px 20px; margin-left: 10px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+        </div>
+      </body>
+      </html>
+    `
+
+    priceListWindow.document.write(priceListHTML)
+    priceListWindow.document.close()
+  }
+
   return (
     <div className="container mx-auto py-8 space-y-6 page-transition">
       {/* Header */}
@@ -211,12 +295,18 @@ export default function TradeOpportunitiesPage() {
             Manage active opportunities and track quotes to customers
           </p>
         </div>
-        <Button asChild>
-          <Link href="/trade/potential">
-            <ExternalLink className="mr-2 h-4 w-4" />
-            View Trade Potential
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handlePrintPriceList}>
+            <Printer className="mr-2 h-4 w-4" />
+            Print Price List
+          </Button>
+          <Button asChild>
+            <Link href="/trade/potential">
+              <ExternalLink className="mr-2 h-4 w-4" />
+              View Trade Potential
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -548,47 +638,42 @@ export default function TradeOpportunitiesPage() {
                       </TableCell>
 
                       <TableCell>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 flex-wrap">
                           <Link href={`/trade/opportunities/${opportunity.id}`}>
-                            <Button size="sm" variant="outline" title="View Details">
-                              <Eye className="h-3 w-3" />
+                            <Button size="sm" variant="outline">
+                              <MessageSquare className="h-4 w-4 mr-1" />
+                              Feedback
                             </Button>
                           </Link>
 
-                          {opportunity.status !== 'offered' && (
+                          {opportunity.status !== 'offered' ? (
                             <Button
                               size="sm"
-                              variant="outline"
-                              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 hover:border-purple-300"
+                              className="bg-purple-600 hover:bg-purple-700"
                               onClick={() => handleStatusUpdate(opportunity.id, 'offered')}
                               disabled={updateMutation.isPending}
-                              title="Mark as Quoted"
                             >
-                              <DollarSign className="h-3 w-3" />
+                              <FileText className="h-4 w-4 mr-1" />
+                              Quote
                             </Button>
+                          ) : (
+                            <Badge className="bg-purple-100 text-purple-800 px-3 py-1">
+                              Quoted
+                            </Badge>
                           )}
 
                           <Button
                             size="sm"
                             variant="outline"
-                            title="Edit Opportunity"
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-300"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             onClick={() => handleRemoveOpportunity(
                               opportunity.id,
                               opportunity.customer?.name || 'Unknown Customer',
                               opportunity.supplier?.name || 'Unknown Supplier'
                             )}
                             disabled={deleteMutation.isPending}
-                            title="Remove opportunity and send back to potential"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
