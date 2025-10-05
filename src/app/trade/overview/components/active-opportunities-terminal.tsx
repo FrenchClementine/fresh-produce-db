@@ -62,9 +62,18 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-terminal-success text-sm font-mono font-bold">
-                      €{opp.offer_price_per_unit?.toFixed(2)}/{opp.product_packaging_specs?.products.sold_by}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-terminal-success text-sm font-mono font-bold">
+                        €{opp.offer_price_per_unit?.toFixed(2)}/{opp.product_packaging_specs?.products.sold_by}
+                      </span>
+                      <Badge variant="outline" className={`text-xs font-mono ${
+                        opp.supplier_price?.delivery_mode === 'DELIVERY'
+                          ? 'border-terminal-success text-terminal-success'
+                          : 'border-terminal-accent text-terminal-accent'
+                      }`}>
+                        {opp.supplier_price?.delivery_mode === 'DELIVERY' ? 'DDP' : 'EXW'}
+                      </Badge>
+                    </div>
                     {opp.feedback_status && (
                       <span className="text-terminal-muted text-xs font-mono">
                         {opp.feedback_status}

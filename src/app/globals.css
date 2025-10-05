@@ -128,3 +128,21 @@
   outline-offset: 2px;
 }
 
+/* Weather alert scrolling animation */
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll {
+  animation: scroll 60s linear infinite;
+}
+
+.animate-scroll-fast {
+  animation: scroll 30s linear infinite;
+}
+

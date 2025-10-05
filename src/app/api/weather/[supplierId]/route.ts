@@ -23,10 +23,10 @@ const CACHE_TTL = 60 * 60 * 1000 // 1 hour
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { supplierId: string } }
+  { params }: { params: Promise<{ supplierId: string }> }
 ) {
   try {
-    const { supplierId } = params
+    const { supplierId } = await params
 
     // Check cache first
     const cached = cache.get(supplierId)

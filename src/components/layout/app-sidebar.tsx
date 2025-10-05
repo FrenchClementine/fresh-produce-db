@@ -45,7 +45,7 @@ interface NavItem {
 
 const navigationItems: NavItem[] = [
   {
-    href: '/',
+    href: '/trade/overview',
     label: 'Dashboard',
     icon: Home,
   },
@@ -170,10 +170,10 @@ function NavItemComponent({ item, collapsed, level = 0 }: { item: NavItem; colla
             <button
               className={cn(
                 'w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                'hover:bg-gray-100 dark:hover:bg-gray-800',
+                'hover:bg-terminal-dark',
                 level > 0 && 'ml-3',
-                isActive && 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
-                !isActive && 'text-gray-700 dark:text-gray-300',
+                isActive && 'bg-terminal-accent/20 text-terminal-accent',
+                !isActive && 'text-terminal-muted',
                 collapsed && 'justify-center px-2'
               )}
             >
@@ -222,9 +222,9 @@ function NavItemComponent({ item, collapsed, level = 0 }: { item: NavItem; colla
       className={cn(
         'flex items-center gap-3 rounded-md transition-colors group',
         level > 0 ? 'px-3 py-1.5 text-xs font-normal' : 'px-3 py-2 text-sm font-medium',
-        'hover:bg-gray-100 dark:hover:bg-gray-800',
-        pathname === item.href && 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100',
-        pathname !== item.href && 'text-gray-700 dark:text-gray-300',
+        'hover:bg-terminal-dark',
+        pathname === item.href && 'bg-terminal-accent/20 text-terminal-accent',
+        pathname !== item.href && 'text-terminal-muted',
         collapsed && 'justify-center px-2'
       )}
     >
@@ -265,11 +265,11 @@ export function AppSidebar({ collapsed, onToggle }: SidebarProps) {
 
   return (
     <div className={cn(
-      'flex flex-col h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300',
+      'flex flex-col h-screen bg-terminal-panel border-r border-terminal-border transition-all duration-300',
       collapsed ? 'w-16' : 'w-64'
     )}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
+      <div className="flex items-center justify-between p-4 border-b border-terminal-border">
         {!collapsed && (
           <Link href="/" className="flex items-center">
             <Image
@@ -283,9 +283,9 @@ export function AppSidebar({ collapsed, onToggle }: SidebarProps) {
         )}
         <button
           onClick={onToggle}
-          className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="p-1.5 rounded-md hover:bg-terminal-dark transition-colors text-terminal-text"
         >
-          <PanelLeft className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+          <PanelLeft className="h-4 w-4 text-terminal-muted" />
         </button>
       </div>
 
@@ -303,20 +303,20 @@ export function AppSidebar({ collapsed, onToggle }: SidebarProps) {
       </ScrollArea>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+      <div className="p-4 border-t border-terminal-border">
         {!collapsed && (
           <div className="mb-4">
-            <button className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            <button className="w-full flex items-center gap-3 px-3 py-2 text-sm text-terminal-muted rounded-md hover:bg-terminal-dark transition-colors font-mono">
               <Search className="h-4 w-4" />
               <span>Search...</span>
-              <kbd className="ml-auto text-xs bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
+              <kbd className="ml-auto text-xs bg-terminal-dark text-terminal-accent px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
             </button>
           </div>
         )}
         <div className={cn('flex items-center', collapsed && 'justify-center')}>
           {collapsed ? (
-            <button className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-              <User className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            <button className="p-2 rounded-md hover:bg-terminal-dark transition-colors">
+              <User className="h-5 w-5 text-terminal-muted" />
             </button>
           ) : (
             <UserMenu />
