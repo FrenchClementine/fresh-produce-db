@@ -1,136 +1,93 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import {
-  Target,
-  Users,
-  Package,
-  TrendingUp,
-  Building2,
-  MapPin,
-  Truck,
-  Euro,
-  Clock,
-  Calendar,
-  Scale,
-  Filter,
-  Eye,
-  Phone,
-  Mail,
-  AlertTriangle,
-  CheckCircle2,
-  Circle,
   Loader2,
-  Route
+  MoreHorizontal,
+  Eye,
+  Edit,
+  MessageSquare,
+  ToggleLeft,
+  ToggleRight,
+  Calendar,
+  User,
+  DollarSign,
+  Target,
+  TrendingUp,
+  ExternalLink,
+  Filter,
+  Search,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Trash2
 } from 'lucide-react'
-import { useTradeOpportunities, useTradeOpportunityStats, type TradeOpportunityFilters } from '@/hooks/use-trade-opportunities'
-import { useAllStaff } from '@/hooks/use-staff'
-import { useAllCustomers } from '@/hooks/use-customers'
-import { useProducts } from '@/hooks/use-products'
-import { format } from 'date-fns'
+import {
+  useOpportunities,
+  useOpportunitySummary,
+  useUpdateOpportunity,
+  useDeleteOpportunity
+} from '@/hooks/use-opportunities'
+import { useActiveStaff } from '@/hooks/use-staff'
+import { OpportunityStatus, OpportunityPriority } from '@/types/opportunities'
+import { format, isAfter, isBefore, addDays } from 'date-fns'
+import Link from 'next/link'
+import { toast } from 'sonner'
+import { getPriceStatus, formatPriceStatusBadge } from '@/lib/price-utils'
+import { TransportDisplay } from '@/components/transport-display'
+import { FeedbackDisplay } from '@/components/feedback-display'
 
-export default function TraderPage() {
-  const [filters, setFilters] = useState<TradeOpportunityFilters>({
-    staffId: 'all',
-    status: undefined,
-    priority: undefined
-  })
-  const [selectedOpportunity, setSelectedOpportunity] = useState<string | null>(null)
+// Simple currency formatter
+const formatCurrency = (amount: number, currency: string = 'EUR') => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(amount)
+}
 
-  // Fetch data
-  const { data: opportunities = [], isLoading, error } = useTradeOpportunities(filters)
-  const { stats, isLoading: statsLoading } = useTradeOpportunityStats(filters)
-  const { allStaff = [] } = useAllStaff()
-  const { allCustomers = [] } = useAllCustomers()
-  const { products = [] } = useProducts()
+type SortField = 'customer' | 'product' | 'pricing' | 'status' | 'priority' | 'validUntil' | 'agent' | 'created'
+type SortDirection = 'asc' | 'desc' | null
 
-  // Get unique product categories for filtering
-  const productCategories = React.useMemo(() => {
-    const categories = new Set(products.map(p => p.category))
-    return Array.from(categories).sort()
-  }, [products])
+export default function TradeOpportunitiesPage() {
+  const [statusFilter, setStatusFilter] = useState<OpportunityStatus>('all')
+  const [priorityFilter, setPriorityFilter] = useState<OpportunityPriority>('all')
+  const [activeOnly, setActiveOnly] = useState(true)
+  const [assignedTo, setAssignedTo] = useState<string>()
+  const [customerAgentFilter, setCustomerAgentFilter] = useState<string>('all')
+  const [feedbackStatusFilter, setFeedbackStatusFilter] = useState<string>('all')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null)
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case 'high': return 'bg-red-100 text-red-800 border-red-200'
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'low': return 'bg-gray-100 text-gray-800 border-gray-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
-  }
+  const { data: opportunities, isLoading, error } = useOpportunities(
+    statusFilter,
+    priorityFilter,
+    activeOnly,
+    assignedTo
+  )
 
-  const getLogisticsIcon = (solutionType: string) => {
-    switch (solutionType) {
-      case 'SUPPLIER_DELIVERY': return <Truck className="h-3 w-3" />
-      case 'CUSTOMER_PICKUP': return <MapPin className="h-3 w-3" />
-      case 'THIRD_PARTY_TRANSPORT': return <Route className="h-3 w-3" />
-      case 'SUPPLIER_TRANSIT': return <Building2 className="h-3 w-3" />
-      default: return <Circle className="h-3 w-3" />
-    }
-  }
-
-  const getPriorityIcon = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case 'high': return <AlertTriangle className="h-3 w-3" />
-      case 'medium': return <Circle className="h-3 w-3" />
-      case 'low': return <CheckCircle2 className="h-3 w-3" />
-      default: return <Circle className="h-3 w-3" />
-    }
-  }
-
-  const formatCurrency = (amount: number, currency = 'EUR') => {
-    return new Intl.NumberFormat('en-EU', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 2
-    }).format(amount)
-  }
-
-  const formatUnits = (amount: number, soldBy: string) => {
-    const unit = soldBy === 'kg' ? 'kg' :
-                 soldBy === 'box' ? 'boxes' :
-                 soldBy === 'piece' ? 'pcs' :
-                 soldBy === 'punnet' ? 'punnets' :
-                 soldBy === 'bag' ? 'bags' : 'units'
-    return `${amount.toLocaleString()} ${unit}`
-  }
+  const { data: summary } = useOpportunitySummary()
+  const { activeStaff } = useActiveStaff()
+  const updateMutation = useUpdateOpportunity()
+  const deleteMutation = useDeleteOpportunity()
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Trade Opportunities</h1>
-          <p className="text-muted-foreground">Loading trade opportunities...</p>
-        </div>
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading opportunities...</span>
         </div>
       </div>
     )
@@ -138,193 +95,301 @@ export default function TraderPage() {
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Trade Opportunities</h1>
-          <p className="text-muted-foreground">Error loading trade opportunities</p>
-        </div>
+      <div className="container mx-auto py-8">
         <Card>
-          <CardContent className="py-6">
-            <div className="text-center text-red-600">
-              <AlertTriangle className="mx-auto h-12 w-12 mb-4" />
-              <p>Failed to load trade opportunities. Please try again.</p>
-              <p className="text-sm mt-2">{error.message}</p>
-            </div>
+          <CardHeader>
+            <CardTitle>Error</CardTitle>
+            <CardDescription>Failed to load opportunities</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-red-600">{error.message}</p>
           </CardContent>
         </Card>
       </div>
     )
   }
 
+  // Filter opportunities by search term and additional filters
+  const filteredOpportunities = opportunities?.filter(opp => {
+    // Search term filter
+    if (searchTerm !== '' &&
+        !opp.customer?.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !opp.supplier?.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !opp.product_packaging_specs?.products.name.toLowerCase().includes(searchTerm.toLowerCase())
+    ) {
+      return false
+    }
+
+    // Customer agent filter
+    if (customerAgentFilter !== 'all' && opp.customer?.agent?.id !== customerAgentFilter) {
+      return false
+    }
+
+    // Feedback status filter
+    if (feedbackStatusFilter !== 'all' && (opp.feedback_status || 'none') !== feedbackStatusFilter) {
+      return false
+    }
+
+    return true
+  }) || []
+
+  const statusConfig = {
+    draft: { color: 'bg-gray-100 text-gray-800', label: 'Draft' },
+    active: { color: 'bg-blue-100 text-blue-800', label: 'Active' },
+    negotiating: { color: 'bg-yellow-100 text-yellow-800', label: 'Negotiating' },
+    offered: { color: 'bg-purple-100 text-purple-800', label: 'Offered' },
+    confirmed: { color: 'bg-green-100 text-green-800', label: 'Confirmed' },
+    cancelled: { color: 'bg-red-100 text-red-800', label: 'Cancelled' },
+    completed: { color: 'bg-green-100 text-green-800', label: 'Completed' },
+  }
+
+  const priorityConfig = {
+    low: { color: 'bg-gray-100 text-gray-600', label: 'Low' },
+    medium: { color: 'bg-blue-100 text-blue-600', label: 'Medium' },
+    high: { color: 'bg-orange-100 text-orange-600', label: 'High' },
+    urgent: { color: 'bg-red-100 text-red-600', label: 'Urgent' },
+  }
+
+  const handleToggleActive = async (opportunityId: string, currentlyActive: boolean) => {
+    try {
+      await updateMutation.mutateAsync({
+        id: opportunityId,
+        data: { is_active: !currentlyActive }
+      })
+      toast.success(`Opportunity ${!currentlyActive ? 'activated' : 'deactivated'}`)
+    } catch (error) {
+      toast.error('Failed to update opportunity')
+    }
+  }
+
+  const handleStatusUpdate = async (opportunityId: string, newStatus: string) => {
+    try {
+      await updateMutation.mutateAsync({
+        id: opportunityId,
+        data: { status: newStatus as any }
+      })
+      toast.success('Status updated successfully')
+    } catch (error) {
+      toast.error('Failed to update status')
+    }
+  }
+
+  const handleRemoveOpportunity = async (opportunityId: string, customerName: string, supplierName: string) => {
+    if (window.confirm(`Are you sure you want to remove this opportunity for ${customerName} ↔ ${supplierName}? This will move it back to potential trades.`)) {
+      try {
+        await deleteMutation.mutateAsync(opportunityId)
+        toast.success('Opportunity removed successfully')
+      } catch (error) {
+        console.error('Failed to remove opportunity:', error)
+        toast.error('Failed to remove opportunity')
+      }
+    }
+  }
+
+  const getExpiryStatus = (validTill?: string) => {
+    if (!validTill) return null
+
+    const expiryDate = new Date(validTill)
+    const now = new Date()
+    const sevenDaysFromNow = addDays(now, 7)
+
+    if (isBefore(expiryDate, now)) {
+      return { status: 'expired', label: 'Expired', color: 'bg-red-100 text-red-800' }
+    } else if (isBefore(expiryDate, sevenDaysFromNow)) {
+      return { status: 'expiring', label: 'Expiring Soon', color: 'bg-yellow-100 text-yellow-800' }
+    }
+    return null
+  }
+
   return (
-    <div className="space-y-6 page-transition">
+    <div className="container mx-auto py-8 space-y-6 page-transition">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Trade Opportunities</h1>
-        <p className="text-muted-foreground">
-          Discover and manage customer-supplier matching opportunities based on logistics capabilities
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Trade Opportunities</h1>
+          <p className="text-muted-foreground">
+            Manage active opportunities and track quotes to customers
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/trade/potential">
+            <ExternalLink className="mr-2 h-4 w-4" />
+            View Trade Potential
+          </Link>
+        </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Opportunities</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalOpportunities}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.highPriorityCount} high priority
-            </p>
-          </CardContent>
-        </Card>
+      {/* Summary Cards */}
+      {summary && (
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total</CardTitle>
+              <Target className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{summary.total}</div>
+              <p className="text-xs text-muted-foreground">
+                {summary.active} active, {summary.inactive} inactive
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unique Customers</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.uniqueCustomers}</div>
-            <p className="text-xs text-muted-foreground">
-              With matching suppliers
-            </p>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Draft</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-600">{summary.draft}</div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Available Products</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.uniqueProducts}</div>
-            <p className="text-xs text-muted-foreground">
-              Products with opportunities
-            </p>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Offered</CardTitle>
+              <DollarSign className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600">{summary.offered}</div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Margin</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.averageMargin.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground">
-              Potential revenue: {formatCurrency(stats.totalPotentialRevenue)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{summary.confirmed}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Urgent</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{summary.byPriority.urgent}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Expiring Soon</CardTitle>
+              <Calendar className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-600">{summary.expiringSoon}</div>
+              <p className="text-xs text-muted-foreground">
+                {summary.expired} expired
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Filters */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
-            Filters
+            Filters & Search
           </CardTitle>
-          <CardDescription>
-            Filter opportunities by staff, priority, and customer
-          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-4">
-            {/* Staff Filter */}
-            <div className="space-y-2">
-              <Label>Staff Member</Label>
-              <Select
-                value={filters.staffId || 'all'}
-                onValueChange={(value) => setFilters(prev => ({ ...prev, staffId: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All staff" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All staff</SelectItem>
-                  <SelectItem value="me">My customers only</SelectItem>
-                  {allStaff.map(staff => (
-                    <SelectItem key={staff.id} value={staff.id}>
-                      {staff.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <CardContent className="grid grid-cols-1 md:grid-cols-7 gap-4 items-end">
+          <div>
+            <Label htmlFor="search">Search</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="search"
+                placeholder="Search opportunities..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
+          </div>
 
-            {/* Priority Filter */}
-            <div className="space-y-2">
-              <Label>Priority</Label>
-              <Select
-                value={filters.priority || 'all'}
-                onValueChange={(value) => setFilters(prev => ({
-                  ...prev,
-                  priority: value === 'all' ? undefined : value as any
-                }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All priorities" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All priorities</SelectItem>
-                  <SelectItem value="high">High priority</SelectItem>
-                  <SelectItem value="medium">Medium priority</SelectItem>
-                  <SelectItem value="low">Low priority</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label htmlFor="status-filter">Status</Label>
+            <Select value={statusFilter} onValueChange={(value: OpportunityStatus) => setStatusFilter(value)}>
+              <SelectTrigger id="status-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="negotiating">Negotiating</SelectItem>
+                <SelectItem value="offered">Offered</SelectItem>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Product Category Filter */}
-            <div className="space-y-2">
-              <Label>Product Category</Label>
-              <Select
-                value={filters.productCategory || 'all'}
-                onValueChange={(value) => setFilters(prev => ({
-                  ...prev,
-                  productCategory: value === 'all' ? undefined : value
-                }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All categories</SelectItem>
-                  {productCategories.map(category => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label htmlFor="priority-filter">Priority</Label>
+            <Select value={priorityFilter} onValueChange={(value: OpportunityPriority) => setPriorityFilter(value)}>
+              <SelectTrigger id="priority-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priorities</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            {/* Customer Filter */}
-            <div className="space-y-2">
-              <Label>Customer</Label>
-              <Select
-                value={filters.customerId || 'all'}
-                onValueChange={(value) => setFilters(prev => ({
-                  ...prev,
-                  customerId: value === 'all' ? undefined : value
-                }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="All customers" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All customers</SelectItem>
-                  {allCustomers.map(customer => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label htmlFor="customer-agent-filter">Customer Agent</Label>
+            <Select value={customerAgentFilter} onValueChange={setCustomerAgentFilter}>
+              <SelectTrigger id="customer-agent-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Customer Agents</SelectItem>
+                {activeStaff?.map((staff) => (
+                  <SelectItem key={staff.id} value={staff.id}>
+                    {staff.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="feedback-filter">Feedback Status</Label>
+            <Select value={feedbackStatusFilter} onValueChange={setFeedbackStatusFilter}>
+              <SelectTrigger id="feedback-filter">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Feedback</SelectItem>
+                <SelectItem value="none">No Feedback</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="received">Received</SelectItem>
+                <SelectItem value="addressed">Addressed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="active-filter"
+              checked={activeOnly}
+              onCheckedChange={setActiveOnly}
+            />
+            <Label htmlFor="active-filter">Active Only</Label>
+          </div>
+
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredOpportunities.length} opportunities
           </div>
         </CardContent>
       </Card>
@@ -332,270 +397,211 @@ export default function TraderPage() {
       {/* Opportunities Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Trade Opportunities</CardTitle>
+          <CardTitle>Opportunities</CardTitle>
           <CardDescription>
-            Showing {opportunities.length} matching opportunit{opportunities.length !== 1 ? 'ies' : 'y'}
+            Manage and track your opportunities through the sales pipeline
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {opportunities.length === 0 ? (
-            <div className="text-center py-12">
-              <Target className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-lg font-medium">No opportunities found</h3>
-              <p className="text-gray-500">
-                Try adjusting your filters or ensure customers have logistics capabilities and suppliers have pricing data
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Agent</TableHead>
-                    <TableHead>Product Needed</TableHead>
-                    <TableHead>Supplier</TableHead>
-                    <TableHead>Logistics</TableHead>
-                    <TableHead className="text-right">Pricing</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {opportunities.map((opportunity) => (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Sales Price</TableHead>
+                  <TableHead>Transport & Delivery</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Agent</TableHead>
+                  <TableHead>Feedback</TableHead>
+                  <TableHead>Valid Until</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredOpportunities.map((opportunity) => {
+                  const margin = opportunity.offer_price_per_unit && opportunity.estimated_total_cost
+                    ? opportunity.offer_price_per_unit - opportunity.estimated_total_cost
+                    : 0
+
+                  const marginPercentage = opportunity.offer_price_per_unit && margin
+                    ? (margin / opportunity.offer_price_per_unit) * 100
+                    : 0
+
+                  const expiryStatus = getExpiryStatus(opportunity.valid_till)
+                  const supplierPriceStatus = getPriceStatus(opportunity.supplier_price?.valid_until)
+
+                  return (
                     <TableRow key={opportunity.id}>
                       <TableCell>
-                        <div>
-                          <div className="font-medium">{opportunity.customer.name}</div>
-                          <div className="text-sm text-gray-500 flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {opportunity.customer.city}
-                            {opportunity.customer.country && `, ${opportunity.customer.country}`}
+                        <div className="space-y-1">
+                          <div className="font-medium">{opportunity.customer?.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {opportunity.customer?.city}, {opportunity.customer?.country}
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm">{opportunity.customer.agent.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{opportunity.product.name}</div>
-                          <div className="text-sm text-gray-500">
-                            {opportunity.product.sizeName} • {opportunity.product.packagingLabel}
+                          <div className="text-xs text-muted-foreground">
+                            Supplier: {opportunity.selected_supplier?.name || opportunity.supplier?.name}
                           </div>
-                          <div className="text-xs text-gray-400 flex items-center gap-1">
-                            <Scale className="h-3 w-3" />
-                            {formatUnits(opportunity.product.unitsPerPallet, opportunity.product.soldBy)}/pallet
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{opportunity.supplier.name}</div>
-                          <div className="text-sm text-gray-500 flex items-center gap-1">
-                            <Building2 className="h-3 w-3" />
-                            {opportunity.supplier.hubName}
-                          </div>
-                          <div className="text-xs text-gray-400 flex items-center gap-1">
-                            <Truck className="h-3 w-3" />
-                            {opportunity.supplier.deliveryMode}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="flex items-center gap-1 text-sm">
-                            {getLogisticsIcon(opportunity.logistics.solutionType)}
-                            <span className="capitalize">
-                              {opportunity.logistics.solutionType.replace('_', ' ').toLowerCase()}
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {opportunity.logistics.durationDays} day{opportunity.logistics.durationDays !== 1 ? 's' : ''}
-                          </div>
-                          {opportunity.logistics.transporterName && (
-                            <div className="text-xs text-gray-400">
-                              via {opportunity.logistics.transporterName}
-                            </div>
+                          {opportunity.customer?.agent && (
+                            <Badge variant="outline" className="text-xs">
+                              Agent: {opportunity.customer.agent.name}
+                            </Badge>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div>
-                          <div className="font-semibold text-green-700">
-                            {opportunity.pricing.finalPricePerUnit === 0 ? 'Price TBD' : formatCurrency(opportunity.pricing.finalPricePerUnit)}
+
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="font-medium">
+                            {opportunity.product_packaging_specs?.products.name}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {opportunity.pricing.finalPricePerUnit === 0 ? 'Contact supplier' : `Margin: ${opportunity.pricing.marginPercentage.toFixed(1)}%`}
+                          <div className="flex gap-1 flex-wrap">
+                            <Badge variant="outline" className="text-xs">
+                              {opportunity.product_packaging_specs?.products.category}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {opportunity.product_packaging_specs?.packaging_options.label}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {opportunity.product_packaging_specs?.size_options.name}
+                            </Badge>
                           </div>
-                          <div className="text-xs text-gray-400">
-                            Base: {opportunity.pricing.basePricePerUnit === 0 ? 'TBD' : formatCurrency(opportunity.pricing.basePricePerUnit)}
-                          </div>
-                          {opportunity.pricing.transportCostPerUnit > 0 && (
-                            <div className="text-xs text-gray-400">
-                              Transport: {formatCurrency(opportunity.pricing.transportCostPerUnit)}
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="space-y-1">
+                          {opportunity.offer_price_per_unit ? (
+                            <div className="text-lg font-bold text-green-600">
+                              {formatCurrency(opportunity.offer_price_per_unit, opportunity.offer_currency)}
+                              {opportunity.product_packaging_specs?.products?.sold_by && (
+                                <span className="text-sm ml-1">/{opportunity.product_packaging_specs.products.sold_by}</span>
+                              )}
                             </div>
+                          ) : (
+                            <div className="text-sm text-muted-foreground">No price set</div>
+                          )}
+                          {margin > 0 && (
+                            <div className={`text-xs ${margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              Margin: {formatCurrency(margin)} ({marginPercentage.toFixed(1)}%)
+                            </div>
+                          )}
+                          {(supplierPriceStatus.isExpired || supplierPriceStatus.isExpiringSoon) && (
+                            <Badge
+                              variant={formatPriceStatusBadge(supplierPriceStatus).variant}
+                              className="text-xs"
+                            >
+                              {formatPriceStatusBadge(supplierPriceStatus).text}
+                            </Badge>
                           )}
                         </div>
                       </TableCell>
+
                       <TableCell>
-                        <Badge className={getPriorityColor(opportunity.priority)}>
-                          <div className="flex items-center gap-1">
-                            {getPriorityIcon(opportunity.priority)}
-                            {opportunity.priority}
-                          </div>
-                        </Badge>
+                        <TransportDisplay opportunity={opportunity} />
                       </TableCell>
+
+                      <TableCell>
+                        <div className="space-y-1">
+                          <Badge className={statusConfig[opportunity.status].color}>
+                            {statusConfig[opportunity.status].label}
+                          </Badge>
+                          <Badge className={priorityConfig[opportunity.priority].color}>
+                            {priorityConfig[opportunity.priority].label}
+                          </Badge>
+                          {!opportunity.is_active && (
+                            <Badge variant="secondary" className="text-xs">
+                              Inactive
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium">
+                            {opportunity.customer?.agent?.name || 'No agent assigned'}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Created {format(new Date(opportunity.created_at), 'MMM dd')}
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <FeedbackDisplay opportunity={opportunity} />
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="space-y-1">
+                          {opportunity.valid_till && (
+                            <div className="text-sm">
+                              {format(new Date(opportunity.valid_till), 'MMM dd, yyyy')}
+                            </div>
+                          )}
+                          {expiryStatus && (
+                            <Badge className={expiryStatus.color} variant="outline">
+                              {expiryStatus.label}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+
                       <TableCell>
                         <div className="flex gap-1">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                              <DialogHeader>
-                                <DialogTitle>Trade Opportunity Details</DialogTitle>
-                                <DialogDescription>
-                                  Complete breakdown for {opportunity.customer.name} - {opportunity.product.name}
-                                </DialogDescription>
-                              </DialogHeader>
+                          <Link href={`/trade/opportunities/${opportunity.id}`}>
+                            <Button size="sm" variant="outline" title="View Details">
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                          </Link>
 
-                              <div className="space-y-6">
-                                {/* Customer & Product Info */}
-                                <div className="grid gap-6 md:grid-cols-2">
-                                  <div>
-                                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                                      <Users className="h-4 w-4" />
-                                      Customer Details
-                                    </h4>
-                                    <div className="space-y-2 text-sm">
-                                      <div><strong>Name:</strong> {opportunity.customer.name}</div>
-                                      <div><strong>Location:</strong> {opportunity.customer.city}, {opportunity.customer.country}</div>
-                                      <div><strong>Agent:</strong> {opportunity.customer.agent.name}</div>
-                                    </div>
-                                  </div>
+                          {opportunity.status !== 'offered' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 hover:border-purple-300"
+                              onClick={() => handleStatusUpdate(opportunity.id, 'offered')}
+                              disabled={updateMutation.isPending}
+                              title="Mark as Quoted"
+                            >
+                              <DollarSign className="h-3 w-3" />
+                            </Button>
+                          )}
 
-                                  <div>
-                                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                                      <Package className="h-4 w-4" />
-                                      Product Requirements
-                                    </h4>
-                                    <div className="space-y-2 text-sm">
-                                      <div><strong>Product:</strong> {opportunity.product.name}</div>
-                                      <div><strong>Category:</strong> {opportunity.product.category}</div>
-                                      <div><strong>Size:</strong> {opportunity.product.sizeName}</div>
-                                      <div><strong>Packaging:</strong> {opportunity.product.packagingLabel}</div>
-                                      <div><strong>Units/Pallet:</strong> {formatUnits(opportunity.product.unitsPerPallet, opportunity.product.soldBy)}</div>
-                                      <div><strong>Weight/Pallet:</strong> {opportunity.product.weightPerPallet} {opportunity.product.weightUnit}</div>
-                                    </div>
-                                  </div>
-                                </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            title="Edit Opportunity"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
 
-                                {/* Logistics Details */}
-                                <div>
-                                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                                    <Route className="h-4 w-4" />
-                                    Logistics Solution
-                                  </h4>
-                                  <div className="bg-blue-50 p-4 rounded-lg">
-                                    <div className="text-sm space-y-2">
-                                      <div><strong>Type:</strong> {opportunity.logistics.solutionType.replace('_', ' ')}</div>
-                                      <div><strong>Route:</strong> {opportunity.logistics.supplierHub} → {opportunity.logistics.customerHub}</div>
-                                      <div><strong>Duration:</strong> {opportunity.logistics.durationDays} day{opportunity.logistics.durationDays !== 1 ? 's' : ''}</div>
-                                      {opportunity.logistics.transporterName && (
-                                        <div><strong>Transporter:</strong> {opportunity.logistics.transporterName}</div>
-                                      )}
-                                      <div className="mt-2 text-xs text-gray-600">
-                                        {opportunity.logistics.description}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Pricing Breakdown */}
-                                <div>
-                                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                                    <Euro className="h-4 w-4" />
-                                    Pricing Breakdown (per {opportunity.product.soldBy})
-                                  </h4>
-                                  <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                      <span>Supplier Price:</span>
-                                      <span>{formatCurrency(opportunity.pricing.basePricePerUnit)}</span>
-                                    </div>
-                                    {opportunity.pricing.transportCostPerUnit > 0 && (
-                                      <div className="flex justify-between text-sm">
-                                        <span>Transport Cost:</span>
-                                        <span>{formatCurrency(opportunity.pricing.transportCostPerUnit)}</span>
-                                      </div>
-                                    )}
-                                    <div className="flex justify-between text-sm">
-                                      <span>Subtotal:</span>
-                                      <span>{formatCurrency(opportunity.pricing.subtotalPerUnit)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                      <span>Margin ({opportunity.pricing.marginPercentage}%):</span>
-                                      <span>{formatCurrency(opportunity.pricing.marginPerUnit)}</span>
-                                    </div>
-                                    <div className="border-t pt-2">
-                                      <div className="flex justify-between font-semibold">
-                                        <span>Final Price per {opportunity.product.soldBy}:</span>
-                                        <span className="text-green-700">
-                                          {opportunity.pricing.finalPricePerUnit === 0 ? 'Price TBD' : formatCurrency(opportunity.pricing.finalPricePerUnit)}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    {opportunity.pricing.finalPricePerUnit > 0 && (
-                                      <div className="text-xs text-gray-500 pt-2">
-                                        Per pallet: {formatCurrency(opportunity.pricing.finalPricePerUnit * opportunity.product.unitsPerPallet)}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Supplier Details */}
-                                <div>
-                                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                                    <Building2 className="h-4 w-4" />
-                                    Supplier Information
-                                  </h4>
-                                  <div className="space-y-2 text-sm">
-                                    <div><strong>Supplier:</strong> {opportunity.supplier.name}</div>
-                                    <div><strong>Hub:</strong> {opportunity.supplier.hubName} ({opportunity.supplier.hubCode})</div>
-                                    <div><strong>Delivery Mode:</strong> {opportunity.supplier.deliveryMode}</div>
-                                    <div><strong>Price Valid Until:</strong> {format(new Date(opportunity.supplier.validUntil), 'MMM dd, yyyy')}</div>
-                                  </div>
-                                </div>
-
-                                {/* Action Buttons */}
-                                <div className="flex gap-2 pt-4 border-t">
-                                  <Button size="sm">
-                                    <Mail className="mr-1 h-4 w-4" />
-                                    Generate Quote
-                                  </Button>
-                                  <Button variant="outline" size="sm">
-                                    <Phone className="mr-1 h-4 w-4" />
-                                    Contact Customer
-                                  </Button>
-                                  <Button variant="outline" size="sm">
-                                    <Building2 className="mr-1 h-4 w-4" />
-                                    Contact Supplier
-                                  </Button>
-                                </div>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 hover:border-red-300"
+                            onClick={() => handleRemoveOpportunity(
+                              opportunity.id,
+                              opportunity.customer?.name || 'Unknown Customer',
+                              opportunity.supplier?.name || 'Unknown Supplier'
+                            )}
+                            disabled={deleteMutation.isPending}
+                            title="Remove opportunity and send back to potential"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          {filteredOpportunities.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              No opportunities found matching your filters.
             </div>
           )}
         </CardContent>
