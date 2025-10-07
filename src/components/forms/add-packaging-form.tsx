@@ -25,7 +25,7 @@ import {
   SearchableSelect,
 } from '@/components/ui/searchable-select'
 import { supabase } from '@/lib/supabase'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 
 const unitTypeOptions = [
@@ -54,7 +54,6 @@ interface AddPackagingFormProps {
 
 export function AddPackagingForm({ open, onOpenChange }: AddPackagingFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
   const queryClient = useQueryClient()
 
   const form = useForm<AddPackagingFormValues>({
@@ -83,22 +82,15 @@ export function AddPackagingForm({ open, onOpenChange }: AddPackagingFormProps) 
 
       if (error) throw error
 
-      toast({
-        title: 'Success',
-        description: 'Packaging option created successfully',
-      })
+      toast.success('Packaging option created successfully')
 
       queryClient.invalidateQueries({ queryKey: ['packaging-options'] })
       onOpenChange(false)
       form.reset()
-      
+
     } catch (error: any) {
       console.error('Error creating packaging:', error)
-      toast({
-        title: 'Error',
-        description: `Failed to create packaging: ${error.message}`,
-        variant: 'destructive',
-      })
+      toast.error(`Failed to create packaging: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
@@ -106,10 +98,10 @@ export function AddPackagingForm({ open, onOpenChange }: AddPackagingFormProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Add New Packaging</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">ADD NEW PACKAGING</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Create a new packaging option
           </DialogDescription>
         </DialogHeader>
@@ -121,9 +113,9 @@ export function AddPackagingForm({ open, onOpenChange }: AddPackagingFormProps) 
               name="label"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Label</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Label</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. 15kg Cardboard Box" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="e.g. 15kg Cardboard Box" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -135,7 +127,7 @@ export function AddPackagingForm({ open, onOpenChange }: AddPackagingFormProps) 
               name="unit_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Unit Type</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Unit Type</FormLabel>
                   <FormControl>
                     <SearchableSelect
                       value={field.value}
@@ -155,9 +147,9 @@ export function AddPackagingForm({ open, onOpenChange }: AddPackagingFormProps) 
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Description (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="Optional description" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="Optional description" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -169,9 +161,10 @@ export function AddPackagingForm({ open, onOpenChange }: AddPackagingFormProps) 
               name="deposit_fee"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Deposit Fee (€)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Deposit Fee (€)</FormLabel>
                   <FormControl>
                     <Input
+                      className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                       type="number"
                       step="0.01"
                       placeholder="0.00"
@@ -193,9 +186,10 @@ export function AddPackagingForm({ open, onOpenChange }: AddPackagingFormProps) 
               name="rent_fee"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Rent Fee (€)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Rent Fee (€)</FormLabel>
                   <FormControl>
                     <Input
+                      className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                       type="number"
                       step="0.01"
                       placeholder="0.00"
@@ -213,15 +207,16 @@ export function AddPackagingForm({ open, onOpenChange }: AddPackagingFormProps) 
             />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Creating...' : 'Create Packaging'}
               </Button>
             </div>

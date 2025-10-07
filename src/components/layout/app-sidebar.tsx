@@ -28,7 +28,6 @@ import {
   LogOut
 } from 'lucide-react'
 import { UserMenu } from '@/components/auth/user-menu'
-import { useCurrentStaffMember } from '@/hooks/use-staff'
 
 interface SidebarProps {
   collapsed: boolean
@@ -109,6 +108,11 @@ const navigationItems: NavItem[] = [
         icon: Euro,
       },
       {
+        href: '/trade/requests',
+        label: 'Customer Requests',
+        icon: Search,
+      },
+      {
         href: '/trade/trader',
         label: 'Trade Opportunities',
         icon: BarChart3,
@@ -180,14 +184,7 @@ function NavItemComponent({ item, collapsed, level = 0 }: { item: NavItem; colla
               <Icon className="h-5 w-5 shrink-0" />
               {!collapsed && (
                 <>
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="truncate text-left">{item.label}</span>
-                    {item.href === '/trade' && (
-                      <span className="text-[10px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">
-                        UNDER CONSTRUCTION
-                      </span>
-                    )}
-                  </div>
+                  <span className="truncate text-left flex-1">{item.label}</span>
                   <div className="ml-auto">
                     {isOpen ? (
                       <ChevronDown className="h-4 w-4" />
@@ -235,34 +232,6 @@ function NavItemComponent({ item, collapsed, level = 0 }: { item: NavItem; colla
 }
 
 export function AppSidebar({ collapsed, onToggle }: SidebarProps) {
-  const { data: currentStaff } = useCurrentStaffMember()
-
-  // Get the first name from the staff member's name for a more personal touch
-  const getFirstName = (fullName: string) => {
-    return fullName.split(' ')[0]
-  }
-
-  // Create dynamic navigation items based on current staff
-  const getDynamicNavigationItems = () => {
-    const baseItems = [...navigationItems]
-
-    if (currentStaff) {
-      // Find and update the "My Workspace" item
-      const myWorkspaceIndex = baseItems.findIndex(item => item.href === '/my')
-      if (myWorkspaceIndex !== -1) {
-        const firstName = getFirstName(currentStaff.name)
-        baseItems[myWorkspaceIndex] = {
-          ...baseItems[myWorkspaceIndex],
-          label: `${firstName}'s World`
-        }
-      }
-    }
-
-    return baseItems
-  }
-
-  const dynamicNavigationItems = getDynamicNavigationItems()
-
   return (
     <div className={cn(
       'flex flex-col h-screen bg-terminal-panel border-r border-terminal-border transition-all duration-300',
@@ -292,7 +261,7 @@ export function AppSidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-1">
-          {dynamicNavigationItems.map((item) => (
+          {navigationItems.map((item) => (
             <NavItemComponent
               key={item.href}
               item={item}

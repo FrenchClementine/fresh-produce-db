@@ -120,14 +120,14 @@ export function EditPackagingForm({ packaging, open, onOpenChange }: EditPackagi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Edit Packaging</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">EDIT PACKAGING</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Update the packaging details
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -135,9 +135,9 @@ export function EditPackagingForm({ packaging, open, onOpenChange }: EditPackagi
               name="label"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Label</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Label</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. 15kg Cardboard Box" {...field} />
+                    <Input placeholder="e.g. 15kg Cardboard Box" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -149,7 +149,7 @@ export function EditPackagingForm({ packaging, open, onOpenChange }: EditPackagi
               name="unit_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Unit Type</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Unit Type</FormLabel>
                   <FormControl>
                     <SearchableSelect
                       value={field.value}
@@ -169,9 +169,9 @@ export function EditPackagingForm({ packaging, open, onOpenChange }: EditPackagi
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Description</FormLabel>
                   <FormControl>
-                    <Input placeholder="Optional description" {...field} />
+                    <Input placeholder="Optional description" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -183,7 +183,7 @@ export function EditPackagingForm({ packaging, open, onOpenChange }: EditPackagi
               name="deposit_fee"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Deposit Fee (€)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Deposit Fee (€)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -195,6 +195,7 @@ export function EditPackagingForm({ packaging, open, onOpenChange }: EditPackagi
                         field.onChange(value === '' ? undefined : parseFloat(value))
                       }}
                       onFocus={(e) => e.target.select()}
+                      className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                     />
                   </FormControl>
                   <FormMessage />
@@ -207,7 +208,7 @@ export function EditPackagingForm({ packaging, open, onOpenChange }: EditPackagi
               name="rent_fee"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Rent Fee (€)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Rent Fee (€)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -219,6 +220,7 @@ export function EditPackagingForm({ packaging, open, onOpenChange }: EditPackagi
                         field.onChange(value === '' ? undefined : parseFloat(value))
                       }}
                       onFocus={(e) => e.target.select()}
+                      className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                     />
                   </FormControl>
                   <FormMessage />
@@ -227,15 +229,16 @@ export function EditPackagingForm({ packaging, open, onOpenChange }: EditPackagi
             />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Updating...' : 'Update Packaging'}
               </Button>
             </div>

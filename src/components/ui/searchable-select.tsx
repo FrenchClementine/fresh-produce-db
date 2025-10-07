@@ -60,8 +60,8 @@ export function SearchableSelect({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            "w-full justify-between text-left font-normal",
-            !selectedOption && "text-muted-foreground",
+            "w-full justify-between text-left font-normal bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono",
+            !selectedOption && "text-terminal-muted",
             className
           )}
           disabled={disabled}
@@ -70,11 +70,11 @@ export function SearchableSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start" style={{ maxHeight: 'min(500px, 80vh)' }}>
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+      <PopoverContent className="w-full p-0 bg-terminal-panel border-terminal-border" align="start" style={{ maxHeight: 'min(500px, 80vh)' }}>
+        <Command className="bg-terminal-panel">
+          <CommandInput placeholder={searchPlaceholder} className="font-mono text-terminal-text" />
           <CommandList style={{ maxHeight: '400px', overflowY: 'auto' }}>
-            <CommandEmpty>{emptyMessage}</CommandEmpty>
+            <CommandEmpty className="text-terminal-muted font-mono p-4">{emptyMessage}</CommandEmpty>
             <CommandGroup style={{ maxHeight: '380px', overflowY: 'auto' }}>
               {options.map((option) => (
                 <CommandItem
@@ -86,10 +86,11 @@ export function SearchableSelect({
                     onValueChange?.(selectedValue)
                     setOpen(false)
                   }}
+                  className="font-mono text-terminal-text hover:bg-terminal-dark"
                 >
                   <Check
                     className={cn(
-                      "mr-2 h-4 w-4",
+                      "mr-2 h-4 w-4 text-terminal-accent",
                       value === option.value ? "opacity-100" : "opacity-0"
                     )}
                   />

@@ -27,7 +27,7 @@ import {
   createSearchableOptions,
 } from '@/components/ui/searchable-select'
 import { supabase } from '@/lib/supabase'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { geocodeWithNominatim } from '@/lib/nominatim-geocoding'
 
@@ -82,7 +82,6 @@ interface AddHubFormProps {
 
 export function AddHubForm({ open, onOpenChange }: AddHubFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
   const queryClient = useQueryClient()
 
   const form = useForm<AddHubFormValues>({
@@ -144,12 +143,11 @@ export function AddHubForm({ open, onOpenChange }: AddHubFormProps) {
 
       if (error) throw error
 
-      toast({
-        title: 'Success',
-        description: hasCoordinates
+      toast.success(
+        hasCoordinates
           ? 'Hub created successfully with coordinates'
-          : 'Hub created successfully',
-      })
+          : 'Hub created successfully'
+      )
 
       queryClient.invalidateQueries({ queryKey: ['hubs'] })
       onOpenChange(false)
@@ -157,11 +155,7 @@ export function AddHubForm({ open, onOpenChange }: AddHubFormProps) {
 
     } catch (error: any) {
       console.error('Error creating hub:', error)
-      toast({
-        title: 'Error',
-        description: `Failed to create hub: ${error.message}`,
-        variant: 'destructive',
-      })
+      toast.error(`Failed to create hub: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
@@ -169,10 +163,10 @@ export function AddHubForm({ open, onOpenChange }: AddHubFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Add New Hub</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">ADD NEW HUB</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Create a new logistics hub
           </DialogDescription>
         </DialogHeader>
@@ -184,9 +178,9 @@ export function AddHubForm({ open, onOpenChange }: AddHubFormProps) {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Hub Name</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Hub Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Amsterdam Distribution Center" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="e.g. Amsterdam Distribution Center" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -198,9 +192,9 @@ export function AddHubForm({ open, onOpenChange }: AddHubFormProps) {
               name="hub_code"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Hub Code</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Hub Code</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. AMS-001" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="e.g. AMS-001" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -212,7 +206,7 @@ export function AddHubForm({ open, onOpenChange }: AddHubFormProps) {
               name="country_code"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Country Code (Optional)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Country Code (Optional)</FormLabel>
                   <FormControl>
                     <SearchableSelect
                       value={field.value || ''}
@@ -232,9 +226,9 @@ export function AddHubForm({ open, onOpenChange }: AddHubFormProps) {
               name="city_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>City Name (Optional)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">City Name (Optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Amsterdam" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="e.g. Amsterdam" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -246,7 +240,7 @@ export function AddHubForm({ open, onOpenChange }: AddHubFormProps) {
               name="region"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Region (Optional)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Region (Optional)</FormLabel>
                   <FormControl>
                     <SearchableSelect
                       value={field.value || ''}
@@ -262,15 +256,16 @@ export function AddHubForm({ open, onOpenChange }: AddHubFormProps) {
             />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Creating...' : 'Create Hub'}
               </Button>
             </div>

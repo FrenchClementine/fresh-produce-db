@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { useTradePotential } from '@/hooks/use-trade-potential'
 import { PotentialStatus } from '@/types/trade-potential'
+import { TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
 // Import existing table mode content (we'll extract it to a component)
@@ -26,10 +27,10 @@ export default function TradePotentialPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="min-h-screen bg-terminal-dark flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading trade potential...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-terminal-accent mx-auto mb-4"></div>
+          <p className="text-terminal-muted font-mono">Loading trade potential...</p>
         </div>
       </div>
     )
@@ -37,27 +38,34 @@ export default function TradePotentialPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center text-red-600">
-          <p>Error loading trade potential</p>
-          <Button onClick={() => refetch()} className="mt-4">Retry</Button>
+      <div className="min-h-screen bg-terminal-dark flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-terminal-alert font-mono mb-4">Error loading trade potential</p>
+          <Button onClick={() => refetch()} className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono">
+            Retry
+          </Button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6 page-transition">
+    <div className="min-h-screen bg-terminal-dark p-4 space-y-4">
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Trade Potential</h1>
-          <p className="text-muted-foreground">
-            Customer → Supplier product matches and their opportunity status
-          </p>
+      <div className="flex items-center justify-between border-b border-terminal-border pb-4">
+        <div className="flex items-center gap-4">
+          <TrendingUp className="h-8 w-8 text-terminal-accent" />
+          <div>
+            <h1 className="text-2xl font-mono font-bold text-terminal-text tracking-wider">
+              TRADE POTENTIAL
+            </h1>
+            <p className="text-terminal-muted font-mono text-sm">
+              Customer → Supplier product matches and their opportunity status
+            </p>
+          </div>
         </div>
-        <Button asChild>
-          <Link href="/trade/opportunities">
+        <Button asChild className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono">
+          <Link href="/trade/opportunity">
             View Opportunities
           </Link>
         </Button>

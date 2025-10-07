@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { supabase } from '@/lib/supabase'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 
 const addPalletSchema = z.object({
@@ -42,7 +42,6 @@ interface AddPalletFormProps {
 
 export function AddPalletForm({ open, onOpenChange }: AddPalletFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
   const queryClient = useQueryClient()
 
   const form = useForm<AddPalletFormValues>({
@@ -71,22 +70,15 @@ export function AddPalletForm({ open, onOpenChange }: AddPalletFormProps) {
 
       if (error) throw error
 
-      toast({
-        title: 'Success',
-        description: 'Pallet created successfully',
-      })
+      toast.success('Pallet created successfully')
 
       queryClient.invalidateQueries({ queryKey: ['pallets'] })
       onOpenChange(false)
       form.reset()
-      
+
     } catch (error: any) {
       console.error('Error creating pallet:', error)
-      toast({
-        title: 'Error',
-        description: `Failed to create pallet: ${error.message}`,
-        variant: 'destructive',
-      })
+      toast.error(`Failed to create pallet: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
@@ -94,10 +86,10 @@ export function AddPalletForm({ open, onOpenChange }: AddPalletFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Add New Pallet</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">ADD NEW PALLET</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Create a new pallet type
           </DialogDescription>
         </DialogHeader>
@@ -109,9 +101,9 @@ export function AddPalletForm({ open, onOpenChange }: AddPalletFormProps) {
               name="label"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Label</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Label</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. EUR Pallet" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="e.g. EUR Pallet" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -123,9 +115,9 @@ export function AddPalletForm({ open, onOpenChange }: AddPalletFormProps) {
               name="dimensions_cm"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Dimensions (cm) - Optional</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Dimensions (cm) - Optional</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. 120x80x15" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="e.g. 120x80x15" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -137,9 +129,10 @@ export function AddPalletForm({ open, onOpenChange }: AddPalletFormProps) {
               name="brutto_weight"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Brutto Weight (kg) - Optional</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Brutto Weight (kg) - Optional</FormLabel>
                   <FormControl>
                     <Input
+                      className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                       type="number"
                       step="0.1"
                       placeholder="25.0"
@@ -161,9 +154,10 @@ export function AddPalletForm({ open, onOpenChange }: AddPalletFormProps) {
               name="pallets_per_truck"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Pallets per Truck - Optional</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Pallets per Truck - Optional</FormLabel>
                   <FormControl>
                     <Input
+                      className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                       type="number"
                       placeholder="33"
                       value={field.value || ''}
@@ -184,9 +178,10 @@ export function AddPalletForm({ open, onOpenChange }: AddPalletFormProps) {
               name="deposit_fee"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Deposit Fee (€) - Optional</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Deposit Fee (€) - Optional</FormLabel>
                   <FormControl>
                     <Input
+                      className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                       type="number"
                       step="0.01"
                       placeholder="0.00"
@@ -204,15 +199,16 @@ export function AddPalletForm({ open, onOpenChange }: AddPalletFormProps) {
             />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Creating...' : 'Create Pallet'}
               </Button>
             </div>

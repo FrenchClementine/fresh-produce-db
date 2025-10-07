@@ -168,10 +168,10 @@ export function EditCustomerProductSpecForm({ open, onOpenChange, customerProduc
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Edit Product Requirement</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">EDIT PRODUCT REQUIREMENT</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Update the product requirement and seasonal preferences.
           </DialogDescription>
         </DialogHeader>
@@ -183,7 +183,7 @@ export function EditCustomerProductSpecForm({ open, onOpenChange, customerProduc
               name="season"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Season</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Season</FormLabel>
                   <Select
                     onValueChange={(value) => {
                       field.onChange(value)
@@ -195,13 +195,13 @@ export function EditCustomerProductSpecForm({ open, onOpenChange, customerProduc
                     defaultValue={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                         <SelectValue placeholder="Select season" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="bg-terminal-panel border-terminal-border">
                       {seasonOptions.map((season) => (
-                        <SelectItem key={season.value} value={season.value}>
+                        <SelectItem key={season.value} value={season.value} className="font-mono text-terminal-text">
                           {season.label}
                         </SelectItem>
                       ))}
@@ -218,9 +218,9 @@ export function EditCustomerProductSpecForm({ open, onOpenChange, customerProduc
               render={() => (
                 <FormItem>
                   <div className="mb-4">
-                    <FormLabel className="text-base">Available Months</FormLabel>
+                    <FormLabel className="text-base text-terminal-text font-mono">Available Months</FormLabel>
                     <div className="flex gap-2 mt-2">
-                      <Button type="button" variant="outline" size="sm" onClick={handleClearAllMonths}>
+                      <Button type="button" variant="outline" size="sm" onClick={handleClearAllMonths} className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono">
                         Clear All
                       </Button>
                     </div>
@@ -251,7 +251,7 @@ export function EditCustomerProductSpecForm({ open, onOpenChange, customerProduc
                                   }}
                                 />
                               </FormControl>
-                              <FormLabel className="text-sm font-normal">
+                              <FormLabel className="text-sm font-normal text-terminal-text font-mono">
                                 {month.label}
                               </FormLabel>
                             </FormItem>
@@ -271,9 +271,9 @@ export function EditCustomerProductSpecForm({ open, onOpenChange, customerProduc
                 name="local_production_from_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Local Production From</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Local Production From</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -285,9 +285,9 @@ export function EditCustomerProductSpecForm({ open, onOpenChange, customerProduc
                 name="local_production_till_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Local Production Till</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Local Production Till</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -301,9 +301,9 @@ export function EditCustomerProductSpecForm({ open, onOpenChange, customerProduc
                 name="import_period_from_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Import Period From</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Import Period From</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -315,9 +315,9 @@ export function EditCustomerProductSpecForm({ open, onOpenChange, customerProduc
                 name="import_period_till_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Import Period Till</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Import Period Till</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -330,11 +330,11 @@ export function EditCustomerProductSpecForm({ open, onOpenChange, customerProduc
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Notes</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Additional notes about this product requirement..."
-                      className="resize-none"
+                      className="bg-terminal-dark border-terminal-border text-terminal-text font-mono resize-none"
                       {...field}
                     />
                   </FormControl>
@@ -349,10 +349,11 @@ export function EditCustomerProductSpecForm({ open, onOpenChange, customerProduc
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Updating...' : 'Update Product Requirement'}
               </Button>
             </div>

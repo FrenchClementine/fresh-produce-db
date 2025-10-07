@@ -136,20 +136,20 @@ export default function TradeOpportunitiesPage() {
   }) || []
 
   const statusConfig = {
-    draft: { color: 'bg-gray-100 text-gray-800', label: 'Draft' },
-    active: { color: 'bg-blue-100 text-blue-800', label: 'Active' },
-    negotiating: { color: 'bg-yellow-100 text-yellow-800', label: 'Negotiating' },
-    offered: { color: 'bg-purple-100 text-purple-800', label: 'Offered' },
-    confirmed: { color: 'bg-green-100 text-green-800', label: 'Confirmed' },
-    cancelled: { color: 'bg-red-100 text-red-800', label: 'Cancelled' },
-    completed: { color: 'bg-green-100 text-green-800', label: 'Completed' },
+    draft: { color: 'bg-gray-600/20 text-gray-400 border-gray-600 font-mono', label: 'Draft' },
+    active: { color: 'bg-blue-600/20 text-blue-400 border-blue-600 font-mono', label: 'Active' },
+    negotiating: { color: 'bg-yellow-600/20 text-yellow-400 border-yellow-600 font-mono', label: 'Negotiating' },
+    offered: { color: 'bg-purple-600/20 text-purple-400 border-purple-600 font-mono', label: 'Offered' },
+    confirmed: { color: 'bg-terminal-success/20 text-terminal-success border-terminal-success font-mono', label: 'Confirmed' },
+    cancelled: { color: 'bg-terminal-alert/20 text-terminal-alert border-terminal-alert font-mono', label: 'Cancelled' },
+    completed: { color: 'bg-terminal-success/20 text-terminal-success border-terminal-success font-mono', label: 'Completed' },
   }
 
   const priorityConfig = {
-    low: { color: 'bg-gray-100 text-gray-600', label: 'Low' },
-    medium: { color: 'bg-blue-100 text-blue-600', label: 'Medium' },
-    high: { color: 'bg-orange-100 text-orange-600', label: 'High' },
-    urgent: { color: 'bg-red-100 text-red-600', label: 'Urgent' },
+    low: { color: 'bg-gray-600/20 text-gray-400 border-gray-600 font-mono', label: 'Low' },
+    medium: { color: 'bg-blue-600/20 text-blue-400 border-blue-600 font-mono', label: 'Medium' },
+    high: { color: 'bg-orange-600/20 text-orange-400 border-orange-600 font-mono', label: 'High' },
+    urgent: { color: 'bg-terminal-alert/20 text-terminal-alert border-terminal-alert font-mono', label: 'Urgent' },
   }
 
   const handleToggleActive = async (opportunityId: string, currentlyActive: boolean) => {
@@ -286,21 +286,33 @@ export default function TradeOpportunitiesPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-6 page-transition">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Trade Opportunities</h1>
-          <p className="text-muted-foreground">
-            Manage active opportunities and track quotes to customers
-          </p>
+    <div className="min-h-screen bg-terminal-dark p-4 space-y-4">
+      {/* Terminal Header */}
+      <div className="flex items-center justify-between border-b border-terminal-border pb-4">
+        <div className="flex items-center gap-4">
+          <TrendingUp className="h-8 w-8 text-terminal-accent" />
+          <div>
+            <h1 className="text-2xl font-mono font-bold text-terminal-text tracking-wider">
+              TRADE OPPORTUNITIES
+            </h1>
+            <p className="text-terminal-muted font-mono text-sm">
+              Manage active opportunities and track quotes to customers
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handlePrintPriceList}>
+          <Button
+            variant="outline"
+            onClick={handlePrintPriceList}
+            className="bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
+          >
             <Printer className="mr-2 h-4 w-4" />
             Print Price List
           </Button>
-          <Button asChild>
+          <Button
+            asChild
+            className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono"
+          >
             <Link href="/trade/potential">
               <ExternalLink className="mr-2 h-4 w-4" />
               View Trade Potential
@@ -312,65 +324,65 @@ export default function TradeOpportunitiesPage() {
       {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-          <Card>
+          <Card className="bg-terminal-panel border-terminal-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium font-mono text-terminal-muted">TOTAL</CardTitle>
+              <Target className="h-4 w-4 text-terminal-accent" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summary.total}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-2xl font-bold font-mono text-terminal-text">{summary.total}</div>
+              <p className="text-xs text-terminal-muted font-mono">
                 {summary.active} active, {summary.inactive} inactive
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-terminal-panel border-terminal-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Draft</CardTitle>
+              <CardTitle className="text-sm font-medium font-mono text-terminal-muted">DRAFT</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-600">{summary.draft}</div>
+              <div className="text-2xl font-bold font-mono text-terminal-text">{summary.draft}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-terminal-panel border-terminal-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Offered</CardTitle>
-              <DollarSign className="h-4 w-4 text-purple-600" />
+              <CardTitle className="text-sm font-medium font-mono text-terminal-muted">OFFERED</CardTitle>
+              <DollarSign className="h-4 w-4 text-purple-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-600">{summary.offered}</div>
+              <div className="text-2xl font-bold font-mono text-purple-400">{summary.offered}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-terminal-panel border-terminal-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
+              <CardTitle className="text-sm font-medium font-mono text-terminal-muted">CONFIRMED</CardTitle>
+              <TrendingUp className="h-4 w-4 text-terminal-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{summary.confirmed}</div>
+              <div className="text-2xl font-bold font-mono text-terminal-success">{summary.confirmed}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-terminal-panel border-terminal-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Urgent</CardTitle>
+              <CardTitle className="text-sm font-medium font-mono text-terminal-muted">URGENT</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">{summary.byPriority.urgent}</div>
+              <div className="text-2xl font-bold font-mono text-terminal-alert">{summary.byPriority.urgent}</div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-terminal-panel border-terminal-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Expiring Soon</CardTitle>
-              <Calendar className="h-4 w-4 text-orange-600" />
+              <CardTitle className="text-sm font-medium font-mono text-terminal-muted">EXPIRING SOON</CardTitle>
+              <Calendar className="h-4 w-4 text-terminal-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{summary.expiringSoon}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-2xl font-bold font-mono text-terminal-warning">{summary.expiringSoon}</div>
+              <p className="text-xs text-terminal-muted font-mono">
                 {summary.expired} expired
               </p>
             </CardContent>
@@ -379,73 +391,73 @@ export default function TradeOpportunitiesPage() {
       )}
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters & Search
+      <Card className="bg-terminal-panel border-terminal-border">
+        <CardHeader className="border-b border-terminal-border">
+          <CardTitle className="flex items-center gap-2 font-mono text-sm text-terminal-text">
+            <Filter className="h-4 w-4 text-terminal-accent" />
+            FILTERS & SEARCH
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-7 gap-4 items-end">
+        <CardContent className="grid grid-cols-1 md:grid-cols-7 gap-4 items-end pt-6">
           <div>
-            <Label htmlFor="search">Search</Label>
+            <Label htmlFor="search" className="text-terminal-muted font-mono text-xs">SEARCH</Label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-terminal-muted" />
               <Input
                 id="search"
                 placeholder="Search opportunities..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 bg-terminal-dark border-terminal-border text-terminal-text font-mono"
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="status-filter">Status</Label>
+            <Label htmlFor="status-filter" className="text-terminal-muted font-mono text-xs">STATUS</Label>
             <Select value={statusFilter} onValueChange={(value: OpportunityStatus) => setStatusFilter(value)}>
-              <SelectTrigger id="status-filter">
+              <SelectTrigger id="status-filter" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="negotiating">Negotiating</SelectItem>
-                <SelectItem value="offered">Offered</SelectItem>
-                <SelectItem value="confirmed">Confirmed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
+              <SelectContent className="bg-terminal-panel border-terminal-border">
+                <SelectItem value="all" className="font-mono text-terminal-text">All Statuses</SelectItem>
+                <SelectItem value="draft" className="font-mono text-terminal-text">Draft</SelectItem>
+                <SelectItem value="active" className="font-mono text-terminal-text">Active</SelectItem>
+                <SelectItem value="negotiating" className="font-mono text-terminal-text">Negotiating</SelectItem>
+                <SelectItem value="offered" className="font-mono text-terminal-text">Offered</SelectItem>
+                <SelectItem value="confirmed" className="font-mono text-terminal-text">Confirmed</SelectItem>
+                <SelectItem value="cancelled" className="font-mono text-terminal-text">Cancelled</SelectItem>
+                <SelectItem value="completed" className="font-mono text-terminal-text">Completed</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <Label htmlFor="priority-filter">Priority</Label>
+            <Label htmlFor="priority-filter" className="text-terminal-muted font-mono text-xs">PRIORITY</Label>
             <Select value={priorityFilter} onValueChange={(value: OpportunityPriority) => setPriorityFilter(value)}>
-              <SelectTrigger id="priority-filter">
+              <SelectTrigger id="priority-filter" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priorities</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
+              <SelectContent className="bg-terminal-panel border-terminal-border">
+                <SelectItem value="all" className="font-mono text-terminal-text">All Priorities</SelectItem>
+                <SelectItem value="low" className="font-mono text-terminal-text">Low</SelectItem>
+                <SelectItem value="medium" className="font-mono text-terminal-text">Medium</SelectItem>
+                <SelectItem value="high" className="font-mono text-terminal-text">High</SelectItem>
+                <SelectItem value="urgent" className="font-mono text-terminal-text">Urgent</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <Label htmlFor="customer-agent-filter">Customer Agent</Label>
+            <Label htmlFor="customer-agent-filter" className="text-terminal-muted font-mono text-xs">CUSTOMER AGENT</Label>
             <Select value={customerAgentFilter} onValueChange={setCustomerAgentFilter}>
-              <SelectTrigger id="customer-agent-filter">
+              <SelectTrigger id="customer-agent-filter" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Customer Agents</SelectItem>
+              <SelectContent className="bg-terminal-panel border-terminal-border">
+                <SelectItem value="all" className="font-mono text-terminal-text">All Customer Agents</SelectItem>
                 {activeStaff?.map((staff) => (
-                  <SelectItem key={staff.id} value={staff.id}>
+                  <SelectItem key={staff.id} value={staff.id} className="font-mono text-terminal-text">
                     {staff.name}
                   </SelectItem>
                 ))}
@@ -454,17 +466,17 @@ export default function TradeOpportunitiesPage() {
           </div>
 
           <div>
-            <Label htmlFor="feedback-filter">Feedback Status</Label>
+            <Label htmlFor="feedback-filter" className="text-terminal-muted font-mono text-xs">FEEDBACK STATUS</Label>
             <Select value={feedbackStatusFilter} onValueChange={setFeedbackStatusFilter}>
-              <SelectTrigger id="feedback-filter">
+              <SelectTrigger id="feedback-filter" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Feedback</SelectItem>
-                <SelectItem value="none">No Feedback</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="received">Received</SelectItem>
-                <SelectItem value="addressed">Addressed</SelectItem>
+              <SelectContent className="bg-terminal-panel border-terminal-border">
+                <SelectItem value="all" className="font-mono text-terminal-text">All Feedback</SelectItem>
+                <SelectItem value="none" className="font-mono text-terminal-text">No Feedback</SelectItem>
+                <SelectItem value="pending" className="font-mono text-terminal-text">Pending</SelectItem>
+                <SelectItem value="received" className="font-mono text-terminal-text">Received</SelectItem>
+                <SelectItem value="addressed" className="font-mono text-terminal-text">Addressed</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -475,37 +487,37 @@ export default function TradeOpportunitiesPage() {
               checked={activeOnly}
               onCheckedChange={setActiveOnly}
             />
-            <Label htmlFor="active-filter">Active Only</Label>
+            <Label htmlFor="active-filter" className="font-mono text-terminal-text text-xs">Active Only</Label>
           </div>
 
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-terminal-muted font-mono">
             Showing {filteredOpportunities.length} opportunities
           </div>
         </CardContent>
       </Card>
 
       {/* Opportunities Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Opportunities</CardTitle>
-          <CardDescription>
+      <Card className="bg-terminal-panel border-terminal-border">
+        <CardHeader className="border-b border-terminal-border">
+          <CardTitle className="font-mono text-sm text-terminal-text">OPPORTUNITIES</CardTitle>
+          <CardDescription className="font-mono text-xs text-terminal-muted">
             Manage and track your opportunities through the sales pipeline
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Sales Price</TableHead>
-                  <TableHead>Transport & Delivery</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Agent</TableHead>
-                  <TableHead>Feedback</TableHead>
-                  <TableHead>Valid Until</TableHead>
-                  <TableHead>Actions</TableHead>
+                <TableRow className="border-terminal-border hover:bg-terminal-dark">
+                  <TableHead className="font-mono text-terminal-muted">Customer</TableHead>
+                  <TableHead className="font-mono text-terminal-muted">Product</TableHead>
+                  <TableHead className="font-mono text-terminal-muted">Sales Price</TableHead>
+                  <TableHead className="font-mono text-terminal-muted">Transport & Delivery</TableHead>
+                  <TableHead className="font-mono text-terminal-muted">Status</TableHead>
+                  <TableHead className="font-mono text-terminal-muted">Agent</TableHead>
+                  <TableHead className="font-mono text-terminal-muted">Feedback</TableHead>
+                  <TableHead className="font-mono text-terminal-muted">Valid Until</TableHead>
+                  <TableHead className="font-mono text-terminal-muted">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -522,18 +534,18 @@ export default function TradeOpportunitiesPage() {
                   const supplierPriceStatus = getPriceStatus(opportunity.supplier_price?.valid_until)
 
                   return (
-                    <TableRow key={opportunity.id}>
+                    <TableRow key={opportunity.id} className="border-terminal-border hover:bg-terminal-dark/50">
                       <TableCell>
                         <div className="space-y-1">
-                          <div className="font-medium">{opportunity.customer?.name}</div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="font-medium font-mono text-terminal-text">{opportunity.customer?.name}</div>
+                          <div className="text-sm text-terminal-muted font-mono">
                             {opportunity.customer?.city}, {opportunity.customer?.country}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-terminal-muted font-mono">
                             Supplier: {opportunity.selected_supplier?.name || opportunity.supplier?.name}
                           </div>
                           {opportunity.customer?.agent && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs bg-terminal-dark text-terminal-text border-terminal-border font-mono">
                               Agent: {opportunity.customer.agent.name}
                             </Badge>
                           )}
@@ -542,17 +554,17 @@ export default function TradeOpportunitiesPage() {
 
                       <TableCell>
                         <div className="space-y-1">
-                          <div className="font-medium">
+                          <div className="font-medium font-mono text-terminal-text">
                             {opportunity.product_packaging_specs?.products.name}
                           </div>
                           <div className="flex gap-1 flex-wrap">
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs bg-terminal-dark text-terminal-text border-terminal-border font-mono">
                               {opportunity.product_packaging_specs?.products.category}
                             </Badge>
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs bg-terminal-dark text-terminal-text border-terminal-border font-mono">
                               {opportunity.product_packaging_specs?.packaging_options.label}
                             </Badge>
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs bg-terminal-dark text-terminal-text border-terminal-border font-mono">
                               {opportunity.product_packaging_specs?.size_options.name}
                             </Badge>
                           </div>
@@ -562,24 +574,24 @@ export default function TradeOpportunitiesPage() {
                       <TableCell>
                         <div className="space-y-1">
                           {opportunity.offer_price_per_unit ? (
-                            <div className="text-lg font-bold text-green-600">
+                            <div className="text-lg font-bold text-terminal-success font-mono">
                               {formatCurrency(opportunity.offer_price_per_unit, opportunity.offer_currency)}
                               {opportunity.product_packaging_specs?.products?.sold_by && (
-                                <span className="text-sm ml-1">/{opportunity.product_packaging_specs.products.sold_by}</span>
+                                <span className="text-sm ml-1 text-terminal-text">/{opportunity.product_packaging_specs.products.sold_by}</span>
                               )}
                             </div>
                           ) : (
-                            <div className="text-sm text-muted-foreground">No price set</div>
+                            <div className="text-sm text-terminal-muted font-mono">No price set</div>
                           )}
                           {margin > 0 && (
-                            <div className={`text-xs ${margin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <div className={`text-xs font-mono ${margin >= 0 ? 'text-terminal-success' : 'text-terminal-alert'}`}>
                               Margin: {formatCurrency(margin)} ({marginPercentage.toFixed(1)}%)
                             </div>
                           )}
                           {(supplierPriceStatus.isExpired || supplierPriceStatus.isExpiringSoon) && (
                             <Badge
                               variant={formatPriceStatusBadge(supplierPriceStatus).variant}
-                              className="text-xs"
+                              className="text-xs font-mono"
                             >
                               {formatPriceStatusBadge(supplierPriceStatus).text}
                             </Badge>
@@ -593,14 +605,14 @@ export default function TradeOpportunitiesPage() {
 
                       <TableCell>
                         <div className="space-y-1">
-                          <Badge className={statusConfig[opportunity.status].color}>
+                          <Badge variant="outline" className={statusConfig[opportunity.status].color}>
                             {statusConfig[opportunity.status].label}
                           </Badge>
-                          <Badge className={priorityConfig[opportunity.priority].color}>
+                          <Badge variant="outline" className={priorityConfig[opportunity.priority].color}>
                             {priorityConfig[opportunity.priority].label}
                           </Badge>
                           {!opportunity.is_active && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="outline" className="text-xs bg-gray-600/20 text-gray-400 border-gray-600 font-mono">
                               Inactive
                             </Badge>
                           )}
@@ -609,10 +621,10 @@ export default function TradeOpportunitiesPage() {
 
                       <TableCell>
                         <div className="space-y-1">
-                          <div className="text-sm font-medium">
+                          <div className="text-sm font-medium font-mono text-terminal-text">
                             {opportunity.customer?.agent?.name || 'No agent assigned'}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-terminal-muted font-mono">
                             Created {format(new Date(opportunity.created_at), 'MMM dd')}
                           </div>
                         </div>
@@ -625,12 +637,12 @@ export default function TradeOpportunitiesPage() {
                       <TableCell>
                         <div className="space-y-1">
                           {opportunity.valid_till && (
-                            <div className="text-sm">
+                            <div className="text-sm font-mono text-terminal-text">
                               {format(new Date(opportunity.valid_till), 'MMM dd, yyyy')}
                             </div>
                           )}
                           {expiryStatus && (
-                            <Badge className={expiryStatus.color} variant="outline">
+                            <Badge className={`${expiryStatus.color} font-mono`} variant="outline">
                               {expiryStatus.label}
                             </Badge>
                           )}
@@ -640,7 +652,7 @@ export default function TradeOpportunitiesPage() {
                       <TableCell>
                         <div className="flex gap-1 flex-wrap">
                           <Link href={`/trade/opportunities/${opportunity.id}`}>
-                            <Button size="sm" variant="outline">
+                            <Button size="sm" variant="outline" className="bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono">
                               <MessageSquare className="h-4 w-4 mr-1" />
                               Feedback
                             </Button>
@@ -649,7 +661,7 @@ export default function TradeOpportunitiesPage() {
                           {opportunity.status !== 'offered' ? (
                             <Button
                               size="sm"
-                              className="bg-purple-600 hover:bg-purple-700"
+                              className="bg-purple-600 hover:bg-purple-700 text-white font-mono"
                               onClick={() => handleStatusUpdate(opportunity.id, 'offered')}
                               disabled={updateMutation.isPending}
                             >
@@ -657,7 +669,7 @@ export default function TradeOpportunitiesPage() {
                               Quote
                             </Button>
                           ) : (
-                            <Badge className="bg-purple-100 text-purple-800 px-3 py-1">
+                            <Badge className="bg-purple-600/20 text-purple-400 border-purple-600 px-3 py-1 font-mono">
                               Quoted
                             </Badge>
                           )}
@@ -665,7 +677,7 @@ export default function TradeOpportunitiesPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="bg-terminal-dark border-terminal-border text-terminal-alert hover:bg-terminal-panel hover:border-terminal-alert font-mono"
                             onClick={() => handleRemoveOpportunity(
                               opportunity.id,
                               opportunity.customer?.name || 'Unknown Customer',
@@ -685,7 +697,7 @@ export default function TradeOpportunitiesPage() {
           </div>
 
           {filteredOpportunities.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-terminal-muted font-mono">
               No opportunities found matching your filters.
             </div>
           )}

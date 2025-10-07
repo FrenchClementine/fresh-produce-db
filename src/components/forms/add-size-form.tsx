@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { supabase } from '@/lib/supabase'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 
 const addSizeSchema = z.object({
@@ -38,7 +38,6 @@ interface AddSizeFormProps {
 
 export function AddSizeForm({ open, onOpenChange }: AddSizeFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
   const queryClient = useQueryClient()
 
   const form = useForm<AddSizeFormValues>({
@@ -59,22 +58,15 @@ export function AddSizeForm({ open, onOpenChange }: AddSizeFormProps) {
 
       if (error) throw error
 
-      toast({
-        title: 'Success',
-        description: 'Size option created successfully',
-      })
+      toast.success('Size option created successfully')
 
       queryClient.invalidateQueries({ queryKey: ['size-options'] })
       onOpenChange(false)
       form.reset()
-      
+
     } catch (error: any) {
       console.error('Error creating size:', error)
-      toast({
-        title: 'Error',
-        description: `Failed to create size: ${error.message}`,
-        variant: 'destructive',
-      })
+      toast.error(`Failed to create size: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
@@ -82,14 +74,14 @@ export function AddSizeForm({ open, onOpenChange }: AddSizeFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Add New Size</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">ADD NEW SIZE</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Create a new size option
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -97,9 +89,9 @@ export function AddSizeForm({ open, onOpenChange }: AddSizeFormProps) {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Size Name</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Size Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Large, XL, 500g" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="e.g. Large, XL, 500g" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -107,15 +99,16 @@ export function AddSizeForm({ open, onOpenChange }: AddSizeFormProps) {
             />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Creating...' : 'Create Size'}
               </Button>
             </div>

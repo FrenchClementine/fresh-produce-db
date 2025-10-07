@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Save, Eye } from 'lucide-react'
 import { BatchConfigPanel } from './batch-config-panel'
 import { BulkEntryTable, BulkPriceEntry } from './bulk-entry-table'
+import { ExistingPricesPanel } from './existing-prices-panel'
 import { useSuppliers, useSupplierProducts, useSupplierHubs } from '@/hooks/use-suppliers'
 import { useCurrentStaffMember } from '@/hooks/use-staff'
 import { supabase } from '@/lib/supabase'
@@ -13,18 +14,29 @@ import { supabase } from '@/lib/supabase'
 // Generate unique ID for rows
 const generateId = () => `entry-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
-export function BulkEntryMode() {
+interface BulkEntryModeProps {
+  initialSupplierId?: string | null
+}
+
+export function BulkEntryMode({ initialSupplierId }: BulkEntryModeProps) {
   const { data: suppliers = [] } = useSuppliers()
   const { data: currentStaff } = useCurrentStaffMember()
 
   const [batchConfig, setBatchConfig] = useState({
-    supplier_id: '',
+    supplier_id: initialSupplierId || '',
     default_hub_id: '',
     default_delivery_mode: '',
     default_valid_from: new Date().toISOString().split('T')[0],
     default_valid_until: '',
     currency: 'EUR'
   })
+
+  // Update supplier if initialSupplierId changes
+  useEffect(() => {
+    if (initialSupplierId) {
+      setBatchConfig(prev => ({ ...prev, supplier_id: initialSupplierId }))
+    }
+  }, [initialSupplierId])
 
   const [entries, setEntries] = useState<BulkPriceEntry[]>([
     createEmptyEntry()
@@ -278,6 +290,11 @@ export function BulkEntryMode() {
         onQuickValidity={handleQuickValidity}
       />
 
+      {/* Existing Prices Panel */}
+      {batchConfig.supplier_id && (
+        <ExistingPricesPanel supplierId={batchConfig.supplier_id} />
+      )}
+
       {/* Bulk Entry Table */}
       {batchConfig.supplier_id && (
         <>
@@ -296,8 +313,8 @@ export function BulkEntryMode() {
           />
 
           {/* Save Actions */}
-          <div className="flex items-center justify-between border-t pt-6">
-            <div className="text-sm text-muted-foreground">
+          <div className="flex items-center justify-between border-t border-terminal-border pt-6">
+            <div className="text-sm text-terminal-muted font-mono">
               {validEntriesCount > 0 ? (
                 <span>Ready to save {validEntriesCount} price{validEntriesCount !== 1 ? 's' : ''}</span>
               ) : (
@@ -309,6 +326,7 @@ export function BulkEntryMode() {
                 variant="outline"
                 onClick={handlePreview}
                 disabled={validEntriesCount === 0}
+                className="bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
               >
                 <Eye className="mr-2 h-4 w-4" />
                 Preview
@@ -316,6 +334,7 @@ export function BulkEntryMode() {
               <Button
                 onClick={handleSaveAll}
                 disabled={validEntriesCount === 0 || isSaving}
+                className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono font-bold"
               >
                 {isSaving ? (
                   <>Saving...</>
@@ -333,8 +352,8 @@ export function BulkEntryMode() {
 
       {/* Prompt to select supplier */}
       {!batchConfig.supplier_id && (
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-          <p className="text-muted-foreground">
+        <div className="border-2 border-dashed border-terminal-border bg-terminal-panel rounded-lg p-12 text-center">
+          <p className="text-terminal-muted font-mono">
             Select a supplier in the batch configuration above to start adding prices
           </p>
         </div>

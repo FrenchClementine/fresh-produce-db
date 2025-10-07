@@ -27,7 +27,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { supabase } from '@/lib/supabase'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { useProductSpecs } from '@/hooks/use-products'
 import {
@@ -126,7 +126,6 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
   const [isLoading, setIsLoading] = useState(false)
   const [productSearchQuery, setProductSearchQuery] = useState('')
   const [isProductPopoverOpen, setIsProductPopoverOpen] = useState(false)
-  const { toast } = useToast()
   const queryClient = useQueryClient()
   const { productSpecs, isLoading: isLoadingSpecs } = useProductSpecs()
 
@@ -237,31 +236,20 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
 
       if (error) throw error
 
-      toast({
-        title: 'Success',
-        description: `${values.product_packaging_spec_ids.length} product${values.product_packaging_spec_ids.length > 1 ? 's' : ''} linked to supplier successfully`,
-      })
+      toast.success(`${values.product_packaging_spec_ids.length} product${values.product_packaging_spec_ids.length > 1 ? 's' : ''} linked to supplier successfully`)
 
       queryClient.invalidateQueries({ queryKey: ['supplier-products'] })
       onOpenChange(false)
       form.reset()
-      
+
     } catch (error: any) {
       console.error('Error linking products to supplier:', error)
-      
+
       // Handle duplicate key error specifically
       if (error.code === '23505') {
-        toast({
-          title: 'Some Products Already Linked',
-          description: 'One or more product specifications are already linked to this supplier. Only new products were added.',
-          variant: 'destructive',
-        })
+        toast.error('Some Products Already Linked - One or more product specifications are already linked to this supplier. Only new products were added.')
       } else {
-        toast({
-          title: 'Error',
-          description: `Failed to link products: ${error.message}`,
-          variant: 'destructive',
-        })
+        toast.error(`Failed to link products: ${error.message}`)
       }
     } finally {
       setIsLoading(false)
@@ -270,10 +258,10 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Link Products to Supplier</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">LINK PRODUCTS TO SUPPLIER</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono text-sm">
             Add one or more product specifications to this supplier with the same availability information
           </DialogDescription>
         </DialogHeader>
@@ -285,8 +273,8 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
               name="product_packaging_spec_ids"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-base">Product Specifications *</FormLabel>
-                  <div className="text-sm text-muted-foreground">
+                  <FormLabel className="text-base text-terminal-text font-mono">Product Specifications *</FormLabel>
+                  <div className="text-sm text-terminal-muted font-mono">
                     Search for product specifications to link with the same availability information
                   </div>
 
@@ -295,7 +283,7 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                       {field.value.map((specId) => {
                         const spec = productSpecs?.find((item) => item.id === specId)
                         return (
-                          <div key={specId} className="flex items-center bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm">
+                          <div key={specId} className="flex items-center bg-terminal-dark border border-terminal-border text-terminal-text px-2 py-1 rounded-md text-sm font-mono">
                             <span className="max-w-[240px] truncate">
                               {spec ? `${spec.products?.name} - ${spec.packaging_options?.label} (${spec.size_options?.name})` : 'Unknown specification'}
                             </span>
@@ -303,7 +291,7 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="h-auto p-0 ml-2"
+                              className="h-auto p-0 ml-2 text-terminal-muted hover:text-terminal-text"
                               onClick={() => field.onChange(field.value.filter((id) => id !== specId))}
                             >
                               <X className="h-3 w-3" />
@@ -315,7 +303,7 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-auto px-2 py-1"
+                        className="h-auto px-2 py-1 text-terminal-muted hover:text-terminal-text font-mono"
                         onClick={() => field.onChange([])}
                       >
                         Clear all
@@ -335,7 +323,7 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                           variant="outline"
                           role="combobox"
                           aria-expanded={isProductPopoverOpen}
-                          className="w-full justify-between mt-3"
+                          className="w-full justify-between mt-3 bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
                         >
                           {field.value && field.value.length > 0
                             ? `${field.value.length} selected`
@@ -344,14 +332,15 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[520px] p-0">
-                      <Command>
+                    <PopoverContent className="w-[520px] p-0 bg-terminal-panel border-terminal-border">
+                      <Command className="bg-terminal-panel">
                         <CommandInput
                           placeholder="Type to search products..."
                           value={productSearchQuery}
                           onValueChange={setProductSearchQuery}
+                          className="font-mono text-terminal-text"
                         />
-                        <CommandEmpty>
+                        <CommandEmpty className="text-terminal-muted font-mono p-4">
                           {isLoadingSpecs
                             ? 'Loading product specifications...'
                             : productSearchQuery.length === 0
@@ -372,16 +361,17 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                                     field.onChange([...(field.value || []), spec.id])
                                   }
                                 }}
+                                className="font-mono text-terminal-text hover:bg-terminal-dark"
                               >
                                 <Check
                                   className={cn(
-                                    'mr-2 h-4 w-4',
+                                    'mr-2 h-4 w-4 text-terminal-accent',
                                     field.value?.includes(spec.id) ? 'opacity-100' : 'opacity-0'
                                   )}
                                 />
                                 <div className="flex flex-col">
-                                  <span className="font-medium">{spec.products?.name}</span>
-                                  <span className="text-sm text-muted-foreground">
+                                  <span className="font-medium text-terminal-text">{spec.products?.name}</span>
+                                  <span className="text-sm text-terminal-muted">
                                     {spec.packaging_options?.label} ({spec.size_options?.name}) on {spec.pallets?.label}
                                   </span>
                                 </div>
@@ -403,7 +393,7 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
               name="season"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Season</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Season</FormLabel>
                   <FormControl>
                     <SearchableSelect
                       value={field.value}
@@ -430,7 +420,7 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
               render={() => (
                 <FormItem>
                   <div className="mb-4">
-                    <FormLabel className="text-base">Available Months</FormLabel>
+                    <FormLabel className="text-base text-terminal-text font-mono">Available Months</FormLabel>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     {monthOptions.map((month) => (
@@ -458,7 +448,7 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                                   }}
                                 />
                               </FormControl>
-                              <FormLabel className="text-sm font-normal">
+                              <FormLabel className="text-sm font-normal text-terminal-text font-mono">
                                 {month.label}
                               </FormLabel>
                             </FormItem>
@@ -478,11 +468,11 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                 name="available_from_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Available From Date</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Available From Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                     </FormControl>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-terminal-muted font-mono">
                       Seasonal pattern date (repeats annually)
                     </div>
                     <FormMessage />
@@ -495,11 +485,11 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                 name="available_till_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Available Till Date</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Available Till Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                     </FormControl>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-terminal-muted font-mono">
                       Seasonal pattern date (repeats annually)
                     </div>
                     <FormMessage />
@@ -510,7 +500,7 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <FormLabel>Recurring Start</FormLabel>
+                <FormLabel className="text-terminal-text font-mono">Recurring Start</FormLabel>
                 <div className="flex gap-2">
                   <FormField
                     control={form.control}
@@ -547,6 +537,7 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                               field.onChange(value === '' ? undefined : parseInt(value))
                             }}
                             onFocus={(e) => e.target.select()}
+                            className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                           />
                         </FormControl>
                         <FormMessage />
@@ -557,7 +548,7 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
               </div>
 
               <div className="space-y-2">
-                <FormLabel>Recurring End</FormLabel>
+                <FormLabel className="text-terminal-text font-mono">Recurring End</FormLabel>
                 <div className="flex gap-2">
                   <FormField
                     control={form.control}
@@ -594,6 +585,7 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                               field.onChange(value === '' ? undefined : parseInt(value))
                             }}
                             onFocus={(e) => e.target.select()}
+                            className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                           />
                         </FormControl>
                         <FormMessage />
@@ -609,12 +601,12 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Notes</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Additional notes about this product offering..." 
-                      className="resize-none" 
-                      {...field} 
+                    <Textarea
+                      placeholder="Additional notes about this product offering..."
+                      className="resize-none bg-terminal-dark border-terminal-border text-terminal-text font-mono"
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -623,15 +615,16 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
             />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Linking...' : 'Link Products'}
               </Button>
             </div>

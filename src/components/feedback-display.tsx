@@ -18,22 +18,22 @@ interface FeedbackDisplayProps {
 const feedbackStatusConfig = {
   none: {
     icon: MessageSquare,
-    color: 'bg-gray-100 text-gray-600',
+    color: 'bg-terminal-dark text-terminal-muted border-terminal-border',
     label: 'No feedback'
   },
   pending: {
     icon: Clock,
-    color: 'bg-yellow-100 text-yellow-600',
+    color: 'bg-yellow-600/20 text-yellow-400 border-yellow-600',
     label: 'Pending'
   },
   received: {
     icon: AlertCircle,
-    color: 'bg-blue-100 text-blue-600',
+    color: 'bg-blue-600/20 text-blue-400 border-blue-600',
     label: 'Received'
   },
   addressed: {
     icon: CheckCircle,
-    color: 'bg-green-100 text-green-600',
+    color: 'bg-terminal-success/20 text-terminal-success border-terminal-success',
     label: 'Addressed'
   }
 }
@@ -67,8 +67,8 @@ export function FeedbackDisplay({ opportunity }: FeedbackDisplayProps) {
     <div className="space-y-1">
       {/* Feedback Status Badge */}
       <Badge
-        className={`${feedbackStatusConfig[opportunity.feedback_status || 'none'].color} text-xs`}
-        variant="secondary"
+        className={`${feedbackStatusConfig[opportunity.feedback_status || 'none'].color} text-xs font-mono`}
+        variant="outline"
       >
         <StatusIcon className="h-3 w-3 mr-1" />
         {feedbackStatusConfig[opportunity.feedback_status || 'none'].label}
@@ -76,14 +76,14 @@ export function FeedbackDisplay({ opportunity }: FeedbackDisplayProps) {
 
       {/* Feedback Date */}
       {opportunity.feedback_date && (
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-terminal-muted font-mono">
           {format(new Date(opportunity.feedback_date), 'MMM dd, yyyy')}
         </div>
       )}
 
       {/* Quick Preview of Feedback */}
       {hasExistingFeedback && (
-        <div className="text-xs text-muted-foreground max-w-[200px] truncate">
+        <div className="text-xs text-terminal-muted max-w-[200px] truncate font-mono">
           "{opportunity.customer_feedback}"
         </div>
       )}
@@ -93,49 +93,49 @@ export function FeedbackDisplay({ opportunity }: FeedbackDisplayProps) {
         <DialogTrigger asChild>
           <Button
             size="sm"
-            variant={hasExistingFeedback ? "outline" : "ghost"}
-            className="text-xs h-6 px-2"
+            variant="outline"
+            className="text-xs h-6 px-2 bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
           >
             <Edit className="h-3 w-3 mr-1" />
             {hasExistingFeedback ? 'Edit' : 'Add'} Feedback
           </Button>
         </DialogTrigger>
 
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-terminal-panel border-terminal-border">
           <DialogHeader>
-            <DialogTitle>Customer Feedback</DialogTitle>
+            <DialogTitle className="font-mono text-terminal-text">Customer Feedback</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             <div>
-              <div className="text-sm font-medium mb-2">Customer</div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm font-medium mb-2 font-mono text-terminal-text">Customer</div>
+              <div className="text-sm text-terminal-muted font-mono">
                 {opportunity.customer?.name} - {opportunity.product_packaging_specs?.products.name}
               </div>
             </div>
 
             <div>
-              <label className="text-sm font-medium">Feedback Status</label>
+              <label className="text-sm font-medium font-mono text-terminal-text">Feedback Status</label>
               <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className="mt-1">
+                <SelectTrigger className="mt-1 bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No feedback</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="received">Received</SelectItem>
-                  <SelectItem value="addressed">Addressed</SelectItem>
+                <SelectContent className="bg-terminal-panel border-terminal-border">
+                  <SelectItem value="none" className="font-mono text-terminal-text">No feedback</SelectItem>
+                  <SelectItem value="pending" className="font-mono text-terminal-text">Pending</SelectItem>
+                  <SelectItem value="received" className="font-mono text-terminal-text">Received</SelectItem>
+                  <SelectItem value="addressed" className="font-mono text-terminal-text">Addressed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <label className="text-sm font-medium">Feedback Details</label>
+              <label className="text-sm font-medium font-mono text-terminal-text">Feedback Details</label>
               <Textarea
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
                 placeholder="Enter customer feedback..."
-                className="mt-1 min-h-[100px]"
+                className="mt-1 min-h-[100px] bg-terminal-dark border-terminal-border text-terminal-text font-mono"
               />
             </div>
 
@@ -143,12 +143,14 @@ export function FeedbackDisplay({ opportunity }: FeedbackDisplayProps) {
               <Button
                 variant="outline"
                 onClick={() => setOpen(false)}
+                className="bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSave}
                 disabled={updateMutation.isPending}
+                className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono"
               >
                 {updateMutation.isPending ? 'Saving...' : 'Save'}
               </Button>

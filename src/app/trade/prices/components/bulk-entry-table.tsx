@@ -98,35 +98,38 @@ export function BulkEntryTable({
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="bg-terminal-panel border-terminal-border">
+      <CardHeader className="border-b border-terminal-border">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              📝 Price Entries
+            <CardTitle className="flex items-center gap-2 font-mono text-sm text-terminal-text">
+              <Package className="h-4 w-4 text-terminal-accent" />
+              PRICE ENTRIES
               {validEntries.length > 0 && (
-                <Badge variant="secondary">{validEntries.length} item{validEntries.length !== 1 ? 's' : ''}</Badge>
+                <Badge variant="secondary" className="bg-terminal-success/20 text-terminal-success border-terminal-success font-mono">
+                  {validEntries.length} item{validEntries.length !== 1 ? 's' : ''}
+                </Badge>
               )}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="font-mono text-xs text-terminal-muted">
               Add multiple products and prices in one go
             </CardDescription>
           </div>
           <div className="flex gap-2">
             <Button
               type="button"
-              variant="outline"
               size="sm"
               onClick={onAddRow}
+              className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
             >
               <Plus className="mr-1 h-4 w-4" />
               Add Row
             </Button>
             <Button
               type="button"
-              variant="outline"
               size="sm"
               onClick={() => onAddMultipleRows(5)}
+              className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
             >
               <Plus className="mr-1 h-4 w-4" />
               Add 5 Rows
@@ -134,10 +137,9 @@ export function BulkEntryTable({
             {entries.length > 0 && (
               <Button
                 type="button"
-                variant="outline"
                 size="sm"
                 onClick={onClearAll}
-                className="text-red-600 hover:text-red-700"
+                className="bg-red-600/20 border-2 border-red-600 text-red-400 hover:bg-red-600/30 hover:border-red-500 font-mono"
               >
                 Clear All
               </Button>
@@ -145,35 +147,35 @@ export function BulkEntryTable({
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="rounded-md border">
+      <CardContent className="pt-6">
+        <div className="rounded-md border border-terminal-border">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="w-[40px]">#</TableHead>
-                <TableHead className="min-w-[250px]">Product *</TableHead>
-                <TableHead className="w-[120px]">Price *</TableHead>
-                <TableHead className="w-[100px]">Units/Pallet</TableHead>
-                <TableHead className="w-[150px]">Hub</TableHead>
-                <TableHead className="w-[120px]">Valid Until</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+              <TableRow className="border-terminal-border hover:bg-terminal-dark">
+                <TableHead className="w-[40px] font-mono text-terminal-muted">#</TableHead>
+                <TableHead className="min-w-[250px] font-mono text-terminal-muted">Product *</TableHead>
+                <TableHead className="w-[120px] font-mono text-terminal-muted">Price *</TableHead>
+                <TableHead className="w-[100px] font-mono text-terminal-muted">Units/Pallet</TableHead>
+                <TableHead className="w-[150px] font-mono text-terminal-muted">Hub</TableHead>
+                <TableHead className="w-[120px] font-mono text-terminal-muted">Valid Until</TableHead>
+                <TableHead className="w-[100px] font-mono text-terminal-muted">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {entries.length === 0 ? (
-                <TableRow>
+                <TableRow className="border-terminal-border">
                   <TableCell colSpan={7} className="h-24 text-center">
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                      <Package className="h-8 w-8" />
+                    <div className="flex flex-col items-center gap-2 text-terminal-muted font-mono">
+                      <Package className="h-8 w-8 text-terminal-accent" />
                       <p>No entries yet. Click "Add Row" to start.</p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
                 entries.map((entry, index) => (
-                  <TableRow key={entry.id} className={!entry.isValid && entry.product_packaging_spec_id ? 'bg-red-50' : ''}>
+                  <TableRow key={entry.id} className={!entry.isValid && entry.product_packaging_spec_id ? 'bg-terminal-alert/10 border-terminal-border' : 'border-terminal-border'}>
                     {/* Row Number */}
-                    <TableCell className="text-center text-sm text-muted-foreground">
+                    <TableCell className="text-center text-sm text-terminal-muted font-mono">
                       {index + 1}
                     </TableCell>
 
@@ -184,12 +186,12 @@ export function BulkEntryTable({
                           value={entry.product_packaging_spec_id}
                           onValueChange={(value) => onUpdateEntry(entry.id, 'product_packaging_spec_id', value)}
                         >
-                          <SelectTrigger className={entry.errors.product ? 'border-red-500' : ''}>
+                          <SelectTrigger className={entry.errors.product ? 'border-terminal-alert bg-terminal-dark text-terminal-text font-mono' : 'bg-terminal-dark border-terminal-border text-terminal-text font-mono'}>
                             <SelectValue placeholder="Select product..." />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="bg-terminal-panel border-terminal-border">
                             {products.map(product => (
-                              <SelectItem key={product.id} value={product.id}>
+                              <SelectItem key={product.id} value={product.id} className="text-terminal-text font-mono">
                                 <div className="flex items-center gap-2">
                                   <Package className="h-4 w-4" />
                                   <span className="text-sm">{getProductLabel(product.id)}</span>
@@ -199,16 +201,16 @@ export function BulkEntryTable({
                           </SelectContent>
                         </Select>
                         {entry.errors.product && (
-                          <p className="text-xs text-red-600">{entry.errors.product}</p>
+                          <p className="text-xs text-terminal-alert font-mono">{entry.errors.product}</p>
                         )}
                         {entry.isValid && entry.product_packaging_spec_id && (
-                          <div className="flex items-center gap-1 text-xs text-green-600">
+                          <div className="flex items-center gap-1 text-xs text-terminal-success font-mono">
                             <CheckCircle2 className="h-3 w-3" />
                             <span>Valid</span>
                           </div>
                         )}
                         {!entry.product_packaging_spec_id && (
-                          <div className="flex items-center gap-1 text-xs text-gray-400">
+                          <div className="flex items-center gap-1 text-xs text-terminal-muted font-mono">
                             <AlertCircle className="h-3 w-3" />
                             <span>Empty row</span>
                           </div>
@@ -220,18 +222,18 @@ export function BulkEntryTable({
                     <TableCell>
                       <div className="space-y-1">
                         <div className="relative">
-                          <Euro className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+                          <Euro className="absolute left-2 top-2.5 h-4 w-4 text-terminal-muted" />
                           <Input
                             type="number"
                             step="0.01"
                             placeholder="0.00"
-                            className={`pl-8 ${entry.errors.price ? 'border-red-500' : ''}`}
+                            className={`pl-8 bg-terminal-dark text-terminal-text font-mono ${entry.errors.price ? 'border-terminal-alert' : 'border-terminal-border'}`}
                             value={entry.price_per_unit}
                             onChange={(e) => onUpdateEntry(entry.id, 'price_per_unit', e.target.value)}
                           />
                         </div>
                         {entry.errors.price && (
-                          <p className="text-xs text-red-600">{entry.errors.price}</p>
+                          <p className="text-xs text-terminal-alert font-mono">{entry.errors.price}</p>
                         )}
                       </div>
                     </TableCell>
@@ -241,7 +243,7 @@ export function BulkEntryTable({
                       <Input
                         type="number"
                         placeholder="Auto"
-                        className="text-sm"
+                        className="text-sm bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                         value={entry.units_per_pallet}
                         onChange={(e) => onUpdateEntry(entry.id, 'units_per_pallet', e.target.value)}
                       />
@@ -253,15 +255,15 @@ export function BulkEntryTable({
                         value={entry.hub_id || 'default'}
                         onValueChange={(value) => onUpdateEntry(entry.id, 'hub_id', value === 'default' ? '' : value)}
                       >
-                        <SelectTrigger className="text-sm">
+                        <SelectTrigger className="text-sm bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">
-                            <span className="text-muted-foreground">Use Default</span>
+                        <SelectContent className="bg-terminal-panel border-terminal-border">
+                          <SelectItem value="default" className="font-mono text-terminal-text">
+                            <span className="text-terminal-muted">Use Default</span>
                           </SelectItem>
                           {hubs.map(hub => (
-                            <SelectItem key={hub.id} value={hub.id}>
+                            <SelectItem key={hub.id} value={hub.id} className="font-mono text-terminal-text">
                               {hub.name} ({hub.hub_code})
                             </SelectItem>
                           ))}
@@ -287,17 +289,17 @@ export function BulkEntryTable({
                           }
                         }}
                       >
-                        <SelectTrigger className="text-sm">
+                        <SelectTrigger className="text-sm bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                           <SelectValue placeholder="Default" />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">Same as Default</SelectItem>
-                          <SelectItem value="1">+1 Day</SelectItem>
-                          <SelectItem value="3">+3 Days</SelectItem>
-                          <SelectItem value="7">+7 Days</SelectItem>
-                          <SelectItem value="14">+14 Days</SelectItem>
-                          <SelectItem value="30">+30 Days</SelectItem>
-                          <SelectItem value="custom">Custom...</SelectItem>
+                        <SelectContent className="bg-terminal-panel border-terminal-border">
+                          <SelectItem value="default" className="font-mono text-terminal-text">Same as Default</SelectItem>
+                          <SelectItem value="1" className="font-mono text-terminal-text">+1 Day</SelectItem>
+                          <SelectItem value="3" className="font-mono text-terminal-text">+3 Days</SelectItem>
+                          <SelectItem value="7" className="font-mono text-terminal-text">+7 Days</SelectItem>
+                          <SelectItem value="14" className="font-mono text-terminal-text">+14 Days</SelectItem>
+                          <SelectItem value="30" className="font-mono text-terminal-text">+30 Days</SelectItem>
+                          <SelectItem value="custom" className="font-mono text-terminal-text">Custom...</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>
@@ -312,6 +314,7 @@ export function BulkEntryTable({
                           onClick={() => onDuplicateEntry(entry.id)}
                           title="Duplicate row"
                           disabled={!entry.product_packaging_spec_id}
+                          className="text-terminal-text hover:bg-terminal-dark hover:text-terminal-accent"
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
@@ -320,7 +323,7 @@ export function BulkEntryTable({
                           variant="ghost"
                           size="sm"
                           onClick={() => onDeleteEntry(entry.id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-terminal-alert hover:bg-terminal-dark hover:text-terminal-alert"
                           title="Delete row"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -336,22 +339,22 @@ export function BulkEntryTable({
 
         {/* Validation Summary */}
         {entries.length > 0 && (
-          <div className="mt-4 flex items-center gap-4 text-sm">
-            <span className="text-muted-foreground">Validation:</span>
+          <div className="mt-4 flex items-center gap-4 text-sm font-mono">
+            <span className="text-terminal-muted">VALIDATION:</span>
             {validEntries.length > 0 && (
-              <div className="flex items-center gap-1 text-green-600">
+              <div className="flex items-center gap-1 text-terminal-success">
                 <CheckCircle2 className="h-4 w-4" />
                 <span>{validEntries.length} valid</span>
               </div>
             )}
             {emptyEntries.length > 0 && (
-              <div className="flex items-center gap-1 text-gray-400">
+              <div className="flex items-center gap-1 text-terminal-muted">
                 <AlertCircle className="h-4 w-4" />
                 <span>{emptyEntries.length} empty</span>
               </div>
             )}
             {entries.some(e => !e.isValid && e.product_packaging_spec_id) && (
-              <div className="flex items-center gap-1 text-red-600">
+              <div className="flex items-center gap-1 text-terminal-alert">
                 <AlertCircle className="h-4 w-4" />
                 <span>{entries.filter(e => !e.isValid && e.product_packaging_spec_id).length} with errors</span>
               </div>

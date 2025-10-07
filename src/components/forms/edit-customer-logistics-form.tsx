@@ -11,14 +11,14 @@ interface EditCustomerLogisticsFormProps {
 export function EditCustomerLogisticsForm({ open, onOpenChange, customerLogistics }: EditCustomerLogisticsFormProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Edit Logistics Preference</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">EDIT LOGISTICS PREFERENCE</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Update the hub delivery/pickup preference details.
           </DialogDescription>
         </DialogHeader>
-        <div className="p-4 text-center text-muted-foreground">
+        <div className="p-4 text-center text-terminal-muted font-mono">
           Form coming soon... This will allow editing logistics preferences for customers.
         </div>
       </DialogContent>

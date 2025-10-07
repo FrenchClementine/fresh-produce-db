@@ -85,22 +85,22 @@ export default function SuppliersPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Suppliers</h1>
+      <div className="min-h-screen bg-terminal-dark p-4 space-y-4">
+        <div className="flex items-center justify-between border-b border-terminal-border pb-4">
+          <h1 className="text-2xl font-mono font-bold text-terminal-text tracking-wider">SUPPLIERS</h1>
         </div>
-        <div className="text-center py-12">Loading suppliers...</div>
+        <div className="text-center py-12 font-mono text-terminal-muted">Loading suppliers...</div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Suppliers</h1>
+      <div className="min-h-screen bg-terminal-dark p-4 space-y-4">
+        <div className="flex items-center justify-between border-b border-terminal-border pb-4">
+          <h1 className="text-2xl font-mono font-bold text-terminal-text tracking-wider">SUPPLIERS</h1>
         </div>
-        <div className="text-center py-12 text-red-500">
+        <div className="text-center py-12 text-terminal-alert font-mono">
           Error loading suppliers: {(error as Error).message}
         </div>
       </div>
@@ -108,66 +108,69 @@ export default function SuppliersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-          <Truck className="h-8 w-8" />
-          Suppliers
-        </h1>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
+    <div className="min-h-screen bg-terminal-dark p-4 space-y-4">
+      {/* Terminal Header */}
+      <div className="flex items-center justify-between border-b border-terminal-border pb-4">
+        <div className="flex items-center gap-4">
+          <Truck className="h-8 w-8 text-terminal-accent" />
+          <h1 className="text-2xl font-mono font-bold text-terminal-text tracking-wider">
+            SUPPLIERS
+          </h1>
+        </div>
+        <Button onClick={() => setIsAddDialogOpen(true)} className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono">
           <Plus className="mr-2 h-4 w-4" />
           Add Supplier
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className="bg-terminal-panel border-terminal-border">
+        <CardHeader className="border-b border-terminal-border">
           <div className="flex items-center justify-between">
-            <CardTitle>Supplier Directory</CardTitle>
-            <div className="flex items-center space-x-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="font-mono text-sm text-terminal-text">SUPPLIER DIRECTORY</CardTitle>
+            <div className="relative flex items-center space-x-2">
+              <Search className="absolute left-3 h-4 w-4 text-terminal-muted" />
               <Input
                 placeholder="Search suppliers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-80"
+                className="w-80 pl-10 bg-terminal-dark border-terminal-border text-terminal-text font-mono"
               />
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {filteredSuppliers.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-12 text-terminal-muted font-mono">
               {suppliers?.length === 0 ? 'No suppliers found. Add your first supplier to get started.' : 'No suppliers match your search.'}
             </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Delivery Modes</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                <TableRow className="border-terminal-border hover:bg-terminal-dark">
+                  <TableHead className="font-mono text-terminal-muted">Name</TableHead>
+                  <TableHead className="font-mono text-terminal-muted">Contact</TableHead>
+                  <TableHead className="font-mono text-terminal-muted">Location</TableHead>
+                  <TableHead className="font-mono text-terminal-muted">Delivery Modes</TableHead>
+                  <TableHead className="font-mono text-terminal-muted">Status</TableHead>
+                  <TableHead className="text-right font-mono text-terminal-muted">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredSuppliers.map((supplier: any) => (
                   <TableRow
                     key={supplier.id}
-                    className="cursor-pointer hover:bg-muted/50"
+                    className="cursor-pointer hover:bg-terminal-dark border-terminal-border"
                     onClick={() => router.push(`/suppliers/${supplier.id}`)}
                   >
                     <TableCell>
-                      <div className="font-medium">{supplier.name}</div>
+                      <div className="font-medium font-mono text-terminal-text">{supplier.name}</div>
                       {supplier.staff && (
-                        <div className="text-sm text-blue-600 font-medium mt-1">
+                        <div className="text-sm text-blue-400 font-medium font-mono mt-1">
                           Agent: {supplier.staff.name} {supplier.staff.role && `(${supplier.staff.role})`}
                         </div>
                       )}
                       {supplier.notes && (
-                        <div className="text-sm text-muted-foreground mt-1">
+                        <div className="text-sm text-terminal-muted font-mono mt-1">
                           {supplier.notes}
                         </div>
                       )}
@@ -175,14 +178,14 @@ export default function SuppliersPage() {
                     <TableCell>
                       <div className="space-y-1">
                         {supplier.email && (
-                          <div className="flex items-center text-sm">
-                            <Mail className="mr-2 h-3 w-3" />
+                          <div className="flex items-center text-sm font-mono text-terminal-text">
+                            <Mail className="mr-2 h-3 w-3 text-terminal-accent" />
                             {supplier.email}
                           </div>
                         )}
                         {supplier.phone_number && (
-                          <div className="flex items-center text-sm">
-                            <Phone className="mr-2 h-3 w-3" />
+                          <div className="flex items-center text-sm font-mono text-terminal-text">
+                            <Phone className="mr-2 h-3 w-3 text-terminal-accent" />
                             {supplier.phone_number}
                           </div>
                         )}
@@ -191,13 +194,13 @@ export default function SuppliersPage() {
                     <TableCell>
                       <div className="space-y-1">
                         {(supplier.city || supplier.country) && (
-                          <div className="flex items-center text-sm">
-                            <MapPin className="mr-2 h-3 w-3" />
+                          <div className="flex items-center text-sm font-mono text-terminal-text">
+                            <MapPin className="mr-2 h-3 w-3 text-terminal-accent" />
                             {[supplier.city, supplier.country].filter(Boolean).join(', ')}
                           </div>
                         )}
                         {supplier.address && (
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-sm text-terminal-muted font-mono">
                             {supplier.address}
                           </div>
                         )}
@@ -206,14 +209,14 @@ export default function SuppliersPage() {
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {supplier.delivery_modes?.map((mode: string, index: number) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
+                          <Badge key={index} variant="outline" className="text-xs bg-terminal-dark text-terminal-text border-terminal-border font-mono">
                             {mode}
                           </Badge>
                         ))}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={supplier.is_active ? "default" : "secondary"}>
+                      <Badge variant="outline" className={supplier.is_active ? "bg-terminal-success/20 text-terminal-success border-terminal-success font-mono" : "bg-gray-600/20 text-gray-400 border-gray-600 font-mono"}>
                         {supplier.is_active ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
@@ -227,6 +230,7 @@ export default function SuppliersPage() {
                             setSupplierToEdit(supplier)
                             setIsEditDialogOpen(true)
                           }}
+                          className="text-terminal-text hover:bg-terminal-dark hover:text-terminal-accent"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -237,6 +241,7 @@ export default function SuppliersPage() {
                             e.stopPropagation()
                             setSupplierToDelete(supplier)
                           }}
+                          className="text-terminal-alert hover:bg-terminal-dark hover:text-terminal-alert"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -265,19 +270,19 @@ export default function SuppliersPage() {
       />
 
       <AlertDialog open={!!supplierToDelete} onOpenChange={() => setSupplierToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-terminal-panel border-terminal-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the supplier "{supplierToDelete?.name}". 
+            <AlertDialogTitle className="font-mono text-terminal-text">Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription className="font-mono text-terminal-muted">
+              This will permanently delete the supplier "{supplierToDelete?.name}".
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => supplierToDelete && handleDelete(supplierToDelete)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-terminal-alert hover:bg-terminal-alert/90 text-white font-mono"
             >
               Delete
             </AlertDialogAction>

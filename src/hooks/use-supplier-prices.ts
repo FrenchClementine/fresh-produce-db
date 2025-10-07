@@ -128,7 +128,30 @@ export function useCreateSupplierPrice() {
 
       if (findError) throw findError
 
-      // Deactivate each existing price by ID
+      // Find and delete opportunities using this supplier/product combination
+      const { data: affectedOpportunities, error: findOppError } = await supabase
+        .from('opportunities')
+        .select('id')
+        .eq('supplier_id', price.supplier_id)
+        .eq('is_active', true)
+
+      if (findOppError) {
+        console.error('Error finding affected opportunities:', findOppError)
+      } else if (affectedOpportunities && affectedOpportunities.length > 0) {
+        console.log(`🔄 Deleting ${affectedOpportunities.length} opportunities for supplier ${price.supplier_id} due to price change`)
+
+        // Delete affected opportunities
+        const { error: deleteOppError } = await supabase
+          .from('opportunities')
+          .delete()
+          .in('id', affectedOpportunities.map(o => o.id))
+
+        if (deleteOppError) {
+          console.error('Error deleting affected opportunities:', deleteOppError)
+        }
+      }
+
+      // Deactivate existing prices if any
       if (existingPrices && existingPrices.length > 0) {
         for (const existingPrice of existingPrices) {
           const { error: deactivateError } = await supabase
@@ -153,17 +176,18 @@ export function useCreateSupplierPrice() {
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['current-supplier-prices'] })
       queryClient.invalidateQueries({ queryKey: ['supplier-hub-prices'] })
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] })
+      queryClient.invalidateQueries({ queryKey: ['trade-potential'] })
 
       // Trigger price change detection for affected opportunities
       try {
         await supabase.rpc('detect_opportunity_price_changes')
-        queryClient.invalidateQueries({ queryKey: ['opportunities'] })
         queryClient.invalidateQueries({ queryKey: ['price-change-detection'] })
       } catch (error) {
         console.error('Error triggering price change detection:', error)
       }
 
-      toast.success('Price saved successfully!')
+      toast.success('Price saved successfully! Affected opportunities moved back to potential.')
     },
     onError: (error: any) => {
       toast.error(`Failed to save price: ${error.message}`)
@@ -198,6 +222,29 @@ export function useQuickUpdatePrice() {
 
       if (fetchError) throw fetchError
 
+      // Find and delete opportunities using this supplier
+      const { data: affectedOpportunities, error: findOppError } = await supabase
+        .from('opportunities')
+        .select('id')
+        .eq('supplier_id', oldPrice.supplier_id)
+        .eq('is_active', true)
+
+      if (findOppError) {
+        console.error('Error finding affected opportunities:', findOppError)
+      } else if (affectedOpportunities && affectedOpportunities.length > 0) {
+        console.log(`🔄 Deleting ${affectedOpportunities.length} opportunities for supplier ${oldPrice.supplier_id} due to price update`)
+
+        // Delete affected opportunities
+        const { error: deleteOppError } = await supabase
+          .from('opportunities')
+          .delete()
+          .in('id', affectedOpportunities.map(o => o.id))
+
+        if (deleteOppError) {
+          console.error('Error deleting affected opportunities:', deleteOppError)
+        }
+      }
+
       // Deactivate old price
       const { error: deactivateError } = await supabase
         .from('supplier_prices')
@@ -231,17 +278,18 @@ export function useQuickUpdatePrice() {
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['current-supplier-prices'] })
       queryClient.invalidateQueries({ queryKey: ['supplier-hub-prices'] })
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] })
+      queryClient.invalidateQueries({ queryKey: ['trade-potential'] })
 
       // Trigger price change detection for affected opportunities
       try {
         await supabase.rpc('detect_opportunity_price_changes')
-        queryClient.invalidateQueries({ queryKey: ['opportunities'] })
         queryClient.invalidateQueries({ queryKey: ['price-change-detection'] })
       } catch (error) {
         console.error('Error triggering price change detection:', error)
       }
 
-      toast.success('Price updated successfully!')
+      toast.success('Price updated successfully! Affected opportunities moved back to potential.')
     },
     onError: (error: any) => {
       toast.error(`Failed to update price: ${error.message}`)
@@ -273,5 +321,73 @@ export function usePriceHistory(
       return data
     },
     enabled: !!supplierId && !!productSpecId && !!hubId
+  })
+}
+
+// Deactivate (soft delete) a price
+export function useDeactivateSupplierPrice() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (priceId: string) => {
+      // Get the price details to find supplier_id
+      const { data: price, error: fetchError } = await supabase
+        .from('supplier_prices')
+        .select('supplier_id')
+        .eq('id', priceId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      // Find and delete opportunities using this supplier
+      const { data: affectedOpportunities, error: findOppError } = await supabase
+        .from('opportunities')
+        .select('id')
+        .eq('supplier_id', price.supplier_id)
+        .eq('is_active', true)
+
+      if (findOppError) {
+        console.error('Error finding affected opportunities:', findOppError)
+      } else if (affectedOpportunities && affectedOpportunities.length > 0) {
+        console.log(`🔄 Deleting ${affectedOpportunities.length} opportunities for supplier ${price.supplier_id} due to price deactivation`)
+
+        // Delete affected opportunities
+        const { error: deleteOppError } = await supabase
+          .from('opportunities')
+          .delete()
+          .in('id', affectedOpportunities.map(o => o.id))
+
+        if (deleteOppError) {
+          console.error('Error deleting affected opportunities:', deleteOppError)
+        }
+      }
+
+      // Deactivate the price
+      const { error } = await supabase
+        .from('supplier_prices')
+        .update({ is_active: false })
+        .eq('id', priceId)
+
+      if (error) throw error
+    },
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ['current-supplier-prices'] })
+      queryClient.invalidateQueries({ queryKey: ['supplier-hub-prices'] })
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] })
+      queryClient.invalidateQueries({ queryKey: ['trade-potential'] })
+
+      // Trigger price change detection for affected opportunities
+      try {
+        await supabase.rpc('detect_opportunity_price_changes')
+        queryClient.invalidateQueries({ queryKey: ['price-change-detection'] })
+      } catch (error) {
+        console.error('Error triggering price change detection:', error)
+      }
+
+      toast.success('Price deactivated successfully! Affected opportunities moved back to potential.')
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to deactivate price: ${error.message}`)
+    }
   })
 }

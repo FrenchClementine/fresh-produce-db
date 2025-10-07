@@ -23,7 +23,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { supabase } from '@/lib/supabase'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 
 const addCertificationSchema = z.object({
@@ -40,7 +40,6 @@ interface AddCertificationFormProps {
 
 export function AddCertificationForm({ open, onOpenChange }: AddCertificationFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
   const queryClient = useQueryClient()
 
   const form = useForm<AddCertificationFormValues>({
@@ -63,22 +62,15 @@ export function AddCertificationForm({ open, onOpenChange }: AddCertificationFor
 
       if (error) throw error
 
-      toast({
-        title: 'Success',
-        description: 'Certification created successfully',
-      })
+      toast.success('Certification created successfully')
 
       queryClient.invalidateQueries({ queryKey: ['certifications'] })
       onOpenChange(false)
       form.reset()
-      
+
     } catch (error: any) {
       console.error('Error creating certification:', error)
-      toast({
-        title: 'Error',
-        description: `Failed to create certification: ${error.message}`,
-        variant: 'destructive',
-      })
+      toast.error(`Failed to create certification: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
@@ -86,14 +78,14 @@ export function AddCertificationForm({ open, onOpenChange }: AddCertificationFor
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Add New Certification</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">ADD NEW CERTIFICATION</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Create a new certification standard
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -101,9 +93,9 @@ export function AddCertificationForm({ open, onOpenChange }: AddCertificationFor
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Certification Name</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Certification Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Organic, HACCP, BRC" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="e.g. Organic, HACCP, BRC" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -115,12 +107,12 @@ export function AddCertificationForm({ open, onOpenChange }: AddCertificationFor
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Description (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Optional description of the certification..." 
-                      className="resize-none" 
-                      {...field} 
+                    <Textarea
+                      className="bg-terminal-dark border-terminal-border text-terminal-text font-mono resize-none"
+                      placeholder="Optional description of the certification..."
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -129,15 +121,16 @@ export function AddCertificationForm({ open, onOpenChange }: AddCertificationFor
             />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Creating...' : 'Create Certification'}
               </Button>
             </div>

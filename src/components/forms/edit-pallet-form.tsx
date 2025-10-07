@@ -108,14 +108,14 @@ export function EditPalletForm({ pallet, open, onOpenChange }: EditPalletFormPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Edit Pallet</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">EDIT PALLET</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Update the pallet details
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -123,9 +123,9 @@ export function EditPalletForm({ pallet, open, onOpenChange }: EditPalletFormPro
               name="label"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Label</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Label</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. EUR Pallet" {...field} />
+                    <Input placeholder="e.g. EUR Pallet" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -137,9 +137,9 @@ export function EditPalletForm({ pallet, open, onOpenChange }: EditPalletFormPro
               name="dimensions_cm"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Dimensions (cm)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Dimensions (cm)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. 120x80x15" {...field} />
+                    <Input placeholder="e.g. 120x80x15" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -151,7 +151,7 @@ export function EditPalletForm({ pallet, open, onOpenChange }: EditPalletFormPro
               name="brutto_weight"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Brutto Weight (kg)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Brutto Weight (kg)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -163,6 +163,7 @@ export function EditPalletForm({ pallet, open, onOpenChange }: EditPalletFormPro
                         field.onChange(value === '' ? undefined : parseFloat(value))
                       }}
                       onFocus={(e) => e.target.select()}
+                      className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                     />
                   </FormControl>
                   <FormMessage />
@@ -175,7 +176,7 @@ export function EditPalletForm({ pallet, open, onOpenChange }: EditPalletFormPro
               name="pallets_per_truck"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Pallets per Truck</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Pallets per Truck</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -186,6 +187,7 @@ export function EditPalletForm({ pallet, open, onOpenChange }: EditPalletFormPro
                         field.onChange(value === '' ? undefined : parseInt(value))
                       }}
                       onFocus={(e) => e.target.select()}
+                      className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                     />
                   </FormControl>
                   <FormMessage />
@@ -198,7 +200,7 @@ export function EditPalletForm({ pallet, open, onOpenChange }: EditPalletFormPro
               name="deposit_fee"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Deposit Fee (€)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Deposit Fee (€)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -210,6 +212,7 @@ export function EditPalletForm({ pallet, open, onOpenChange }: EditPalletFormPro
                         field.onChange(value === '' ? undefined : parseFloat(value))
                       }}
                       onFocus={(e) => e.target.select()}
+                      className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                     />
                   </FormControl>
                   <FormMessage />
@@ -218,15 +221,16 @@ export function EditPalletForm({ pallet, open, onOpenChange }: EditPalletFormPro
             />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Updating...' : 'Update Pallet'}
               </Button>
             </div>

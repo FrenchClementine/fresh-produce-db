@@ -146,14 +146,14 @@ export function EditProductForm({ product, open, onOpenChange }: EditProductForm
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Edit Product</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">EDIT PRODUCT</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Update the product details
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -161,9 +161,9 @@ export function EditProductForm({ product, open, onOpenChange }: EditProductForm
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Product Name</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Product Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Cherry Tomatoes" {...field} />
+                    <Input placeholder="e.g. Cherry Tomatoes" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -175,7 +175,7 @@ export function EditProductForm({ product, open, onOpenChange }: EditProductForm
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Category</FormLabel>
                   <FormControl>
                     <SearchableSelect
                       value={field.value}
@@ -195,7 +195,7 @@ export function EditProductForm({ product, open, onOpenChange }: EditProductForm
               name="intended_use"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Intended Use</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Intended Use</FormLabel>
                   <FormControl>
                     <SearchableSelect
                       value={field.value}
@@ -215,7 +215,7 @@ export function EditProductForm({ product, open, onOpenChange }: EditProductForm
               name="sold_by"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Sold By</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Sold By</FormLabel>
                   <FormControl>
                     <SearchableSelect
                       value={field.value}
@@ -235,7 +235,7 @@ export function EditProductForm({ product, open, onOpenChange }: EditProductForm
               name="is_active"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Status</FormLabel>
                   <FormControl>
                     <SearchableSelect
                       value={field.value.toString()}
@@ -251,15 +251,16 @@ export function EditProductForm({ product, open, onOpenChange }: EditProductForm
             />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Updating...' : 'Update Product'}
               </Button>
             </div>

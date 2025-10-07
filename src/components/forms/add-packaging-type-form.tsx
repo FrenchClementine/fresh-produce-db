@@ -110,10 +110,10 @@ export function AddPackagingTypeForm({ children }: AddPackagingTypeFormProps) {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Add New Packaging Type</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">ADD NEW PACKAGING TYPE</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Create a new packaging option for products
           </DialogDescription>
         </DialogHeader>
@@ -124,9 +124,9 @@ export function AddPackagingTypeForm({ children }: AddPackagingTypeFormProps) {
               name="label"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Label *</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Label *</FormLabel>
                   <FormControl>
-                    <Input placeholder="5kg Box" {...field} />
+                    <Input placeholder="5kg Box" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -138,7 +138,7 @@ export function AddPackagingTypeForm({ children }: AddPackagingTypeFormProps) {
               name="unit_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Unit Type *</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Unit Type *</FormLabel>
                   <FormControl>
                     <SearchableSelect
                       value={field.value}
@@ -158,9 +158,9 @@ export function AddPackagingTypeForm({ children }: AddPackagingTypeFormProps) {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Description</FormLabel>
                   <FormControl>
-                    <Input placeholder="Optional description..." {...field} />
+                    <Input placeholder="Optional description..." {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -168,15 +168,16 @@ export function AddPackagingTypeForm({ children }: AddPackagingTypeFormProps) {
             />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setIsOpen(false)}
                 disabled={isLoading}
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Adding...' : 'Add Packaging Type'}
               </Button>
             </div>

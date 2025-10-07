@@ -155,10 +155,10 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Edit Product Packaging Specification</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">EDIT PRODUCT PACKAGING SPECIFICATION</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Update the packaging details and specifications for this product
           </DialogDescription>
         </DialogHeader>
@@ -172,16 +172,16 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                 name="product_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Product *</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Product *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                           <SelectValue placeholder="Select product" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="bg-terminal-panel border-terminal-border">
                         {products?.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
+                          <SelectItem key={product.id} value={product.id} className="font-mono text-terminal-text">
                             {product.name} ({product.category})
                           </SelectItem>
                         ))}
@@ -197,16 +197,16 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                 name="packaging_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Packaging Type *</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Packaging Type *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                           <SelectValue placeholder="Select packaging" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="bg-terminal-panel border-terminal-border">
                         {packagingOptions?.map((packaging) => (
-                          <SelectItem key={packaging.id} value={packaging.id}>
+                          <SelectItem key={packaging.id} value={packaging.id} className="font-mono text-terminal-text">
                             {packaging.label} ({packaging.unit_type})
                           </SelectItem>
                         ))}
@@ -222,16 +222,16 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                 name="pallet_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Pallet Type *</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Pallet Type *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                           <SelectValue placeholder="Select pallet" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="bg-terminal-panel border-terminal-border">
                         {pallets?.map((pallet) => (
-                          <SelectItem key={pallet.id} value={pallet.id}>
+                          <SelectItem key={pallet.id} value={pallet.id} className="font-mono text-terminal-text">
                             {pallet.label} {pallet.dimensions_cm && `(${pallet.dimensions_cm})`}
                           </SelectItem>
                         ))}
@@ -247,16 +247,16 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                 name="size_option_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Size Option *</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Size Option *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                           <SelectValue placeholder="Select size" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="bg-terminal-panel border-terminal-border">
                         {sizeOptions?.map((size) => (
-                          <SelectItem key={size.id} value={size.id}>
+                          <SelectItem key={size.id} value={size.id} className="font-mono text-terminal-text">
                             {size.name}
                           </SelectItem>
                         ))}
@@ -277,7 +277,7 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                   name="boxes_per_pallet"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Boxes per Pallet *</FormLabel>
+                      <FormLabel className="text-terminal-text font-mono">Boxes per Pallet *</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -288,6 +288,7 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                             field.onChange(value === '' ? undefined : parseInt(value))
                           }}
                           onFocus={(e) => e.target.select()}
+                          className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                         />
                       </FormControl>
                       <FormMessage />
@@ -300,7 +301,7 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                   name="pieces_per_box"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Pieces per Box (Optional)</FormLabel>
+                      <FormLabel className="text-terminal-text font-mono">Pieces per Box (Optional)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -311,9 +312,10 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                             field.onChange(value === '' ? undefined : parseInt(value))
                           }}
                           onFocus={(e) => e.target.select()}
+                          className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                         />
                       </FormControl>
-                      <FormDescription>
+                      <FormDescription className="text-terminal-muted font-mono">
                         Leave empty if not applicable
                       </FormDescription>
                       <FormMessage />
@@ -326,7 +328,7 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                   name="weight_per_box"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Estimated Weight per Box (Optional)</FormLabel>
+                      <FormLabel className="text-terminal-text font-mono">Estimated Weight per Box (Optional)</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -338,9 +340,10 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                             field.onChange(value === '' ? undefined : parseFloat(value))
                           }}
                           onFocus={(e) => e.target.select()}
+                          className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                         />
                       </FormControl>
-                      <FormDescription>
+                      <FormDescription className="text-terminal-muted font-mono">
                         Leave empty if not applicable
                       </FormDescription>
                       <FormMessage />
@@ -353,12 +356,12 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                   name="weight_per_pallet"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Estimated Weight per Pallet</FormLabel>
+                      <FormLabel className="text-terminal-text font-mono">Estimated Weight per Pallet</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="number" 
-                          step="0.1" 
-                          placeholder="Auto-calculated" 
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="Auto-calculated"
                           value={field.value || ''}
                           onChange={(e) => {
                             const value = e.target.value
@@ -366,9 +369,10 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                           }}
                           onFocus={(e) => e.target.select()}
                           disabled={!!(form.watch('boxes_per_pallet') && form.watch('weight_per_box'))}
+                          className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                         />
                       </FormControl>
-                      <FormDescription>
+                      <FormDescription className="text-terminal-muted font-mono">
                         Auto-calculated from boxes × weight per box
                       </FormDescription>
                       <FormMessage />
@@ -382,17 +386,17 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
                 name="weight_unit"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Weight Unit</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Weight Unit</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="w-48">
+                        <SelectTrigger className="w-48 bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                           <SelectValue placeholder="Select weight unit" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="kg">Kg</SelectItem>
-                        <SelectItem value="g">Grams</SelectItem>
-                        <SelectItem value="ton">Ton</SelectItem>
+                      <SelectContent className="bg-terminal-panel border-terminal-border">
+                        <SelectItem value="kg" className="font-mono text-terminal-text">Kg</SelectItem>
+                        <SelectItem value="g" className="font-mono text-terminal-text">Grams</SelectItem>
+                        <SelectItem value="ton" className="font-mono text-terminal-text">Ton</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -402,15 +406,16 @@ export function EditProductPackagingSpecForm({ spec, open, onOpenChange }: EditP
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Updating...' : 'Update Specification'}
               </Button>
             </div>

@@ -33,14 +33,45 @@ export function useProductSpecs() {
           size_options:size_option_id(id, name)
         `)
         .order('created_at')
-      
+
       if (error) {
         console.error('Product specs query failed:', error)
         throw error
       }
-      
+
       return data || []
     },
+  })
+
+  return { productSpecs, isLoading, error }
+}
+
+export function useProductSpecsByProduct(productId?: string) {
+  const { data: productSpecs, isLoading, error } = useQuery({
+    queryKey: ['product-specs-by-product', productId],
+    queryFn: async () => {
+      if (!productId) return []
+
+      const { data, error } = await supabase
+        .from('product_packaging_specs')
+        .select(`
+          *,
+          products:product_id(id, name, category),
+          packaging_options:packaging_id(id, label, unit_type),
+          pallets:pallet_id(id, label, dimensions_cm),
+          size_options:size_option_id(id, name)
+        `)
+        .eq('product_id', productId)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Product specs query failed:', error)
+        throw error
+      }
+
+      return data || []
+    },
+    enabled: !!productId
   })
 
   return { productSpecs, isLoading, error }

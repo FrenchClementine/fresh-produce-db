@@ -101,10 +101,10 @@ export function AddCustomerCertificationForm({ open, onOpenChange, customerId }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Add Certification Requirement</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">ADD CERTIFICATION REQUIREMENT</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Add a certification requirement for this customer's suppliers.
           </DialogDescription>
         </DialogHeader>
@@ -115,16 +115,16 @@ export function AddCustomerCertificationForm({ open, onOpenChange, customerId }:
               name="certification_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Certification</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Certification</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                         <SelectValue placeholder="Select a certification" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="bg-terminal-panel border-terminal-border">
                       {certifications?.map((cert) => (
-                        <SelectItem key={cert.id} value={cert.id}>
+                        <SelectItem key={cert.id} value={cert.id} className="font-mono text-terminal-text">
                           {cert.name}
                         </SelectItem>
                       ))}
@@ -139,10 +139,10 @@ export function AddCustomerCertificationForm({ open, onOpenChange, customerId }:
               control={form.control}
               name="is_required"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border-terminal-border bg-terminal-dark p-3 shadow-sm">
                   <div className="space-y-0.5">
-                    <FormLabel>Required</FormLabel>
-                    <div className="text-sm text-muted-foreground">
+                    <FormLabel className="text-terminal-text font-mono">Required</FormLabel>
+                    <div className="text-sm text-terminal-muted font-mono">
                       This certification is mandatory for suppliers
                     </div>
                   </div>
@@ -161,9 +161,9 @@ export function AddCustomerCertificationForm({ open, onOpenChange, customerId }:
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Notes</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Additional requirements or notes about this certification" {...field} />
+                    <Textarea className="bg-terminal-dark border-terminal-border text-terminal-text font-mono resize-none" placeholder="Additional requirements or notes about this certification" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -176,10 +176,11 @@ export function AddCustomerCertificationForm({ open, onOpenChange, customerId }:
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Adding...' : 'Add Certification Requirement'}
               </Button>
             </div>

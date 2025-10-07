@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { supabase } from '@/lib/supabase'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { useActiveStaff } from '@/hooks/use-staff'
 
@@ -65,7 +65,6 @@ const deliveryModeOptions = [
 
 export function AddSupplierForm({ open, onOpenChange }: AddSupplierFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
   const queryClient = useQueryClient()
   const { activeStaff, isLoading: staffLoading } = useActiveStaff()
 
@@ -109,22 +108,15 @@ export function AddSupplierForm({ open, onOpenChange }: AddSupplierFormProps) {
 
       if (error) throw error
 
-      toast({
-        title: 'Success',
-        description: 'Supplier created successfully',
-      })
+      toast.success('Supplier created successfully')
 
       queryClient.invalidateQueries({ queryKey: ['suppliers'] })
       onOpenChange(false)
       form.reset()
-      
+
     } catch (error: any) {
       console.error('Error creating supplier:', error)
-      toast({
-        title: 'Error',
-        description: `Failed to create supplier: ${error.message}`,
-        variant: 'destructive',
-      })
+      toast.error(`Failed to create supplier: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
@@ -132,10 +124,10 @@ export function AddSupplierForm({ open, onOpenChange }: AddSupplierFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Add New Supplier</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">ADD NEW SUPPLIER</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Create a new supplier profile with contact and logistics information
           </DialogDescription>
         </DialogHeader>
@@ -148,9 +140,9 @@ export function AddSupplierForm({ open, onOpenChange }: AddSupplierFormProps) {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Supplier Name *</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Supplier Name *</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Fresh Farms Ltd" {...field} />
+                      <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="e.g. Fresh Farms Ltd" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -162,9 +154,9 @@ export function AddSupplierForm({ open, onOpenChange }: AddSupplierFormProps) {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="contact@supplier.com" type="email" {...field} />
+                      <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="contact@supplier.com" type="email" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

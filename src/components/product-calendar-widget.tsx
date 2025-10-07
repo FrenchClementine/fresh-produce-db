@@ -53,18 +53,18 @@ interface CountryRowProps {
 
 function CountryRow({ data, onCountryClick }: CountryRowProps) {
   return (
-    <div 
-      className="flex items-center gap-4 p-4 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors"
+    <div
+      className="flex items-center gap-4 p-4 hover:bg-terminal-dark rounded-lg cursor-pointer transition-colors border border-transparent hover:border-terminal-accent"
       onClick={() => onCountryClick(data)}
     >
       <div className="flex items-center gap-2 min-w-[200px]">
-        <MapPin className="h-4 w-4 text-muted-foreground" />
-        <span className="font-medium">{data.country}</span>
-        <Badge variant="secondary" className="text-xs">
+        <MapPin className="h-4 w-4 text-terminal-accent" />
+        <span className="font-medium font-mono text-terminal-text">{data.country}</span>
+        <Badge variant="secondary" className="text-xs bg-terminal-dark text-terminal-text border-terminal-border font-mono">
           {data.suppliers.length} supplier{data.suppliers.length !== 1 ? 's' : ''}
         </Badge>
       </div>
-      
+
       <div className="flex gap-2">
         {MONTHS.map((month) => {
           const isAvailable = data.available_months.includes(month.value)
@@ -72,10 +72,10 @@ function CountryRow({ data, onCountryClick }: CountryRowProps) {
             <div
               key={month.value}
               className={cn(
-                "w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-medium transition-colors",
+                "w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-medium font-mono transition-colors",
                 isAvailable
-                  ? "bg-green-100 border-green-300 text-green-700"
-                  : "bg-gray-50 border-gray-200 text-gray-400"
+                  ? "bg-terminal-success/20 border-terminal-success text-terminal-success"
+                  : "bg-terminal-dark border-terminal-border text-terminal-muted"
               )}
               title={`${month.full}${isAvailable ? ' - Available' : ' - Not available'}`}
             >
@@ -97,19 +97,19 @@ interface ProductSectionProps {
 function ProductSection({ productName, countries, onCountryClick }: ProductSectionProps) {
   // Get intended use from the first country's data (should be same for all)
   const intendedUse = countries[0]?.intended_use
-  
+
   return (
-    <Card className="mb-6">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-green-600" />
+    <Card className="mb-6 bg-terminal-dark border-terminal-border">
+      <CardHeader className="pb-3 border-b border-terminal-border">
+        <CardTitle className="text-lg flex items-center gap-2 font-mono text-terminal-text">
+          <Calendar className="h-5 w-5 text-terminal-accent" />
           {productName}{intendedUse ? ` (${intendedUse})` : ''}
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="font-mono text-xs text-terminal-muted">
           Available in {countries.length} countr{countries.length !== 1 ? 'ies' : 'y'}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-2 pt-4">
         {countries.map((country) => (
           <CountryRow
             key={`${country.product_id}-${country.country}`}
@@ -133,23 +133,23 @@ function SupplierDetailsModal({ open, onOpenChange, data }: SupplierDetailsModal
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+          <DialogTitle className="flex items-center gap-2 font-mono text-terminal-text">
+            <Calendar className="h-5 w-5 text-terminal-accent" />
             {data.product_name} in {data.country}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="font-mono text-xs text-terminal-muted">
             Available suppliers and their product specifications
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Available months:</span>
+            <span className="text-sm font-medium font-mono text-terminal-text">AVAILABLE MONTHS:</span>
             <div className="flex gap-1">
               {MONTHS.filter(m => data.available_months.includes(m.value)).map(month => (
-                <Badge key={month.value} variant="secondary" className="text-xs">
+                <Badge key={month.value} variant="secondary" className="text-xs bg-terminal-success/20 text-terminal-success border-terminal-success font-mono">
                   {month.full}
                 </Badge>
               ))}
@@ -157,10 +157,10 @@ function SupplierDetailsModal({ open, onOpenChange, data }: SupplierDetailsModal
           </div>
 
           {data.suppliers.map((supplier) => (
-            <Card key={supplier.id}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">{supplier.name}</CardTitle>
-                <CardDescription>
+            <Card key={supplier.id} className="bg-terminal-dark border-terminal-border">
+              <CardHeader className="pb-3 border-b border-terminal-border">
+                <CardTitle className="text-base font-mono text-terminal-text">{supplier.name}</CardTitle>
+                <CardDescription className="font-mono text-xs text-terminal-muted">
                   {(() => {
                     // Count unique size/availability combinations
                     const uniqueSpecs = new Set()
@@ -174,14 +174,14 @@ function SupplierDetailsModal({ open, onOpenChange, data }: SupplierDetailsModal
                   })()}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-4">
                 <div className="grid gap-3">
                   {(() => {
                     // Group specs by size and availability
                     const grouped = supplier.specs.reduce((acc, spec) => {
                       const availabilityKey = spec.available_months.sort().join(',')
                       const key = `${spec.size_name}-${availabilityKey}`
-                      
+
                       if (!acc[key]) {
                         acc[key] = {
                           size_name: spec.size_name,
@@ -189,7 +189,7 @@ function SupplierDetailsModal({ open, onOpenChange, data }: SupplierDetailsModal
                           packaging_options: []
                         }
                       }
-                      
+
                       acc[key].packaging_options.push(spec.packaging_label)
                       return acc
                     }, {} as Record<string, {
@@ -199,13 +199,13 @@ function SupplierDetailsModal({ open, onOpenChange, data }: SupplierDetailsModal
                     }>)
 
                     return Object.values(grouped).map((group, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div key={index} className="flex items-center justify-between p-3 border border-terminal-border rounded-lg bg-terminal-panel">
                         <div>
-                          <div className="font-medium">
+                          <div className="font-medium font-mono text-terminal-text">
                             {group.packaging_options.join('/')} - {group.size_name}
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            Available: {group.available_months.map(m => 
+                          <div className="text-sm font-mono text-terminal-muted">
+                            Available: {group.available_months.map(m =>
                               MONTHS.find(month => month.value === m)?.full
                             ).join(', ')}
                           </div>
@@ -291,33 +291,42 @@ export function ProductCalendarWidget() {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-6 w-6 text-green-600" />
-            Product Availability Calendar
+      <Card className="bg-terminal-panel border-terminal-border">
+        <CardHeader className="border-b border-terminal-border">
+          <CardTitle className="flex items-center gap-2 font-mono text-sm text-terminal-text">
+            <Calendar className="h-5 w-5 text-terminal-accent" />
+            SEASONAL AVAILABILITY
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="font-mono text-xs text-terminal-muted">
             View seasonal availability of products by country
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {/* Search and Filters */}
           <div className="space-y-4 mb-6">
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-terminal-muted" />
                 <Input
                   placeholder="Search for products (e.g. Iceberg Lettuce)..."
                   value={displaySearch}
                   onChange={(e) => setDisplaySearch(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  className="pl-10"
+                  className="pl-10 bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                 />
               </div>
-              <Button onClick={handleSearch}>Search</Button>
+              <Button
+                onClick={handleSearch}
+                className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono"
+              >
+                Search
+              </Button>
               {hasFilters && (
-                <Button variant="outline" onClick={clearFilters}>
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="border-terminal-border text-terminal-text hover:bg-terminal-dark font-mono"
+                >
                   <X className="h-4 w-4 mr-1" />
                   Clear
                 </Button>
@@ -327,19 +336,19 @@ export function ProductCalendarWidget() {
             {/* Filter Row */}
             <div className="flex gap-4 items-center">
               <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Filters:</span>
+                <Filter className="h-4 w-4 text-terminal-accent" />
+                <span className="text-sm font-medium font-mono text-terminal-text">FILTERS:</span>
               </div>
-              
+
               <div className="flex gap-3">
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[180px] bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all-categories">All Categories</SelectItem>
+                  <SelectContent className="bg-terminal-panel border-terminal-border">
+                    <SelectItem value="all-categories" className="font-mono text-terminal-text">All Categories</SelectItem>
                     {categories?.map((category) => (
-                      <SelectItem key={category} value={category}>
+                      <SelectItem key={category} value={category} className="font-mono text-terminal-text">
                         {formatCategory(category)}
                       </SelectItem>
                     ))}
@@ -347,13 +356,13 @@ export function ProductCalendarWidget() {
                 </Select>
 
                 <Select value={selectedSize} onValueChange={setSelectedSize}>
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="w-[140px] bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                     <SelectValue placeholder="Size" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all-sizes">All Sizes</SelectItem>
+                  <SelectContent className="bg-terminal-panel border-terminal-border">
+                    <SelectItem value="all-sizes" className="font-mono text-terminal-text">All Sizes</SelectItem>
                     {sizeOptions?.map((size) => (
-                      <SelectItem key={size.id} value={size.id}>
+                      <SelectItem key={size.id} value={size.id} className="font-mono text-terminal-text">
                         {size.name}
                       </SelectItem>
                     ))}
@@ -361,13 +370,13 @@ export function ProductCalendarWidget() {
                 </Select>
 
                 <Select value={selectedCertification} onValueChange={setSelectedCertification}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[180px] bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                     <SelectValue placeholder="Certification" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all-certifications">All Certifications</SelectItem>
+                  <SelectContent className="bg-terminal-panel border-terminal-border">
+                    <SelectItem value="all-certifications" className="font-mono text-terminal-text">All Certifications</SelectItem>
                     {certifications?.map((certification) => (
-                      <SelectItem key={certification.id} value={certification.id}>
+                      <SelectItem key={certification.id} value={certification.id} className="font-mono text-terminal-text">
                         {certification.name}
                       </SelectItem>
                     ))}
@@ -403,11 +412,11 @@ export function ProductCalendarWidget() {
           </div>
 
           {/* Month Legend */}
-          <div className="flex items-center gap-2 mb-6 text-xs text-muted-foreground">
-            <span>Months:</span>
+          <div className="flex items-center gap-2 mb-6 text-xs text-terminal-muted font-mono">
+            <span>MONTHS:</span>
             {MONTHS.map((month) => (
               <div key={month.value} className="flex flex-col items-center gap-1">
-                <div className="w-6 h-6 rounded-full border flex items-center justify-center text-xs">
+                <div className="w-6 h-6 rounded-full border border-terminal-border flex items-center justify-center text-xs font-mono text-terminal-text">
                   {month.short}
                 </div>
               </div>
@@ -417,22 +426,22 @@ export function ProductCalendarWidget() {
           {/* Results */}
           {isLoading && (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-              <p className="text-muted-foreground mt-2">Loading calendar data...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-terminal-accent mx-auto"></div>
+              <p className="text-terminal-muted font-mono mt-2">Loading calendar data...</p>
             </div>
           )}
 
           {error && (
-            <div className="text-center py-8 text-red-600">
-              <p>Error loading calendar data. Please try again.</p>
+            <div className="text-center py-8 text-terminal-alert">
+              <p className="font-mono">Error loading calendar data. Please try again.</p>
             </div>
           )}
 
           {!isLoading && !error && Object.keys(groupedData).length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>
-                {hasFilters 
+            <div className="text-center py-8 text-terminal-muted">
+              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50 text-terminal-accent" />
+              <p className="font-mono">
+                {hasFilters
                   ? "No products found matching your filters. Try adjusting your search or filters."
                   : "No products available. Try searching for a specific product or use the filters above."}
               </p>
@@ -442,11 +451,11 @@ export function ProductCalendarWidget() {
           {!isLoading && !error && Object.keys(groupedData).length > 0 && (
             <div className="space-y-6">
               {!hasFilters && (
-                <div className="text-sm text-muted-foreground mb-4">
+                <div className="text-sm text-terminal-muted mb-4 font-mono">
                   Showing sample products. Use search or filters to find specific items.
                 </div>
               )}
-              
+
               {Object.entries(groupedData).map(([productName, countries]) => (
                 <ProductSection
                   key={productName}

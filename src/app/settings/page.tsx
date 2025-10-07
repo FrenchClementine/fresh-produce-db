@@ -129,47 +129,47 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-terminal-dark p-4 space-y-8">
+      <div className="flex items-center justify-between border-b border-terminal-border pb-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold tracking-tight text-terminal-text font-mono">SETTINGS</h1>
+          <p className="text-terminal-muted font-mono">
             Manage your product catalog base data
           </p>
         </div>
       </div>
 
       <Tabs defaultValue="products" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="products" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-9 bg-terminal-panel border border-terminal-border">
+          <TabsTrigger value="products" className="flex items-center gap-2 font-mono data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark text-terminal-text">
             <Package className="h-4 w-4" />
             Products
           </TabsTrigger>
-          <TabsTrigger value="categories" className="flex items-center gap-2">
+          <TabsTrigger value="categories" className="flex items-center gap-2 font-mono data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark text-terminal-text">
             <Tag className="h-4 w-4" />
             Categories
           </TabsTrigger>
-          <TabsTrigger value="packaging" className="flex items-center gap-2">
+          <TabsTrigger value="packaging" className="flex items-center gap-2 font-mono data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark text-terminal-text">
             <Box className="h-4 w-4" />
             Packaging
           </TabsTrigger>
-          <TabsTrigger value="pallets" className="flex items-center gap-2">
+          <TabsTrigger value="pallets" className="flex items-center gap-2 font-mono data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark text-terminal-text">
             <Layers className="h-4 w-4" />
             Pallets
           </TabsTrigger>
-          <TabsTrigger value="sizes" className="flex items-center gap-2">
+          <TabsTrigger value="sizes" className="flex items-center gap-2 font-mono data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark text-terminal-text">
             <Ruler className="h-4 w-4" />
             Sizes
           </TabsTrigger>
-          <TabsTrigger value="hubs" className="flex items-center gap-2">
+          <TabsTrigger value="hubs" className="flex items-center gap-2 font-mono data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark text-terminal-text">
             <MapPin className="h-4 w-4" />
             Hubs
           </TabsTrigger>
-          <TabsTrigger value="certifications" className="flex items-center gap-2">
+          <TabsTrigger value="certifications" className="flex items-center gap-2 font-mono data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark text-terminal-text">
             <Award className="h-4 w-4" />
             Certifications
           </TabsTrigger>
-          <TabsTrigger value="staff" className="flex items-center gap-2">
+          <TabsTrigger value="staff" className="flex items-center gap-2 font-mono data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark text-terminal-text">
             <UserCheck className="h-4 w-4" />
             Staff
           </TabsTrigger>
@@ -177,19 +177,19 @@ export default function SettingsPage() {
 
         {/* Products Tab */}
         <TabsContent value="products">
-          <Card>
+          <Card className="bg-terminal-panel border-terminal-border">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-terminal-text font-mono">
                     <Package className="h-5 w-5" />
                     Products
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-terminal-muted font-mono">
                     Manage your product catalog
                   </CardDescription>
                 </div>
-                <Button onClick={() => setShowAddProduct(true)}>
+                <Button onClick={() => setShowAddProduct(true)} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Product
                 </Button>
@@ -198,55 +198,56 @@ export default function SettingsPage() {
             <CardContent>
               {productsLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <span className="ml-2">Loading products...</span>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-terminal-accent"></div>
+                  <span className="ml-2 text-terminal-text font-mono">Loading products...</span>
                 </div>
               ) : products && products.length === 0 ? (
                 <div className="text-center py-8">
-                  <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Products Found</h3>
-                  <p className="text-muted-foreground">
+                  <Package className="mx-auto h-12 w-12 text-terminal-muted mb-4" />
+                  <h3 className="text-lg font-semibold mb-2 text-terminal-text font-mono">No Products Found</h3>
+                  <p className="text-terminal-muted font-mono">
                     No products have been created yet.
                   </p>
                 </div>
               ) : (
-                <div className="border rounded-lg overflow-hidden">
+                <div className="border border-terminal-border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Intended Use</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
+                      <TableRow className="border-terminal-border hover:bg-terminal-dark/50">
+                        <TableHead className="text-terminal-text font-mono">Name</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Category</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Intended Use</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Status</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {products?.map((product) => (
-                        <TableRow key={product.id}>
-                          <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableRow key={product.id} className="border-terminal-border hover:bg-terminal-dark/50">
+                          <TableCell className="font-medium text-terminal-text font-mono">{product.name}</TableCell>
                           <TableCell>
-                            <Badge variant="secondary" className="capitalize">
+                            <Badge variant="secondary" className="capitalize bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                               {product.category.replace('_', ' ')}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="capitalize">
+                            <Badge variant="outline" className="capitalize border-terminal-border text-terminal-text font-mono">
                               {product.intended_use}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={product.is_active ? "default" : "secondary"}>
+                            <Badge variant={product.is_active ? "default" : "secondary"} className={product.is_active ? "bg-terminal-success text-terminal-dark font-mono" : "bg-terminal-dark border-terminal-border text-terminal-muted font-mono"}>
                               {product.is_active ? 'Active' : 'Inactive'}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
+                              <Button
+                                size="sm"
+                                variant="ghost"
                                 title="Edit product"
                                 onClick={() => setEditingProduct(product)}
+                                className="text-terminal-text hover:text-terminal-accent hover:bg-terminal-dark"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -256,8 +257,9 @@ export default function SettingsPage() {
                                 onClick={() => handleDelete('products', product.id, product.name)}
                                 disabled={isDeleting === product.id}
                                 title="Delete product"
+                                className="text-terminal-alert hover:text-red-400 hover:bg-terminal-dark"
                               >
-                                <Trash2 className={`h-4 w-4 text-red-500 ${isDeleting === product.id ? 'animate-spin' : ''}`} />
+                                <Trash2 className={`h-4 w-4 ${isDeleting === product.id ? 'animate-spin' : ''}`} />
                               </Button>
                             </div>
                           </TableCell>
@@ -273,15 +275,15 @@ export default function SettingsPage() {
 
         {/* Categories Tab */}
         <TabsContent value="categories">
-          <Card>
+          <Card className="bg-terminal-panel border-terminal-border">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-terminal-text font-mono">
                     <Tag className="h-5 w-5" />
                     Product Categories
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-terminal-muted font-mono">
                     Manage product category classifications with emojis
                   </CardDescription>
                 </div>
@@ -290,46 +292,46 @@ export default function SettingsPage() {
             <CardContent>
               {categoriesLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <span className="ml-2">Loading categories...</span>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-terminal-accent"></div>
+                  <span className="ml-2 text-terminal-text font-mono">Loading categories...</span>
                 </div>
               ) : categories && categories.length === 0 ? (
                 <div className="text-center py-8">
-                  <Tag className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Categories Found</h3>
-                  <p className="text-muted-foreground">
+                  <Tag className="mx-auto h-12 w-12 text-terminal-muted mb-4" />
+                  <h3 className="text-lg font-semibold mb-2 text-terminal-text font-mono">No Categories Found</h3>
+                  <p className="text-terminal-muted font-mono">
                     No product categories are currently in use.
                   </p>
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {categories?.map((category) => (
-                    <Card key={category} className="p-4">
+                    <Card key={category} className="p-4 bg-terminal-dark border-terminal-border">
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">{getCategoryEmoji(category)}</span>
                         <div>
-                          <h3 className="font-semibold">{formatCategoryName(category)}</h3>
-                          <p className="text-sm text-muted-foreground">{category}</p>
+                          <h3 className="font-semibold text-terminal-text font-mono">{formatCategoryName(category)}</h3>
+                          <p className="text-sm text-terminal-muted font-mono">{category}</p>
                         </div>
                       </div>
                     </Card>
                   ))}
                 </div>
               )}
-              
+
               {!categoriesLoading && (
-                <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                <div className="mt-6 p-4 bg-terminal-dark/50 border border-terminal-border rounded-lg">
+                  <h3 className="font-semibold mb-2 flex items-center gap-2 text-terminal-text font-mono">
                     <Settings className="h-4 w-4" />
                     Need to add a new category?
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-3">
+                  <p className="text-sm text-terminal-muted mb-3 font-mono">
                     Product categories are defined at the database level. To add new categories, please contact your system administrator or add the category to the database enum.
                   </p>
-                  <div className="text-xs text-muted-foreground bg-background p-3 rounded border font-mono">
+                  <div className="text-xs text-terminal-muted bg-terminal-dark p-3 rounded border border-terminal-border font-mono">
                     ALTER TYPE "public"."product_category" ADD VALUE 'new_category';
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-xs text-terminal-muted mt-2 font-mono">
                     <strong>Note:</strong> Categories shown above are currently in use by existing products. New enum values will appear here once products use them.
                   </p>
                 </div>
@@ -340,19 +342,19 @@ export default function SettingsPage() {
 
         {/* Packaging Tab */}
         <TabsContent value="packaging">
-          <Card>
+          <Card className="bg-terminal-panel border-terminal-border">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-terminal-text font-mono">
                     <Box className="h-5 w-5" />
                     Packaging Options
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-terminal-muted font-mono">
                     Manage packaging types and configurations
                   </CardDescription>
                 </div>
-                <Button onClick={() => setShowAddPackaging(true)}>
+                <Button onClick={() => setShowAddPackaging(true)} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Packaging
                 </Button>
@@ -361,41 +363,41 @@ export default function SettingsPage() {
             <CardContent>
               {packagingLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <span className="ml-2">Loading packaging options...</span>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-terminal-accent"></div>
+                  <span className="ml-2 text-terminal-text font-mono">Loading packaging options...</span>
                 </div>
               ) : packagingOptions && packagingOptions.length === 0 ? (
                 <div className="text-center py-8">
-                  <Box className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Packaging Options Found</h3>
-                  <p className="text-muted-foreground">
+                  <Box className="mx-auto h-12 w-12 text-terminal-muted mb-4" />
+                  <h3 className="text-lg font-semibold mb-2 text-terminal-text font-mono">No Packaging Options Found</h3>
+                  <p className="text-terminal-muted font-mono">
                     No packaging options have been created yet.
                   </p>
                 </div>
               ) : (
-                <div className="border rounded-lg overflow-hidden">
+                <div className="border border-terminal-border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Label</TableHead>
-                        <TableHead>Unit Type</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Deposit Fee</TableHead>
-                        <TableHead>Rent Fee</TableHead>
-                        <TableHead>Actions</TableHead>
+                      <TableRow className="border-terminal-border hover:bg-terminal-dark/50">
+                        <TableHead className="text-terminal-text font-mono">Label</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Unit Type</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Description</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Deposit Fee</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Rent Fee</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {packagingOptions?.map((packaging) => (
                         <TableRow key={packaging.id}>
-                          <TableCell className="font-medium">{packaging.label}</TableCell>
+                          <TableCell className="font-medium text-terminal-text font-mono">{packaging.label}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="capitalize">
                               {packaging.unit_type}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {packaging.description || <span className="text-muted-foreground">-</span>}
+                            {packaging.description || <span className="text-terminal-muted font-mono">-</span>}
                           </TableCell>
                           <TableCell>
                             {packaging.deposit_fee ? `€${packaging.deposit_fee}` : <span className="text-muted-foreground">-</span>}
@@ -436,19 +438,19 @@ export default function SettingsPage() {
 
         {/* Pallets Tab */}
         <TabsContent value="pallets">
-          <Card>
+          <Card className="bg-terminal-panel border-terminal-border">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-terminal-text font-mono">
                     <Layers className="h-5 w-5" />
                     Pallet Types
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-terminal-muted font-mono">
                     Manage pallet configurations and specifications
                   </CardDescription>
                 </div>
-                <Button onClick={() => setShowAddPallet(true)}>
+                <Button onClick={() => setShowAddPallet(true)} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Pallet
                 </Button>
@@ -457,42 +459,42 @@ export default function SettingsPage() {
             <CardContent>
               {palletsLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <span className="ml-2">Loading pallets...</span>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-terminal-accent"></div>
+                  <span className="ml-2 text-terminal-text font-mono">Loading pallets...</span>
                 </div>
               ) : pallets && pallets.length === 0 ? (
                 <div className="text-center py-8">
-                  <Layers className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Pallets Found</h3>
-                  <p className="text-muted-foreground">
+                  <Layers className="mx-auto h-12 w-12 text-terminal-muted mb-4" />
+                  <h3 className="text-lg font-semibold mb-2 text-terminal-text font-mono">No Pallets Found</h3>
+                  <p className="text-terminal-muted font-mono">
                     No pallet types have been created yet.
                   </p>
                 </div>
               ) : (
-                <div className="border rounded-lg overflow-hidden">
+                <div className="border border-terminal-border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Label</TableHead>
-                        <TableHead>Dimensions</TableHead>
-                        <TableHead>Brutto Weight</TableHead>
-                        <TableHead>Per Truck</TableHead>
-                        <TableHead>Deposit Fee</TableHead>
-                        <TableHead>Actions</TableHead>
+                      <TableRow className="border-terminal-border hover:bg-terminal-dark/50">
+                        <TableHead className="text-terminal-text font-mono">Label</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Dimensions</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Brutto Weight</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Per Truck</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Deposit Fee</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {pallets?.map((pallet) => (
                         <TableRow key={pallet.id}>
-                          <TableCell className="font-medium">{pallet.label}</TableCell>
+                          <TableCell className="font-medium text-terminal-text font-mono">{pallet.label}</TableCell>
                           <TableCell>
-                            {pallet.dimensions_cm || <span className="text-muted-foreground">-</span>}
+                            {pallet.dimensions_cm || <span className="text-terminal-muted font-mono">-</span>}
                           </TableCell>
                           <TableCell>
                             {pallet.brutto_weight ? `${pallet.brutto_weight}kg` : <span className="text-muted-foreground">-</span>}
                           </TableCell>
                           <TableCell>
-                            {pallet.pallets_per_truck || <span className="text-muted-foreground">-</span>}
+                            {pallet.pallets_per_truck || <span className="text-terminal-muted font-mono">-</span>}
                           </TableCell>
                           <TableCell>
                             {pallet.deposit_fee ? `€${pallet.deposit_fee}` : <span className="text-muted-foreground">-</span>}
@@ -530,19 +532,19 @@ export default function SettingsPage() {
 
         {/* Sizes Tab */}
         <TabsContent value="sizes">
-          <Card>
+          <Card className="bg-terminal-panel border-terminal-border">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-terminal-text font-mono">
                     <Ruler className="h-5 w-5" />
                     Size Options
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-terminal-muted font-mono">
                     Manage size classifications and options
                   </CardDescription>
                 </div>
-                <Button onClick={() => setShowAddSize(true)}>
+                <Button onClick={() => setShowAddSize(true)} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Size
                 </Button>
@@ -551,31 +553,31 @@ export default function SettingsPage() {
             <CardContent>
               {sizesLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <span className="ml-2">Loading sizes...</span>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-terminal-accent"></div>
+                  <span className="ml-2 text-terminal-text font-mono">Loading sizes...</span>
                 </div>
               ) : sizeOptions && sizeOptions.length === 0 ? (
                 <div className="text-center py-8">
-                  <Ruler className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Size Options Found</h3>
-                  <p className="text-muted-foreground">
+                  <Ruler className="mx-auto h-12 w-12 text-terminal-muted mb-4" />
+                  <h3 className="text-lg font-semibold mb-2 text-terminal-text font-mono">No Size Options Found</h3>
+                  <p className="text-terminal-muted font-mono">
                     No size options have been created yet.
                   </p>
                 </div>
               ) : (
-                <div className="border rounded-lg overflow-hidden">
+                <div className="border border-terminal-border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead>Actions</TableHead>
+                      <TableRow className="border-terminal-border hover:bg-terminal-dark/50">
+                        <TableHead className="text-terminal-text font-mono">Name</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Created</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {sizeOptions?.map((size) => (
                         <TableRow key={size.id}>
-                          <TableCell className="font-medium">{size.name}</TableCell>
+                          <TableCell className="font-medium text-terminal-text font-mono">{size.name}</TableCell>
                           <TableCell>
                             {new Date(size.created_at).toLocaleDateString()}
                           </TableCell>
@@ -612,15 +614,15 @@ export default function SettingsPage() {
 
         {/* Hubs Tab */}
         <TabsContent value="hubs">
-          <Card>
+          <Card className="bg-terminal-panel border-terminal-border">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-terminal-text font-mono">
                     <MapPin className="h-5 w-5" />
                     Logistics Hubs
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-terminal-muted font-mono">
                     Manage distribution and logistics hubs
                   </CardDescription>
                 </div>
@@ -642,7 +644,7 @@ export default function SettingsPage() {
                       </>
                     )}
                   </Button>
-                  <Button onClick={() => setShowAddHub(true)}>
+                  <Button onClick={() => setShowAddHub(true)} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                     <Plus className="mr-2 h-4 w-4" />
                     Add Hub
                   </Button>
@@ -652,13 +654,13 @@ export default function SettingsPage() {
             <CardContent>
               {hubsLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <span className="ml-2">Loading hubs...</span>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-terminal-accent"></div>
+                  <span className="ml-2 text-terminal-text font-mono">Loading hubs...</span>
                 </div>
               ) : hubs && hubs.length === 0 ? (
                 <div className="text-center py-8">
-                  <MapPin className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Hubs Found</h3>
+                  <MapPin className="mx-auto h-12 w-12 text-terminal-muted mb-4" />
+                  <h3 className="text-lg font-semibold mb-2 text-terminal-text font-mono">No Hubs Found</h3>
                   <p className="text-muted-foreground mb-4">
                     No logistics hubs have been created yet.
                   </p>
@@ -668,36 +670,36 @@ export default function SettingsPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="border rounded-lg overflow-hidden">
+                <div className="border border-terminal-border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Hub Code</TableHead>
-                        <TableHead>City</TableHead>
-                        <TableHead>Country</TableHead>
-                        <TableHead>Region</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
+                      <TableRow className="border-terminal-border hover:bg-terminal-dark/50">
+                        <TableHead className="text-terminal-text font-mono">Name</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Hub Code</TableHead>
+                        <TableHead className="text-terminal-text font-mono">City</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Country</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Region</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Status</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {hubs?.map((hub) => (
                         <TableRow key={hub.id}>
-                          <TableCell className="font-medium">{hub.name}</TableCell>
+                          <TableCell className="font-medium text-terminal-text font-mono">{hub.name}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="font-mono text-xs">
                               {hub.hub_code}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {hub.city_name || <span className="text-muted-foreground">-</span>}
+                            {hub.city_name || <span className="text-terminal-muted font-mono">-</span>}
                           </TableCell>
                           <TableCell>
-                            {hub.country_code || <span className="text-muted-foreground">-</span>}
+                            {hub.country_code || <span className="text-terminal-muted font-mono">-</span>}
                           </TableCell>
                           <TableCell>
-                            {hub.region || <span className="text-muted-foreground">-</span>}
+                            {hub.region || <span className="text-terminal-muted font-mono">-</span>}
                           </TableCell>
                           <TableCell>
                             <Badge variant={hub.is_active ? "default" : "secondary"}>
@@ -737,19 +739,19 @@ export default function SettingsPage() {
 
         {/* Certifications Tab */}
         <TabsContent value="certifications">
-          <Card>
+          <Card className="bg-terminal-panel border-terminal-border">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-terminal-text font-mono">
                     <Award className="h-5 w-5" />
                     Certifications
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-terminal-muted font-mono">
                     Manage certification standards and requirements
                   </CardDescription>
                 </div>
-                <Button onClick={() => setShowAddCertification(true)}>
+                <Button onClick={() => setShowAddCertification(true)} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Certification
                 </Button>
@@ -758,13 +760,13 @@ export default function SettingsPage() {
             <CardContent>
               {certificationsLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <span className="ml-2">Loading certifications...</span>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-terminal-accent"></div>
+                  <span className="ml-2 text-terminal-text font-mono">Loading certifications...</span>
                 </div>
               ) : certifications && certifications.length === 0 ? (
                 <div className="text-center py-8">
-                  <Award className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Certifications Found</h3>
+                  <Award className="mx-auto h-12 w-12 text-terminal-muted mb-4" />
+                  <h3 className="text-lg font-semibold mb-2 text-terminal-text font-mono">No Certifications Found</h3>
                   <p className="text-muted-foreground mb-4">
                     No certification standards have been created yet.
                   </p>
@@ -774,20 +776,20 @@ export default function SettingsPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="border rounded-lg overflow-hidden">
+                <div className="border border-terminal-border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead>Actions</TableHead>
+                      <TableRow className="border-terminal-border hover:bg-terminal-dark/50">
+                        <TableHead className="text-terminal-text font-mono">Name</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Description</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Created</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {certifications?.map((certification) => (
                         <TableRow key={certification.id}>
-                          <TableCell className="font-medium">{certification.name}</TableCell>
+                          <TableCell className="font-medium text-terminal-text font-mono">{certification.name}</TableCell>
                           <TableCell>
                             {certification.description ? (
                               <div className="max-w-md truncate" title={certification.description}>
@@ -828,19 +830,19 @@ export default function SettingsPage() {
 
         {/* Staff Tab */}
         <TabsContent value="staff">
-          <Card>
+          <Card className="bg-terminal-panel border-terminal-border">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-terminal-text font-mono">
                     <UserCheck className="h-5 w-5" />
                     Staff Management
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-terminal-muted font-mono">
                     Manage internal staff members and customer relationship assignments
                   </CardDescription>
                 </div>
-                <Button onClick={() => setShowAddStaff(true)}>
+                <Button onClick={() => setShowAddStaff(true)} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Staff Member
                 </Button>
@@ -849,13 +851,13 @@ export default function SettingsPage() {
             <CardContent>
               {staffLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <span className="ml-2">Loading staff...</span>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-terminal-accent"></div>
+                  <span className="ml-2 text-terminal-text font-mono">Loading staff...</span>
                 </div>
               ) : staffWithCount && staffWithCount.length === 0 ? (
                 <div className="text-center py-8">
-                  <UserCheck className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Staff Members Found</h3>
+                  <UserCheck className="mx-auto h-12 w-12 text-terminal-muted mb-4" />
+                  <h3 className="text-lg font-semibold mb-2 text-terminal-text font-mono">No Staff Members Found</h3>
                   <p className="text-muted-foreground mb-4">
                     No staff members have been created yet.
                   </p>
@@ -865,25 +867,25 @@ export default function SettingsPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="border rounded-lg overflow-hidden">
+                <div className="border border-terminal-border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Department</TableHead>
-                        <TableHead>Customers</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
+                      <TableRow className="border-terminal-border hover:bg-terminal-dark/50">
+                        <TableHead className="text-terminal-text font-mono">Name</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Email</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Role</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Department</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Customers</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Status</TableHead>
+                        <TableHead className="text-terminal-text font-mono">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {staffWithCount?.map((staff) => (
                         <TableRow key={staff.id}>
-                          <TableCell className="font-medium">{staff.name}</TableCell>
+                          <TableCell className="font-medium text-terminal-text font-mono">{staff.name}</TableCell>
                           <TableCell>
-                            {staff.email || <span className="text-muted-foreground">-</span>}
+                            {staff.email || <span className="text-terminal-muted font-mono">-</span>}
                           </TableCell>
                           <TableCell>
                             {staff.role && (

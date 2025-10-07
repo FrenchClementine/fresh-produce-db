@@ -32,7 +32,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { supabase } from '@/lib/supabase'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { useActiveStaff } from '@/hooks/use-staff'
 
@@ -66,7 +66,6 @@ const deliveryModeOptions = [
 
 export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
   const queryClient = useQueryClient()
   const { activeStaff } = useActiveStaff()
 
@@ -111,10 +110,7 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
 
       if (error) throw error
 
-      toast({
-        title: 'Success',
-        description: 'Customer added successfully',
-      })
+      toast.success('Customer added successfully')
 
       queryClient.invalidateQueries({ queryKey: ['customers'] })
       queryClient.invalidateQueries({ queryKey: ['active-customers'] })
@@ -123,11 +119,7 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
       onOpenChange(false)
     } catch (error: any) {
       console.error('Error adding customer:', error)
-      toast({
-        title: 'Error',
-        description: `Failed to add customer: ${error.message}`,
-        variant: 'destructive',
-      })
+      toast.error(`Failed to add customer: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
@@ -135,10 +127,10 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Add Customer</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">ADD CUSTOMER</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono text-sm">
             Add a new customer to manage their product requirements and relationships.
           </DialogDescription>
         </DialogHeader>
@@ -150,9 +142,9 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
                 name="name"
                 render={({ field }) => (
                   <FormItem className="col-span-2">
-                    <FormLabel>Customer Name</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Customer Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter customer name" {...field} />
+                      <Input placeholder="Enter customer name" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -164,9 +156,9 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter email address" type="email" {...field} />
+                      <Input placeholder="Enter email address" type="email" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -178,9 +170,9 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
                 name="phone_number"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Phone Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter phone number" {...field} />
+                      <Input placeholder="Enter phone number" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -192,9 +184,9 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
                 name="address"
                 render={({ field }) => (
                   <FormItem className="col-span-2">
-                    <FormLabel>Address</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Address</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Enter address" {...field} />
+                      <Textarea placeholder="Enter address" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -206,9 +198,9 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
                 name="warehouse_address"
                 render={({ field }) => (
                   <FormItem className="col-span-2">
-                    <FormLabel>Warehouse Address</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Warehouse Address</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Enter warehouse address (if different)" {...field} />
+                      <Textarea placeholder="Enter warehouse address (if different)" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -220,9 +212,9 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
                 name="city"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>City</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">City</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter city" {...field} />
+                      <Input placeholder="Enter city" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -234,9 +226,9 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
                 name="zip_code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Zip Code</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Zip Code</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter zip code" {...field} />
+                      <Input placeholder="Enter zip code" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -248,9 +240,9 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
                 name="country"
                 render={({ field }) => (
                   <FormItem className="col-span-2">
-                    <FormLabel>Country</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Country</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter country" {...field} />
+                      <Input placeholder="Enter country" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -262,17 +254,17 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
                 name="agent_id"
                 render={({ field }) => (
                   <FormItem className="col-span-2">
-                    <FormLabel>Assigned Agent</FormLabel>
+                    <FormLabel className="text-terminal-text font-mono">Assigned Agent</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                           <SelectValue placeholder="Select an agent" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="none">No agent assigned</SelectItem>
+                      <SelectContent className="bg-terminal-panel border-terminal-border">
+                        <SelectItem value="none" className="font-mono text-terminal-text">No agent assigned</SelectItem>
                         {activeStaff?.map((staff) => (
-                          <SelectItem key={staff.id} value={staff.id}>
+                          <SelectItem key={staff.id} value={staff.id} className="font-mono text-terminal-text">
                             {staff.name} {staff.role && `(${staff.role})`}
                           </SelectItem>
                         ))}
@@ -290,8 +282,8 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
               render={() => (
                 <FormItem>
                   <div className="mb-4">
-                    <FormLabel className="text-base">Delivery Modes</FormLabel>
-                    <p className="text-sm text-muted-foreground">
+                    <FormLabel className="text-base text-terminal-text font-mono">Delivery Modes</FormLabel>
+                    <p className="text-sm text-terminal-muted font-mono">
                       Select the delivery modes this customer supports.
                     </p>
                   </div>
@@ -319,7 +311,7 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
                                   }}
                                 />
                               </FormControl>
-                              <FormLabel className="text-sm font-normal">
+                              <FormLabel className="text-sm font-normal text-terminal-text font-mono">
                                 {item.label}
                               </FormLabel>
                             </FormItem>
@@ -338,9 +330,9 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Notes</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Enter any additional notes" {...field} />
+                    <Textarea placeholder="Enter any additional notes" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -351,10 +343,10 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
               control={form.control}
               name="is_active"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border border-terminal-border bg-terminal-dark p-3">
                   <div className="space-y-0.5">
-                    <FormLabel>Active</FormLabel>
-                    <div className="text-sm text-muted-foreground">
+                    <FormLabel className="text-terminal-text font-mono">Active</FormLabel>
+                    <div className="text-sm text-terminal-muted font-mono">
                       Customer is active and can receive orders
                     </div>
                   </div>
@@ -371,13 +363,13 @@ export function AddCustomerForm({ open, onOpenChange }: AddCustomerFormProps) {
             <div className="flex justify-end space-x-2">
               <Button
                 type="button"
-                variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Adding...' : 'Add Customer'}
               </Button>
             </div>

@@ -190,10 +190,10 @@ export default function TradePotentialTableMode({
   })
 
   const statusConfig = {
-    complete: { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50 border-green-200', label: 'Complete' },
-    missing_price: { icon: AlertCircle, color: 'text-yellow-600', bg: 'bg-yellow-50 border-yellow-200', label: 'Missing Price' },
-    missing_transport: { icon: XCircle, color: 'text-red-600', bg: 'bg-red-50 border-red-200', label: 'Missing Transport' },
-    missing_both: { icon: MinusCircle, color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', label: 'Missing Both' }
+    complete: { icon: CheckCircle, color: 'text-green-600', bg: 'bg-terminal-success text-white border-terminal-success', label: 'Complete' },
+    missing_price: { icon: AlertCircle, color: 'text-yellow-600', bg: 'bg-yellow-600 text-white border-yellow-600', label: 'Missing Price' },
+    missing_transport: { icon: XCircle, color: 'text-red-600', bg: 'bg-red-600 text-white border-red-600', label: 'Missing Transport' },
+    missing_both: { icon: MinusCircle, color: 'text-gray-600', bg: 'bg-gray-600 text-white border-gray-600', label: 'Missing Both' }
   }
 
   const handleExcludePotential = (potential: TradePotential) => {
@@ -229,92 +229,92 @@ export default function TradePotentialTableMode({
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        <Card>
+        <Card className="bg-terminal-panel border-terminal-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Potential</CardTitle>
+            <CardTitle className="font-mono text-terminal-muted text-xs">TOTAL POTENTIAL</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary.total}</div>
+            <div className="font-mono text-2xl font-bold text-terminal-text">{summary.total}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-terminal-panel border-terminal-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Complete</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CardTitle className="font-mono text-terminal-muted text-xs">COMPLETE</CardTitle>
+            <CheckCircle className="h-4 w-4 text-terminal-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{summary.complete}</div>
+            <div className="font-mono text-2xl font-bold text-terminal-success">{summary.complete}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-terminal-panel border-terminal-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Missing Price</CardTitle>
-            <AlertCircle className="h-4 w-4 text-yellow-600" />
+            <CardTitle className="font-mono text-terminal-muted text-xs">MISSING PRICE</CardTitle>
+            <AlertCircle className="h-4 w-4 text-yellow-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{summary.missingPrice}</div>
+            <div className="font-mono text-2xl font-bold text-yellow-400">{summary.missingPrice}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-terminal-panel border-terminal-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Missing Transport</CardTitle>
-            <XCircle className="h-4 w-4 text-red-600" />
+            <CardTitle className="font-mono text-terminal-muted text-xs">MISSING TRANSPORT</CardTitle>
+            <XCircle className="h-4 w-4 text-red-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{summary.missingTransport}</div>
+            <div className="font-mono text-2xl font-bold text-red-400">{summary.missingTransport}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-terminal-panel border-terminal-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Missing Both</CardTitle>
-            <MinusCircle className="h-4 w-4 text-gray-600" />
+            <CardTitle className="font-mono text-terminal-muted text-xs">MISSING BOTH</CardTitle>
+            <MinusCircle className="h-4 w-4 text-gray-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-600">{summary.missingBoth}</div>
+            <div className="font-mono text-2xl font-bold text-gray-400">{summary.missingBoth}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-terminal-panel border-terminal-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+            <CardTitle className="font-mono text-terminal-muted text-xs">COMPLETION RATE</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary.completionRate.toFixed(1)}%</div>
+            <div className="font-mono text-2xl font-bold text-terminal-text">{summary.completionRate.toFixed(1)}%</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="bg-terminal-panel border-terminal-border">
         <CardHeader>
-          <CardTitle>Filters</CardTitle>
+          <CardTitle className="font-mono text-terminal-text">FILTERS</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
           <div>
-            <Label htmlFor="status-filter">Status Filter</Label>
+            <Label htmlFor="status-filter" className="font-mono text-terminal-muted text-xs uppercase">Status Filter</Label>
             <Select value={statusFilter} onValueChange={(value: PotentialStatus) => setStatusFilter(value)}>
-              <SelectTrigger id="status-filter">
+              <SelectTrigger id="status-filter" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="complete">Complete Only</SelectItem>
-                <SelectItem value="missing_price">Missing Price</SelectItem>
-                <SelectItem value="missing_transport">Missing Transport</SelectItem>
-                <SelectItem value="missing_both">Missing Both</SelectItem>
+              <SelectContent className="bg-terminal-panel border-terminal-border">
+                <SelectItem value="all" className="font-mono text-terminal-text">All Status</SelectItem>
+                <SelectItem value="complete" className="font-mono text-terminal-text">Complete Only</SelectItem>
+                <SelectItem value="missing_price" className="font-mono text-terminal-text">Missing Price</SelectItem>
+                <SelectItem value="missing_transport" className="font-mono text-terminal-text">Missing Transport</SelectItem>
+                <SelectItem value="missing_both" className="font-mono text-terminal-text">Missing Both</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <Label htmlFor="customer-filter">Customer</Label>
+            <Label htmlFor="customer-filter" className="font-mono text-terminal-muted text-xs uppercase">Customer</Label>
             <Select value={customerFilter} onValueChange={setCustomerFilter}>
-              <SelectTrigger id="customer-filter">
+              <SelectTrigger id="customer-filter" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Customers</SelectItem>
+              <SelectContent className="bg-terminal-panel border-terminal-border">
+                <SelectItem value="all" className="font-mono text-terminal-text">All Customers</SelectItem>
                 {customers?.map((customer) => (
-                  <SelectItem key={customer.id} value={customer.id}>
+                  <SelectItem key={customer.id} value={customer.id} className="font-mono text-terminal-text">
                     {customer.name}
                   </SelectItem>
                 ))}
@@ -323,15 +323,15 @@ export default function TradePotentialTableMode({
           </div>
 
           <div>
-            <Label htmlFor="supplier-filter">Supplier</Label>
+            <Label htmlFor="supplier-filter" className="font-mono text-terminal-muted text-xs uppercase">Supplier</Label>
             <Select value={supplierFilter} onValueChange={setSupplierFilter}>
-              <SelectTrigger id="supplier-filter">
+              <SelectTrigger id="supplier-filter" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Suppliers</SelectItem>
+              <SelectContent className="bg-terminal-panel border-terminal-border">
+                <SelectItem value="all" className="font-mono text-terminal-text">All Suppliers</SelectItem>
                 {suppliers?.map((supplier) => (
-                  <SelectItem key={supplier.id} value={supplier.id}>
+                  <SelectItem key={supplier.id} value={supplier.id} className="font-mono text-terminal-text">
                     {supplier.name}
                   </SelectItem>
                 ))}
@@ -340,15 +340,15 @@ export default function TradePotentialTableMode({
           </div>
 
           <div>
-            <Label htmlFor="agent-filter">Agent</Label>
+            <Label htmlFor="agent-filter" className="font-mono text-terminal-muted text-xs uppercase">Agent</Label>
             <Select value={agentFilter} onValueChange={setAgentFilter}>
-              <SelectTrigger id="agent-filter">
+              <SelectTrigger id="agent-filter" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Agents</SelectItem>
+              <SelectContent className="bg-terminal-panel border-terminal-border">
+                <SelectItem value="all" className="font-mono text-terminal-text">All Agents</SelectItem>
                 {activeStaff?.map((staff) => (
-                  <SelectItem key={staff.id} value={staff.id}>
+                  <SelectItem key={staff.id} value={staff.id} className="font-mono text-terminal-text">
                     {staff.name}
                   </SelectItem>
                 ))}
@@ -362,18 +362,18 @@ export default function TradePotentialTableMode({
               checked={showOpportunityFilter}
               onCheckedChange={setShowOpportunityFilter}
             />
-            <Label htmlFor="opportunity-filter" className="text-sm">Hide converted</Label>
+            <Label htmlFor="opportunity-filter" className="font-mono text-terminal-muted text-sm">Hide converted</Label>
           </div>
         </CardContent>
       </Card>
 
       {/* Results Table */}
-      <Card>
+      <Card className="bg-terminal-panel border-terminal-border">
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>Trade Potential ({filteredPotentials.length} results)</CardTitle>
-              <CardDescription>
+              <CardTitle className="font-mono text-terminal-text">TRADE POTENTIAL ({filteredPotentials.length} results)</CardTitle>
+              <CardDescription className="font-mono text-terminal-muted">
                 Customer → Supplier product matches with quick opportunity creation
               </CardDescription>
             </div>
@@ -383,19 +383,19 @@ export default function TradePotentialTableMode({
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Supplier</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Transport</TableHead>
-                  <TableHead>Product Cost</TableHead>
-                  <TableHead>Transport Cost</TableHead>
-                  <TableHead>Total Cost</TableHead>
-                  <TableHead>Margin %</TableHead>
-                  <TableHead>Offer Price</TableHead>
-                  <TableHead>Profit</TableHead>
-                  <TableHead className="text-right">Quick Actions</TableHead>
+                <TableRow className="border-terminal-border">
+                  <TableHead className="font-mono text-terminal-muted uppercase">Customer</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase">Supplier</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase">Product</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase">Status</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase">Transport</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase">Product Cost</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase">Transport Cost</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase">Total Cost</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase">Margin %</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase">Offer Price</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase">Profit</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase text-right">Quick Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -411,55 +411,54 @@ export default function TradePotentialTableMode({
                   const hasBands = potential.transportRoute?.availableBands && potential.transportRoute.availableBands.length > 0
 
                   return (
-                    <TableRow key={potential.id} className={hasOpportunity ? 'bg-blue-50' : ''}>
-                      <TableCell>
+                    <TableRow key={potential.id} className={cn("border-terminal-border hover:bg-terminal-dark/50", hasOpportunity ? 'bg-blue-900/20' : '')}>
+                      <TableCell className="font-mono text-terminal-text">
                         <div className="space-y-1">
                           <div className="font-medium">{potential.customer.name}</div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-terminal-muted">
                             {potential.customer.city}, {potential.customer.country}
                           </div>
                           {potential.customer.agent && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs font-mono border-terminal-border text-terminal-muted">
                               {potential.customer.agent.name}
                             </Badge>
                           )}
                         </div>
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell className="font-mono text-terminal-text">
                         <div className="space-y-1">
                           <div className="font-medium">{potential.supplier.name}</div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-terminal-muted">
                             {potential.supplier.city}, {potential.supplier.country}
                           </div>
                         </div>
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell className="font-mono text-terminal-text">
                         <div className="space-y-1">
                           <div className="font-medium">{potential.product.name}</div>
                           <div className="flex gap-1 flex-wrap">
-                            <Badge variant="outline" className="text-xs">{potential.product.packagingLabel}</Badge>
-                            <Badge variant="outline" className="text-xs">{potential.product.sizeName}</Badge>
+                            <Badge variant="outline" className="text-xs font-mono border-terminal-border text-terminal-muted">{potential.product.packagingLabel}</Badge>
+                            <Badge variant="outline" className="text-xs font-mono border-terminal-border text-terminal-muted">{potential.product.sizeName}</Badge>
                           </div>
                         </div>
                       </TableCell>
 
                       <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <StatusIcon className={`h-4 w-4 ${statusColor}`} />
-                          <span className="text-sm">{statusConfig[potential.status]?.label}</span>
-                        </div>
+                        <Badge className={cn("font-mono font-bold", statusConfig[potential.status]?.bg)}>
+                          {statusConfig[potential.status]?.label}
+                        </Badge>
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell className="font-mono text-terminal-text">
                         {potential.transportRoute ? (
                           <div className="space-y-1">
-                            <div className="text-sm font-medium text-blue-600">
+                            <div className="text-sm font-medium text-blue-400">
                               {potential.transportRoute.transporterName}
                             </div>
                             {potential.transportRoute.durationDays > 0 && (
-                              <div className="text-xs text-muted-foreground">
+                              <div className="text-xs text-terminal-muted">
                                 {potential.transportRoute.durationDays} days
                               </div>
                             )}
@@ -468,12 +467,12 @@ export default function TradePotentialTableMode({
                                 value={pricing.selectedBandIndex.toString()}
                                 onValueChange={(value) => updateTransportBand(potential, parseInt(value))}
                               >
-                                <SelectTrigger className="h-7 text-xs w-full">
+                                <SelectTrigger className="h-7 text-xs w-full bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                                   <SelectValue />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="bg-terminal-panel border-terminal-border">
                                   {potential.transportRoute.availableBands.map((band, index) => (
-                                    <SelectItem key={index} value={index.toString()}>
+                                    <SelectItem key={index} value={index.toString()} className="font-mono text-terminal-text">
                                       {band.min_pallets}-{band.max_pallets} pallets: {formatCurrency(band.price_per_pallet)}/pallet
                                     </SelectItem>
                                   ))}
@@ -482,46 +481,46 @@ export default function TradePotentialTableMode({
                             )}
                           </div>
                         ) : (
-                          <span className="text-sm text-muted-foreground">No transport</span>
+                          <span className="text-sm text-terminal-muted">No transport</span>
                         )}
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell className="font-mono text-terminal-text">
                         {potential.supplierPrice ? (
                           <div className="font-medium">
                             {formatCurrency(productCost)}
                             {potential.product.soldBy && (
-                              <span className="text-xs text-muted-foreground">/{potential.product.soldBy}</span>
+                              <span className="text-xs text-terminal-muted">/{potential.product.soldBy}</span>
                             )}
                           </div>
                         ) : (
-                          <span className="text-sm text-muted-foreground">No price</span>
+                          <span className="text-sm text-terminal-muted">No price</span>
                         )}
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell className="font-mono text-terminal-text">
                         {transportCost > 0 ? (
-                          <div className="font-medium text-blue-600">
+                          <div className="font-medium text-blue-400">
                             {formatCurrency(transportCost)}
                             {potential.product.soldBy && (
-                              <span className="text-xs text-muted-foreground">/{potential.product.soldBy}</span>
+                              <span className="text-xs text-terminal-muted">/{potential.product.soldBy}</span>
                             )}
                           </div>
                         ) : (
-                          <span className="text-sm text-green-600">Free</span>
+                          <span className="text-sm text-terminal-success">Free</span>
                         )}
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell className="font-mono text-terminal-text">
                         <div className="font-semibold">
                           {formatCurrency(totalCost)}
                           {potential.product.soldBy && (
-                            <span className="text-xs text-muted-foreground">/{potential.product.soldBy}</span>
+                            <span className="text-xs text-terminal-muted">/{potential.product.soldBy}</span>
                           )}
                         </div>
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell className="font-mono text-terminal-text">
                         {potential.status === 'complete' && !hasOpportunity ? (
                           <Input
                             type="text"
@@ -529,18 +528,18 @@ export default function TradePotentialTableMode({
                             value={pricing.marginPercent.toFixed(1)}
                             onChange={(e) => updateMargin(potential.id, totalCost, parseFloat(e.target.value) || 0)}
                             onFocus={(e) => e.target.select()}
-                            className="w-20 h-8 text-sm"
+                            className="w-20 h-8 text-sm bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                           />
                         ) : hasOpportunity && potential.opportunity?.offerPrice && totalCost > 0 ? (
                           <div className="text-sm font-medium">
                             {(((potential.opportunity.offerPrice - totalCost) / totalCost) * 100).toFixed(1)}%
                           </div>
                         ) : (
-                          <span className="text-sm text-muted-foreground">-</span>
+                          <span className="text-sm text-terminal-muted">-</span>
                         )}
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell className="font-mono text-terminal-text">
                         {potential.status === 'complete' && !hasOpportunity ? (
                           <Input
                             type="text"
@@ -548,36 +547,36 @@ export default function TradePotentialTableMode({
                             value={pricing.offerPrice.toFixed(2)}
                             onChange={(e) => updateOfferPrice(potential.id, totalCost, parseFloat(e.target.value) || 0)}
                             onFocus={(e) => e.target.select()}
-                            className="w-24 h-8 text-sm"
+                            className="w-24 h-8 text-sm bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                           />
                         ) : hasOpportunity && potential.opportunity?.offerPrice ? (
-                          <div className="font-medium text-green-600">
+                          <div className="font-medium text-terminal-success">
                             {formatCurrency(potential.opportunity.offerPrice)}
                           </div>
                         ) : (
-                          <span className="text-sm text-muted-foreground">-</span>
+                          <span className="text-sm text-terminal-muted">-</span>
                         )}
                       </TableCell>
 
-                      <TableCell>
+                      <TableCell className="font-mono text-terminal-text">
                         {potential.status === 'complete' ? (
                           hasOpportunity && potential.opportunity?.offerPrice ? (
                             <div className={cn(
                               "font-medium",
-                              (potential.opportunity.offerPrice - totalCost) > 0 ? "text-green-600" : "text-red-600"
+                              (potential.opportunity.offerPrice - totalCost) > 0 ? "text-terminal-success" : "text-red-400"
                             )}>
                               {formatCurrency(potential.opportunity.offerPrice - totalCost)}
                             </div>
                           ) : (
                             <div className={cn(
                               "font-medium",
-                              profit > 0 ? "text-green-600" : "text-red-600"
+                              profit > 0 ? "text-terminal-success" : "text-red-400"
                             )}>
                               {formatCurrency(profit)}
                             </div>
                           )
                         ) : (
-                          <span className="text-sm text-muted-foreground">-</span>
+                          <span className="text-sm text-terminal-muted">-</span>
                         )}
                       </TableCell>
 
@@ -585,10 +584,10 @@ export default function TradePotentialTableMode({
                         <div className="flex items-center justify-end gap-2">
                           {hasOpportunity ? (
                             <>
-                              <Badge variant="secondary" className="text-xs">
+                              <Badge variant="secondary" className="text-xs font-mono bg-terminal-dark border-terminal-border text-terminal-text">
                                 {potential.opportunity?.status}
                               </Badge>
-                              <Button size="sm" variant="outline" asChild>
+                              <Button size="sm" asChild className="bg-blue-600 text-white hover:bg-blue-700 font-mono">
                                 <Link href={`/trade/opportunities/${potential.opportunity?.id}`}>
                                   <Eye className="h-4 w-4" />
                                 </Link>
@@ -600,16 +599,16 @@ export default function TradePotentialTableMode({
                                 size="sm"
                                 onClick={() => handleQuickCreate(potential)}
                                 disabled={createOpportunityMutation.isPending}
-                                className="bg-green-600 hover:bg-green-700"
+                                className="bg-terminal-success text-white hover:bg-green-600 font-mono"
                               >
                                 <Check className="h-4 w-4 mr-1" />
                                 Create
                               </Button>
                               <Button
                                 size="sm"
-                                variant="ghost"
                                 onClick={() => handleExcludePotential(potential)}
                                 disabled={excludePotentialMutation.isPending}
+                                className="bg-red-600 text-white hover:bg-red-700 font-mono"
                               >
                                 <X className="h-4 w-4" />
                               </Button>
@@ -617,9 +616,9 @@ export default function TradePotentialTableMode({
                           ) : (
                             <Button
                               size="sm"
-                              variant="ghost"
                               onClick={() => handleExcludePotential(potential)}
                               disabled={excludePotentialMutation.isPending}
+                              className="bg-red-600 text-white hover:bg-red-700 font-mono"
                             >
                               <X className="h-4 w-4" />
                             </Button>

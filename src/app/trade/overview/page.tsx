@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,16 +10,19 @@ import {
   AlertTriangle,
   TrendingUp,
   Clock,
-  DollarSign
+  DollarSign,
+  Building2
 } from 'lucide-react'
 import { useOpportunitySummary } from '@/hooks/use-opportunities'
 import { useCurrentSupplierPrices } from '@/hooks/use-supplier-prices'
-import { QuickQuotePanel } from './components/quick-quote-panel'
+import { QuickAccessPanel } from './components/quick-access-panel'
 import { QuickFeedbackPanel } from './components/quick-feedback-panel'
 import { WeatherCropIntel } from './components/weather-crop-intel'
 import { ActiveOpportunitiesTerminal } from './components/active-opportunities-terminal'
+import { WeatherTicker } from './components/weather-ticker'
 
 export default function TradeOverviewTerminal() {
+  const router = useRouter()
   const { data: summary } = useOpportunitySummary()
   const { data: supplierPrices } = useCurrentSupplierPrices()
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null)
@@ -29,18 +33,7 @@ export default function TradeOverviewTerminal() {
       <div className="bg-terminal-panel border border-terminal-border rounded overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-2">
           <div className="overflow-hidden flex-1">
-            <div className="animate-scroll whitespace-nowrap text-terminal-text font-mono text-sm inline-block">
-              🌍 MURCIA (Spain): ☀️ 21°C Clear skies, optimal growing conditions for lettuce and peppers •
-              🌍 ALMERIA (Spain): 🌤️ 19°C Partly cloudy, perfect for tomatoes and cucumbers •
-              🌍 NAPELS (Italy): ⛅ 17°C Mild temperatures, good for citrus harvest •
-              🌍 BARI (Italy): ☁️ 16°C Overcast, stable conditions for vegetable production •
-              🌍 ATHENS (Greece): ☀️ 20°C Sunny and dry, excellent for stone fruit quality •
-              🌍 MURCIA (Spain): ☀️ 21°C Clear skies, optimal growing conditions for lettuce and peppers •
-              🌍 ALMERIA (Spain): 🌤️ 19°C Partly cloudy, perfect for tomatoes and cucumbers •
-              🌍 NAPELS (Italy): ⛅ 17°C Mild temperatures, good for citrus harvest •
-              🌍 BARI (Italy): ☁️ 16°C Overcast, stable conditions for vegetable production •
-              🌍 ATHENS (Greece): ☀️ 20°C Sunny and dry, excellent for stone fruit quality
-            </div>
+            <WeatherTicker />
           </div>
         </div>
       </div>
@@ -55,13 +48,22 @@ export default function TradeOverviewTerminal() {
             LIVE
           </Badge>
         </div>
-        <div className="text-terminal-muted font-mono text-sm">
-          {new Date().toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-          })}
+        <div className="flex items-center gap-4">
+          <div className="text-terminal-muted font-mono text-sm">
+            {new Date().toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false
+            })}
+          </div>
+          <Button
+            onClick={() => router.push('/admin-dashboard')}
+            className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono"
+          >
+            <Building2 className="mr-2 h-4 w-4" />
+            Admin Dashboard
+          </Button>
         </div>
       </div>
 
@@ -146,7 +148,7 @@ export default function TradeOverviewTerminal() {
       <div className="grid grid-cols-3 gap-4">
         {/* Left Column - Quick Actions */}
         <div className="col-span-1 space-y-4">
-          <QuickQuotePanel />
+          <QuickAccessPanel />
           <QuickFeedbackPanel />
         </div>
 

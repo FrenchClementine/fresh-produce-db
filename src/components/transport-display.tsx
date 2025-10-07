@@ -45,14 +45,14 @@ export function TransportDisplay({ opportunity }: TransportDisplayProps) {
   // If there's a transporter with route info
   if (hasTransporter) {
     return (
-      <div className="space-y-1 text-xs">
+      <div className="space-y-1 text-xs font-mono">
         <div className="flex items-center gap-1">
-          <Truck className="h-3 w-3 text-blue-600" />
-          <span className="font-medium">{hasTransporter}</span>
+          <Truck className="h-3 w-3 text-terminal-accent" />
+          <span className="font-medium text-terminal-text">{hasTransporter}</span>
         </div>
 
         {/* Route: Origin -> Destination */}
-        <div className="flex items-center gap-1 text-muted-foreground">
+        <div className="flex items-center gap-1 text-terminal-muted">
           <span>{origin}</span>
           <ArrowRight className="h-3 w-3" />
           <span>{destination}</span>
@@ -60,7 +60,7 @@ export function TransportDisplay({ opportunity }: TransportDisplayProps) {
 
         {/* Transport Band - show pallet quantity only */}
         {opportunity.selected_transport_band ? (
-          <div className="flex items-center gap-1 text-muted-foreground">
+          <div className="flex items-center gap-1 text-terminal-muted">
             <Package className="h-3 w-3" />
             <span>
               {opportunity.selected_transport_band.min_pallets === opportunity.selected_transport_band.max_pallets
@@ -71,20 +71,20 @@ export function TransportDisplay({ opportunity }: TransportDisplayProps) {
           </div>
         ) : opportunity.selected_transport_band_id && opportunity.selected_transport_band_id.startsWith('band-') ? (
           // Fallback for placeholder transport band IDs like "band-0"
-          <div className="flex items-center gap-1 text-muted-foreground">
+          <div className="flex items-center gap-1 text-terminal-muted">
             <Package className="h-3 w-3" />
             <span>Transport Band {opportunity.selected_transport_band_id.replace('band-', '')}</span>
           </div>
         ) : hasTransporter ? (
           // Show that transport band needs to be configured for third-party transport
-          <div className="flex items-center gap-1 text-orange-600">
+          <div className="flex items-center gap-1 text-terminal-warning">
             <Package className="h-3 w-3" />
             <span className="text-xs">Band not selected</span>
           </div>
         ) : null}
 
         {/* Show Third Party Transport for transporter deliveries */}
-        <Badge variant="outline" className="text-xs">
+        <Badge variant="outline" className="text-xs border-terminal-border text-terminal-text font-mono">
           Third Party Transport
         </Badge>
       </div>
@@ -93,25 +93,25 @@ export function TransportDisplay({ opportunity }: TransportDisplayProps) {
 
   // No transporter - show delivery mode
   return (
-    <div className="space-y-1 text-xs">
+    <div className="space-y-1 text-xs font-mono">
       {isSupplierDelivery && (
         <>
-          <div className="flex items-center gap-1 text-blue-600">
+          <div className="flex items-center gap-1 text-terminal-accent">
             <Truck className="h-3 w-3" />
             <span className="font-medium">Supplier Transport</span>
           </div>
           {hubName && (
-            <div className="flex items-center gap-1 text-muted-foreground">
+            <div className="flex items-center gap-1 text-terminal-muted">
               <ArrowRight className="h-3 w-3" />
               <span>{hubName}</span>
             </div>
           )}
           {origin && destination && (
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-terminal-muted">
               {origin} → {destination}
             </div>
           )}
-          <div className="text-xs text-muted-foreground">
+          <div className="text-xs text-terminal-muted">
             1 days
           </div>
         </>
@@ -119,15 +119,15 @@ export function TransportDisplay({ opportunity }: TransportDisplayProps) {
 
       {isCustomerPickup && (
         <>
-          <div className="flex items-center gap-1 text-muted-foreground">
+          <div className="flex items-center gap-1 text-terminal-text">
             <Building className="h-3 w-3" />
             <span>Pickup from {origin}</span>
           </div>
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-xs border-terminal-border text-terminal-text font-mono">
             Customer Pickup
           </Badge>
           {hubName && (
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-terminal-muted">
               Pickup at: {hubName}
             </div>
           )}
@@ -136,11 +136,11 @@ export function TransportDisplay({ opportunity }: TransportDisplayProps) {
 
       {isExWorks && (
         <>
-          <div className="flex items-center gap-1 text-muted-foreground">
+          <div className="flex items-center gap-1 text-terminal-text">
             <Building className="h-3 w-3" />
             <span>Ex Works {origin}</span>
           </div>
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-xs border-terminal-border text-terminal-text font-mono">
             Ex Works
           </Badge>
         </>
@@ -148,25 +148,25 @@ export function TransportDisplay({ opportunity }: TransportDisplayProps) {
 
       {!isSupplierDelivery && !isCustomerPickup && !isExWorks && deliveryMode && (
         <>
-          <div className="flex items-center gap-1 text-muted-foreground">
+          <div className="flex items-center gap-1 text-terminal-text">
             <Building className="h-3 w-3" />
             <span>From {origin}</span>
           </div>
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-xs border-terminal-border text-terminal-text font-mono">
             {deliveryMode.replace(/_/g, ' ')}
           </Badge>
         </>
       )}
 
       {!deliveryMode && (
-        <div className="text-xs text-muted-foreground italic">
+        <div className="text-xs text-terminal-muted italic">
           No transport set
         </div>
       )}
 
       {/* Expiry info if present */}
       {opportunity.supplier_price?.valid_until && (
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-terminal-muted">
           Expires in {Math.ceil((new Date(opportunity.supplier_price.valid_until).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days
         </div>
       )}

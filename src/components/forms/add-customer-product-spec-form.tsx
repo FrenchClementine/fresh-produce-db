@@ -26,6 +26,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from '@/components/ui/command'
 import {
   Popover,
@@ -208,10 +209,10 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Add Product Requirement</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="font-mono text-terminal-text">Add Product Requirement</DialogTitle>
+          <DialogDescription className="font-mono text-terminal-muted">
             Add a new product requirement with seasonal preferences for this customer.
           </DialogDescription>
         </DialogHeader>
@@ -222,7 +223,7 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
               name="product_packaging_spec_ids"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Product Specifications</FormLabel>
+                  <FormLabel className="font-mono text-terminal-text">Product Specifications</FormLabel>
                   <div className="space-y-2">
                     {/* Selected items display */}
                     {field.value && field.value.length > 0 && (
@@ -230,7 +231,7 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
                         {field.value.map((specId) => {
                           const spec = productSpecs?.find(s => s.id === specId)
                           return (
-                            <div key={specId} className="flex items-center bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm">
+                            <div key={specId} className="flex items-center bg-terminal-dark border border-terminal-border text-terminal-text px-2 py-1 rounded-md text-sm font-mono">
                               <span className="max-w-[200px] truncate">
                                 {spec ? `${spec.products?.name} - ${spec.packaging_options?.label} (${spec.size_options?.name})` : 'Unknown'}
                               </span>
@@ -238,7 +239,7 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                className="h-auto p-0 ml-2"
+                                className="h-auto p-0 ml-2 hover:bg-terminal-panel text-terminal-text"
                                 onClick={() => {
                                   const newValue = field.value.filter(id => id !== specId)
                                   field.onChange(newValue)
@@ -260,7 +261,7 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
                             variant="outline"
                             role="combobox"
                             aria-expanded={isPopoverOpen}
-                            className="w-full justify-between"
+                            className="w-full justify-between bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
                           >
                             {field.value && field.value.length > 0
                               ? `${field.value.length} selected`
@@ -271,49 +272,51 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-[500px] p-0" align="start">
-                        <Command className="max-h-96">
+                        <Command>
                           <CommandInput
                             placeholder="Type to search products..."
                             value={searchQuery}
                             onValueChange={setSearchQuery}
                           />
-                          <CommandEmpty>
-                            {searchQuery.length === 0
-                              ? "Type at least one character to search..."
-                              : "No products found."
-                            }
-                          </CommandEmpty>
-                          {filteredSpecs.length > 0 && (
-                            <CommandGroup className="max-h-72 overflow-y-auto overflow-x-hidden">
-                              {filteredSpecs.map((spec) => (
-                                <CommandItem
-                                  key={spec.id}
-                                  value={`${spec.products?.name} ${spec.packaging_options?.label} ${spec.size_options?.name} ${spec.pallets?.label}`}
-                                  onSelect={() => {
-                                    const isSelected = field.value?.includes(spec.id)
-                                    if (isSelected) {
-                                      field.onChange(field.value.filter(id => id !== spec.id))
-                                    } else {
-                                      field.onChange([...(field.value || []), spec.id])
-                                    }
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      field.value?.includes(spec.id) ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">{spec.products?.name}</span>
-                                    <span className="text-sm text-muted-foreground">
-                                      {spec.packaging_options?.label} ({spec.size_options?.name}) on {spec.pallets?.label}
-                                    </span>
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          )}
+                          <CommandList>
+                            <CommandEmpty>
+                              {searchQuery.length === 0
+                                ? "Type at least one character to search..."
+                                : "No products found."
+                              }
+                            </CommandEmpty>
+                            {filteredSpecs.length > 0 && (
+                              <CommandGroup>
+                                {filteredSpecs.map((spec) => (
+                                  <CommandItem
+                                    key={spec.id}
+                                    value={`${spec.products?.name} ${spec.packaging_options?.label} ${spec.size_options?.name} ${spec.pallets?.label}`}
+                                    onSelect={() => {
+                                      const isSelected = field.value?.includes(spec.id)
+                                      if (isSelected) {
+                                        field.onChange(field.value.filter(id => id !== spec.id))
+                                      } else {
+                                        field.onChange([...(field.value || []), spec.id])
+                                      }
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        field.value?.includes(spec.id) ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    <div className="flex flex-col">
+                                      <span className="font-medium font-mono text-terminal-text">{spec.products?.name}</span>
+                                      <span className="text-sm text-terminal-muted font-mono">
+                                        {spec.packaging_options?.label} ({spec.size_options?.name}) on {spec.pallets?.label}
+                                      </span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            )}
+                          </CommandList>
                         </Command>
                       </PopoverContent>
                     </Popover>
@@ -328,19 +331,19 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
               name="season"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Season</FormLabel>
+                  <FormLabel className="font-mono text-terminal-text">Season</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                         <SelectValue placeholder="Select season (optional)" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="spring">Spring</SelectItem>
-                      <SelectItem value="summer">Summer</SelectItem>
-                      <SelectItem value="autumn">Autumn</SelectItem>
-                      <SelectItem value="winter">Winter</SelectItem>
-                      <SelectItem value="year_round">Year Round</SelectItem>
+                    <SelectContent className="bg-terminal-panel border-terminal-border">
+                      <SelectItem value="spring" className="font-mono text-terminal-text">Spring</SelectItem>
+                      <SelectItem value="summer" className="font-mono text-terminal-text">Summer</SelectItem>
+                      <SelectItem value="autumn" className="font-mono text-terminal-text">Autumn</SelectItem>
+                      <SelectItem value="winter" className="font-mono text-terminal-text">Winter</SelectItem>
+                      <SelectItem value="year_round" className="font-mono text-terminal-text">Year Round</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -354,9 +357,9 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
                 name="local_production_from_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Local Production From</FormLabel>
+                    <FormLabel className="font-mono text-terminal-text">Local Production From</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -368,9 +371,9 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
                 name="local_production_till_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Local Production Till</FormLabel>
+                    <FormLabel className="font-mono text-terminal-text">Local Production Till</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -384,9 +387,9 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
                 name="import_period_from_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Import Period From</FormLabel>
+                    <FormLabel className="font-mono text-terminal-text">Import Period From</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -398,9 +401,9 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
                 name="import_period_till_date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Import Period Till</FormLabel>
+                    <FormLabel className="font-mono text-terminal-text">Import Period Till</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -413,9 +416,9 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <FormLabel className="font-mono text-terminal-text">Notes</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Additional notes about this product requirement" {...field} />
+                    <Textarea placeholder="Additional notes about this product requirement" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono placeholder:text-terminal-muted" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -428,10 +431,11 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
+                className="bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono">
                 {isLoading ? 'Adding...' : 'Add Product Requirement'}
               </Button>
             </div>

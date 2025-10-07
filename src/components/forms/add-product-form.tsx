@@ -26,7 +26,7 @@ import {
   createSearchableOptions,
 } from '@/components/ui/searchable-select'
 import { supabase } from '@/lib/supabase'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAllProductCategories } from '@/hooks/use-products'
 
@@ -74,7 +74,6 @@ interface AddProductFormProps {
 
 export function AddProductForm({ open, onOpenChange }: AddProductFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
   const queryClient = useQueryClient()
   const { allCategories, isLoading: categoriesLoading } = useAllProductCategories()
   
@@ -110,22 +109,15 @@ export function AddProductForm({ open, onOpenChange }: AddProductFormProps) {
 
       if (error) throw error
 
-      toast({
-        title: 'Success',
-        description: 'Product created successfully',
-      })
+      toast.success('Product created successfully')
 
       queryClient.invalidateQueries({ queryKey: ['products'] })
       onOpenChange(false)
       form.reset()
-      
+
     } catch (error: any) {
       console.error('Error creating product:', error)
-      toast({
-        title: 'Error',
-        description: `Failed to create product: ${error.message}`,
-        variant: 'destructive',
-      })
+      toast.error(`Failed to create product: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
@@ -133,14 +125,14 @@ export function AddProductForm({ open, onOpenChange }: AddProductFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Add New Product</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">ADD NEW PRODUCT</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Create a new product for your catalog
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -148,9 +140,9 @@ export function AddProductForm({ open, onOpenChange }: AddProductFormProps) {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Product Name</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Product Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Cherry Tomatoes" {...field} />
+                    <Input placeholder="e.g. Cherry Tomatoes" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -162,7 +154,7 @@ export function AddProductForm({ open, onOpenChange }: AddProductFormProps) {
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Category</FormLabel>
                   <FormControl>
                     <SearchableSelect
                       value={field.value}
@@ -182,7 +174,7 @@ export function AddProductForm({ open, onOpenChange }: AddProductFormProps) {
               name="intended_use"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Intended Use</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Intended Use</FormLabel>
                   <FormControl>
                     <SearchableSelect
                       value={field.value}
@@ -202,7 +194,7 @@ export function AddProductForm({ open, onOpenChange }: AddProductFormProps) {
               name="sold_by"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Sold By</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Sold By</FormLabel>
                   <FormControl>
                     <SearchableSelect
                       value={field.value}
@@ -222,7 +214,7 @@ export function AddProductForm({ open, onOpenChange }: AddProductFormProps) {
               name="is_active"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Status</FormLabel>
                   <FormControl>
                     <SearchableSelect
                       value={field.value.toString()}
@@ -238,15 +230,16 @@ export function AddProductForm({ open, onOpenChange }: AddProductFormProps) {
             />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Creating...' : 'Create Product'}
               </Button>
             </div>

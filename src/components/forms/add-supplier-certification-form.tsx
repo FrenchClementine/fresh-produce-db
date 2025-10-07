@@ -157,10 +157,10 @@ export function AddSupplierCertificationForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Add Certification</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">ADD CERTIFICATION</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Link a certification to this supplier with optional validity dates
           </DialogDescription>
         </DialogHeader>
@@ -172,7 +172,7 @@ export function AddSupplierCertificationForm({
               name="certification_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Certification *</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Certification *</FormLabel>
                   <SearchableSelect
                     value={field.value}
                     onValueChange={(value) => {
@@ -204,7 +204,7 @@ export function AddSupplierCertificationForm({
                   name="new_certification.name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Certification Name *</FormLabel>
+                      <FormLabel className="text-terminal-text font-mono">Certification Name *</FormLabel>
                       <FormControl>
                         <Input placeholder="e.g. Organic, ISO 14001, Fair Trade" {...field} />
                       </FormControl>
@@ -218,7 +218,7 @@ export function AddSupplierCertificationForm({
                   name="new_certification.description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel className="text-terminal-text font-mono">Description</FormLabel>
                       <FormControl>
                         <Input placeholder="Optional description" {...field} />
                       </FormControl>
@@ -234,11 +234,11 @@ export function AddSupplierCertificationForm({
               name="issued_at"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Issue Date (Optional)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Issue Date (Optional)</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" type="date" {...field} />
                   </FormControl>
-                  <FormDescription>
+                  <FormDescription className="text-terminal-muted font-mono">
                     When the certification was issued
                   </FormDescription>
                   <FormMessage />
@@ -251,11 +251,11 @@ export function AddSupplierCertificationForm({
               name="expires_at"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Expiry Date (Optional)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Expiry Date (Optional)</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" type="date" {...field} />
                   </FormControl>
-                  <FormDescription>
+                  <FormDescription className="text-terminal-muted font-mono">
                     When the certification expires
                   </FormDescription>
                   <FormMessage />
@@ -264,15 +264,12 @@ export function AddSupplierCertificationForm({
             />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
+              <Button type="button" variant="outline" className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono" onClick={() => onOpenChange(false)}
                 disabled={isLoading}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono" disabled={isLoading}>
                 {isLoading ? 'Adding...' : 'Add Certification'}
               </Button>
             </div>

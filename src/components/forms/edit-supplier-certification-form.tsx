@@ -128,14 +128,14 @@ export function EditSupplierCertificationForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Edit Certification</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">EDIT CERTIFICATION</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Update validity dates for "{certification.certifications?.name}"
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -143,11 +143,11 @@ export function EditSupplierCertificationForm({
               name="issued_at"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Issue Date (Optional)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Issue Date (Optional)</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input type="date" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                   </FormControl>
-                  <FormDescription>
+                  <FormDescription className="text-terminal-muted font-mono">
                     When the certification was issued
                   </FormDescription>
                   <FormMessage />
@@ -160,11 +160,11 @@ export function EditSupplierCertificationForm({
               name="expires_at"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Expiry Date (Optional)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Expiry Date (Optional)</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input type="date" {...field} className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" />
                   </FormControl>
-                  <FormDescription>
+                  <FormDescription className="text-terminal-muted font-mono">
                     When the certification expires
                   </FormDescription>
                   <FormMessage />
@@ -173,15 +173,16 @@ export function EditSupplierCertificationForm({
             />
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Updating...' : 'Update Certification'}
               </Button>
             </div>

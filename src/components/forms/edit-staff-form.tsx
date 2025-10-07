@@ -128,10 +128,10 @@ export function EditStaffForm({ open, onOpenChange, staff }: EditStaffFormProps)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] bg-terminal-panel border-terminal-border">
         <DialogHeader>
-          <DialogTitle>Edit Staff Member</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-terminal-text font-mono">EDIT STAFF MEMBER</DialogTitle>
+          <DialogDescription className="text-terminal-muted font-mono">
             Update staff member information and settings.
           </DialogDescription>
         </DialogHeader>
@@ -142,9 +142,9 @@ export function EditStaffForm({ open, onOpenChange, staff }: EditStaffFormProps)
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter staff member name" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="Enter staff member name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -156,9 +156,9 @@ export function EditStaffForm({ open, onOpenChange, staff }: EditStaffFormProps)
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter email address" type="email" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="Enter email address" type="email" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -170,9 +170,9 @@ export function EditStaffForm({ open, onOpenChange, staff }: EditStaffFormProps)
               name="phone_number"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Phone Number</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter phone number" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="Enter phone number" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -184,9 +184,9 @@ export function EditStaffForm({ open, onOpenChange, staff }: EditStaffFormProps)
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Role</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Role</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Account Manager, Sales Representative" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="e.g., Account Manager, Sales Representative" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -198,9 +198,9 @@ export function EditStaffForm({ open, onOpenChange, staff }: EditStaffFormProps)
               name="department"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Department</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Department</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Sales, Customer Service" {...field} />
+                    <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" placeholder="e.g., Sales, Customer Service" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -212,7 +212,7 @@ export function EditStaffForm({ open, onOpenChange, staff }: EditStaffFormProps)
               name="auth_user_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Linked Account (Optional)</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Linked Account (Optional)</FormLabel>
                   <FormControl>
                     <SearchableSelect
                       value={field.value || ''}
@@ -233,7 +233,7 @@ export function EditStaffForm({ open, onOpenChange, staff }: EditStaffFormProps)
                       disabled={authUsersLoading}
                     />
                   </FormControl>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-terminal-muted font-mono">
                     Link this staff member to a Supabase auth account for login access
                   </div>
                   <FormMessage />
@@ -245,10 +245,10 @@ export function EditStaffForm({ open, onOpenChange, staff }: EditStaffFormProps)
               control={form.control}
               name="is_active"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border-terminal-border bg-terminal-dark p-3 shadow-sm">
                   <div className="space-y-0.5">
-                    <FormLabel>Active</FormLabel>
-                    <div className="text-sm text-muted-foreground">
+                    <FormLabel className="text-terminal-text font-mono">Active</FormLabel>
+                    <div className="text-sm text-terminal-muted font-mono">
                       Staff member can be assigned to customers
                     </div>
                   </div>
@@ -268,10 +268,11 @@ export function EditStaffForm({ open, onOpenChange, staff }: EditStaffFormProps)
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
+                className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
                 {isLoading ? 'Updating...' : 'Update Staff Member'}
               </Button>
             </div>

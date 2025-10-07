@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { AddCustomerProductSpecForm } from '@/components/forms/add-customer-product-spec-form'
 import { EditCustomerProductSpecForm } from '@/components/forms/edit-customer-product-spec-form'
@@ -44,7 +44,6 @@ export function CustomerProductSpecsTable({
   const [specToEdit, setSpecToEdit] = useState<any>(null)
   const [specToDelete, setSpecToDelete] = useState<any>(null)
 
-  const { toast } = useToast()
   const queryClient = useQueryClient()
 
   const handleDelete = async (spec: any) => {
@@ -56,21 +55,14 @@ export function CustomerProductSpecsTable({
 
       if (error) throw error
 
-      toast({
-        title: 'Success',
-        description: 'Product requirement deleted successfully',
-      })
+      toast.success('Product requirement deleted successfully')
 
       queryClient.invalidateQueries({ queryKey: ['customer-product-specs', customerId] })
       setSpecToDelete(null)
 
     } catch (error: any) {
       console.error('Error deleting product spec:', error)
-      toast({
-        title: 'Error',
-        description: `Failed to delete product requirement: ${error.message}`,
-        variant: 'destructive',
-      })
+      toast.error(`Failed to delete product requirement: ${error.message}`)
     }
   }
 
@@ -115,36 +107,37 @@ export function CustomerProductSpecsTable({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold">Product Requirements</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="text-lg font-semibold text-terminal-text font-mono">Product Requirements</h3>
+          <p className="text-sm text-terminal-muted font-mono">
             Manage seasonal product requirements for this customer
           </p>
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
+        <Button onClick={() => setIsAddDialogOpen(true)} className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono">
           <Plus className="mr-2 h-4 w-4" />
           Add Product Requirement
         </Button>
       </div>
 
       {customerProductSpecs.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
+        <div className="text-center py-12 text-terminal-muted font-mono">
           <Package className="mx-auto h-12 w-12 mb-4 opacity-50" />
-          <h3 className="text-lg font-medium mb-2">No product requirements</h3>
+          <h3 className="text-lg font-medium mb-2 text-terminal-text">No product requirements</h3>
           <p className="text-sm">Add product requirements to get started.</p>
         </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Product</TableHead>
-              <TableHead>Packaging</TableHead>
-              <TableHead>Season</TableHead>
-              <TableHead>Current Mode</TableHead>
-              <TableHead>Local Period</TableHead>
-              <TableHead>Import Period</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
+        <div className="rounded-md border border-terminal-border">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-terminal-border hover:bg-terminal-dark">
+                <TableHead className="font-mono text-terminal-muted">Product</TableHead>
+                <TableHead className="font-mono text-terminal-muted">Packaging</TableHead>
+                <TableHead className="font-mono text-terminal-muted">Season</TableHead>
+                <TableHead className="font-mono text-terminal-muted">Current Mode</TableHead>
+                <TableHead className="font-mono text-terminal-muted">Local Period</TableHead>
+                <TableHead className="font-mono text-terminal-muted">Import Period</TableHead>
+                <TableHead className="text-right font-mono text-terminal-muted">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
           <TableBody>
             {Object.entries(groupedSpecs).map(([productName, specs]) => {
               // Use the first spec for common product info
@@ -152,57 +145,60 @@ export function CustomerProductSpecsTable({
               const productionStatus = getProductionModeStatus(firstSpec)
 
               return (
-                <TableRow key={productName}>
-                  <TableCell>
+                <TableRow key={productName} className="border-terminal-border hover:bg-terminal-dark/50">
+                  <TableCell className="font-mono text-terminal-text">
                     <div>
                       <div className="font-medium">{productName}</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-terminal-muted">
                         {firstSpec.product_packaging_specs?.products?.category}
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="font-mono text-terminal-text">
                     <div className="space-y-2">
                       {specs.map((spec, index) => (
                         <div key={spec.id} className="space-y-1">
-                          <div className="text-sm">
+                          <div className="text-sm text-terminal-text">
                             {spec.product_packaging_specs?.packaging_options?.label} -
                             {spec.product_packaging_specs?.size_options?.name}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-terminal-muted">
                             {spec.product_packaging_specs?.pallets?.label}
                           </div>
                           {index < specs.length - 1 && (
-                            <div className="border-b border-gray-100 my-1"></div>
+                            <div className="border-b border-terminal-border my-1"></div>
                           )}
                         </div>
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="font-mono">
                     {firstSpec.season && (
-                      <Badge variant="outline" className="capitalize">
+                      <Badge variant="outline" className="capitalize border-terminal-border text-terminal-text font-mono">
                         {firstSpec.season}
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell>
-                    <Badge variant={productionStatus.variant}>
+                  <TableCell className="font-mono">
+                    <Badge
+                      variant={productionStatus.variant}
+                      className={productionStatus.mode === 'UNAVAILABLE' ? 'border-terminal-border text-terminal-muted' : ''}
+                    >
                       {productionStatus.mode}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="font-mono text-terminal-text">
                     <div className="text-sm">
                       <div>{formatDate(firstSpec.local_production_from_date)}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-terminal-muted">
                         to {formatDate(firstSpec.local_production_till_date)}
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="font-mono text-terminal-text">
                     <div className="text-sm">
                       <div>{formatDate(firstSpec.import_period_from_date)}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-terminal-muted">
                         to {formatDate(firstSpec.import_period_till_date)}
                       </div>
                     </div>
@@ -218,6 +214,7 @@ export function CustomerProductSpecsTable({
                               setSpecToEdit(spec)
                               setIsEditDialogOpen(true)
                             }}
+                            className="text-terminal-accent hover:text-terminal-accent hover:bg-terminal-dark"
                           >
                             <Edit className="h-3 w-3" />
                           </Button>
@@ -225,6 +222,7 @@ export function CustomerProductSpecsTable({
                             variant="ghost"
                             size="sm"
                             onClick={() => setSpecToDelete(spec)}
+                            className="text-terminal-alert hover:text-terminal-alert hover:bg-terminal-dark"
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
@@ -236,7 +234,8 @@ export function CustomerProductSpecsTable({
               )
             })}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       )}
 
       <AddCustomerProductSpecForm

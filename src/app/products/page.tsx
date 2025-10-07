@@ -104,7 +104,7 @@ function ProductSuppliersDialog({ product, open, onOpenChange }: ProductSupplier
                 </CardHeader>
                 {supplierProduct.notes && (
                   <CardContent className="pt-0">
-                    <p className="text-sm text-muted-foreground">{supplierProduct.notes}</p>
+                    <p className="text-sm text-terminal-muted font-mono">{supplierProduct.notes}</p>
                   </CardContent>
                 )}
               </Card>
@@ -112,9 +112,9 @@ function ProductSuppliersDialog({ product, open, onOpenChange }: ProductSupplier
           </div>
         ) : (
           <div className="text-center py-8">
-            <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <Users className="mx-auto h-12 w-12 text-terminal-muted font-mono mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Suppliers Found</h3>
-            <p className="text-muted-foreground">
+            <p className="text-terminal-muted font-mono">
               No suppliers are currently offering this product.
             </p>
           </div>
@@ -179,26 +179,7 @@ export default function ProductsPage() {
 
   if (showCreateForm) {
     return (
-      <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-            <p className="text-muted-foreground">
-              Create a new product packaging specification
-            </p>
-          </div>
-          <Button 
-            variant="outline" 
-            onClick={() => setShowCreateForm(false)}
-          >
-            Back to List
-          </Button>
-        </div>
-
-        <div className="flex justify-center">
-          <ProductPackagingSpecForm />
-        </div>
-      </div>
+      <ProductPackagingSpecForm onCancel={() => setShowCreateForm(false)} />
     )
   }
 
@@ -207,7 +188,7 @@ export default function ProductsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-          <p className="text-muted-foreground">
+          <p className="text-terminal-muted font-mono">
             Manage your product packaging specifications
           </p>
         </div>
@@ -234,9 +215,9 @@ export default function ProductsPage() {
         <Card>
           <CardContent>
             <div className="text-center py-8">
-              <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <Package className="mx-auto h-12 w-12 text-terminal-muted font-mono mb-4" />
               <h3 className="text-lg font-semibold mb-2">No Products Found</h3>
-              <p className="text-muted-foreground mb-4">
+              <p className="text-terminal-muted font-mono mb-4">
                 No product packaging specifications have been created yet.
               </p>
               <Button onClick={() => setShowCreateForm(true)}>
@@ -312,7 +293,7 @@ export default function ProductsPage() {
                                     </Badge>
                                   </div>
                                 ) : (
-                                  <span className="text-muted-foreground">-</span>
+                                  <span className="text-terminal-muted font-mono">-</span>
                                 )}
                               </TableCell>
                               <TableCell>
@@ -320,13 +301,13 @@ export default function ProductsPage() {
                                   <div className="space-y-1">
                                     <div className="font-medium text-sm">{spec.pallets.label}</div>
                                     {spec.pallets.dimensions_cm && (
-                                      <div className="text-xs text-muted-foreground">
+                                      <div className="text-xs text-terminal-muted font-mono">
                                         {spec.pallets.dimensions_cm}
                                       </div>
                                     )}
                                   </div>
                                 ) : (
-                                  <span className="text-muted-foreground">-</span>
+                                  <span className="text-terminal-muted font-mono">-</span>
                                 )}
                               </TableCell>
                               <TableCell>
@@ -335,7 +316,7 @@ export default function ProductsPage() {
                                     {spec.size_options.name}
                                   </Badge>
                                 ) : (
-                                  <span className="text-muted-foreground">-</span>
+                                  <span className="text-terminal-muted font-mono">-</span>
                                 )}
                               </TableCell>
                               <TableCell>
