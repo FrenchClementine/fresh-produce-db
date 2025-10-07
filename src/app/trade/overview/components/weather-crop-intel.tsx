@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { CloudRain, Sun, Cloud, CloudDrizzle, AlertTriangle, CheckCircle, Info, Loader2 } from 'lucide-react'
 import { useSuppliers, useSupplierProducts } from '@/hooks/use-suppliers'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { PriceTrendsWidget } from './price-trends-widget'
 
 interface WeatherCropIntelProps {
   supplierId: string | null
@@ -77,88 +79,30 @@ export function WeatherCropIntel({ supplierId, onSupplierChange }: WeatherCropIn
     fetchWeather()
   }, [selectedSupplierId, supplierId])
 
-  if (!supplier && !selectedSupplierId) {
-    return (
-      <Card className="bg-terminal-panel border-terminal-border h-[calc(100vh-16rem)]">
-        <CardHeader className="border-b border-terminal-border pb-3">
-          <CardTitle className="text-terminal-text font-mono text-sm">
-            WEATHER & CROP INTEL
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="mb-4">
-            <Select
-              value={selectedSupplierId || ''}
-              onValueChange={(value) => {
-                setSelectedSupplierId(value)
-                onSupplierChange(value)
-              }}
-            >
-              <SelectTrigger className="w-full bg-terminal-dark border-terminal-border text-terminal-text font-mono">
-                <SelectValue placeholder="Select a supplier..." />
-              </SelectTrigger>
-              <SelectContent className="bg-terminal-dark border-terminal-border">
-                {suppliers?.map(s => (
-                  <SelectItem key={s.id} value={s.id} className="font-mono text-terminal-text">
-                    {s.name} - {s.city}, {s.country}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="text-center text-terminal-muted font-mono text-sm mt-8">
-            <Info className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            Select a supplier or click an opportunity<br />to view weather & crop intelligence
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
+  // Render empty state for weather/crop tabs
+  const renderEmptyWeatherState = () => (
+    <div className="text-center py-8 text-terminal-muted font-mono text-sm">
+      <Info className="h-12 w-12 mx-auto mb-3 opacity-50" />
+      Select a supplier or click an opportunity<br />to view weather & crop intelligence
+    </div>
+  )
 
-  if (loading) {
-    return (
-      <Card className="bg-terminal-panel border-terminal-border h-[calc(100vh-16rem)]">
-        <CardHeader className="border-b border-terminal-border pb-3">
-          <CardTitle className="text-terminal-text font-mono text-sm">
-            WEATHER & CROP INTEL
-          </CardTitle>
-          <div className="text-terminal-muted text-xs font-mono mt-1">
-            {supplier.city}, {supplier.country}
-          </div>
-        </CardHeader>
-        <CardContent className="p-8 flex items-center justify-center h-full">
-          <div className="text-center text-terminal-accent font-mono text-sm">
-            <Loader2 className="h-12 w-12 mx-auto mb-3 animate-spin" />
-            Loading weather data...
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
+  const renderLoadingState = () => (
+    <div className="text-center py-8 text-terminal-accent font-mono text-sm">
+      <Loader2 className="h-12 w-12 mx-auto mb-3 animate-spin" />
+      Loading weather data...
+    </div>
+  )
 
-  if (error) {
-    return (
-      <Card className="bg-terminal-panel border-terminal-border h-[calc(100vh-16rem)]">
-        <CardHeader className="border-b border-terminal-border pb-3">
-          <CardTitle className="text-terminal-text font-mono text-sm">
-            WEATHER & CROP INTEL
-          </CardTitle>
-          <div className="text-terminal-muted text-xs font-mono mt-1">
-            {supplier.city}, {supplier.country}
-          </div>
-        </CardHeader>
-        <CardContent className="p-8 flex items-center justify-center h-full">
-          <div className="text-center text-terminal-alert font-mono text-sm">
-            <AlertTriangle className="h-12 w-12 mx-auto mb-3" />
-            {error}
-            <div className="text-xs text-terminal-muted mt-2">
-              (Using geocoding to find location)
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
+  const renderErrorState = () => (
+    <div className="text-center py-8 text-terminal-alert font-mono text-sm">
+      <AlertTriangle className="h-12 w-12 mx-auto mb-3" />
+      {error}
+      <div className="text-xs text-terminal-muted mt-2">
+        (Using geocoding to find location)
+      </div>
+    </div>
+  )
 
   // Get primary product category from supplier's products
   const getPrimaryProduct = () => {
@@ -460,8 +404,8 @@ export function WeatherCropIntel({ supplierId, onSupplierChange }: WeatherCropIn
   const QualityIcon = quality?.icon || Info
 
   return (
-    <Card className="bg-terminal-panel border-terminal-border h-[calc(100vh-16rem)]">
-      <CardHeader className="border-b border-terminal-border pb-3">
+    <Card className="bg-terminal-panel border-terminal-border h-[calc(100vh-16rem)] flex flex-col">
+      <CardHeader className="border-b border-terminal-border pb-3 flex-shrink-0">
         <CardTitle className="text-terminal-text font-mono text-sm">
           WEATHER & CROP INTEL
         </CardTitle>
@@ -486,7 +430,25 @@ export function WeatherCropIntel({ supplierId, onSupplierChange }: WeatherCropIn
           </Select>
         </div>
       </CardHeader>
-      <CardContent className="p-4 space-y-4">
+      <CardContent className="p-4 flex-1 overflow-hidden">
+        <Tabs defaultValue="weather" className="h-full flex flex-col">
+          <TabsList className="bg-terminal-dark border border-terminal-border mb-4 flex-shrink-0">
+            <TabsTrigger value="weather" className="font-mono text-xs data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark">
+              Weather
+            </TabsTrigger>
+            <TabsTrigger value="crop" className="font-mono text-xs data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark">
+              Crop Intel
+            </TabsTrigger>
+            <TabsTrigger value="prices" className="font-mono text-xs data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark">
+              Price Trends
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="weather" className="flex-1 overflow-y-auto space-y-4 mt-0">
+            {!supplier && !selectedSupplierId ? renderEmptyWeatherState() :
+             loading ? renderLoadingState() :
+             error ? renderErrorState() : (
+              <>
         {/* 14 Day History */}
         <div>
           <div className="text-terminal-muted text-xs font-mono mb-2">14 DAY HISTORY</div>
@@ -528,7 +490,15 @@ export function WeatherCropIntel({ supplierId, onSupplierChange }: WeatherCropIn
             </div>
           </div>
         </div>
+              </>
+            )}
+          </TabsContent>
 
+          <TabsContent value="crop" className="flex-1 overflow-y-auto space-y-4 mt-0">
+            {!supplier && !selectedSupplierId ? renderEmptyWeatherState() :
+             loading ? renderLoadingState() :
+             error ? renderErrorState() : (
+              <>
         {/* Crop Intelligence */}
         <div>
           <div className="text-terminal-muted text-xs font-mono mb-2 flex items-center gap-2">
@@ -636,6 +606,14 @@ export function WeatherCropIntel({ supplierId, onSupplierChange }: WeatherCropIn
             )}
           </div>
         </div>
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="prices" className="flex-1 overflow-y-auto mt-0">
+            <PriceTrendsWidget />
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   )
