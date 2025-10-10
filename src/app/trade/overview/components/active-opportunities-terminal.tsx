@@ -222,25 +222,54 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
     text += `Total: ${filteredOpportunities.length} opportunities\n`
     text += `${'='.repeat(50)}\n\n`
 
-    filteredOpportunities.forEach((opp, index) => {
+    // Group opportunities by customer and route/transport details
+    const groupedForCopy = new Map()
+
+    filteredOpportunities.forEach((opp) => {
+      const customerId = opp.customer_id || 'unknown'
       const originHub = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || opp.supplier?.city || '-'
       const destinationHub = opp.delivery_hub?.name || opp.customer?.city || '-'
-      const sizeName = opp.product_packaging_specs?.size_options?.name || '-'
-      const packagingLabel = opp.product_packaging_specs?.packaging_options?.label || ''
       const deliveryMode = (opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY') ? 'DDP' : 'EXW'
       const routeText = deliveryMode === 'DDP' ? `${originHub} → ${destinationHub}` : `${originHub} (pickup)`
+      const transportPrice = opp.selected_transport_band?.price_per_pallet || null
 
-      text += `${index + 1}. ${opp.customer?.name || '-'}\n`
-      text += `   Product: ${opp.product_packaging_specs?.products?.name || '-'}\n`
-      text += `   Size: ${packagingLabel} ${sizeName}\n`
-      text += `   Price: €${opp.offer_price_per_unit?.toFixed(2)}/${opp.product_packaging_specs?.products?.sold_by || 'unit'} (${deliveryMode})\n`
-      text += `   ${deliveryMode === 'DDP' ? 'Route' : 'Pickup location'}: ${routeText}\n`
+      // Create a unique key for grouping (customer + route + transport)
+      const groupKey = `${customerId}|${routeText}|${transportPrice}`
 
-      if (opp.selected_transport_band?.price_per_pallet) {
-        text += `   Transport: €${opp.selected_transport_band.price_per_pallet.toFixed(2)}/pallet\n`
+      if (!groupedForCopy.has(groupKey)) {
+        groupedForCopy.set(groupKey, {
+          customerName: opp.customer?.name || '-',
+          routeText,
+          deliveryMode,
+          transportPrice,
+          products: []
+        })
       }
 
+      groupedForCopy.get(groupKey).products.push({
+        name: opp.product_packaging_specs?.products?.name || '-',
+        size: `${opp.product_packaging_specs?.packaging_options?.label || ''} ${opp.product_packaging_specs?.size_options?.name || '-'}`.trim(),
+        price: opp.offer_price_per_unit,
+        unit: opp.product_packaging_specs?.products?.sold_by || 'unit'
+      })
+    })
+
+    let groupIndex = 1
+    groupedForCopy.forEach((group) => {
+      text += `${groupIndex}. ${group.customerName}\n`
+      text += `   ${group.deliveryMode === 'DDP' ? 'Route' : 'Pickup location'}: ${group.routeText}\n`
+
+      if (group.transportPrice) {
+        text += `   Transport: €${group.transportPrice.toFixed(2)}/pallet\n`
+      }
+
+      group.products.forEach((product) => {
+        text += `   Product: ${product.name} - Size: ${product.size}\n`
+        text += `   Price: €${product.price?.toFixed(2)}/${product.unit}\n`
+      })
+
       text += `\n`
+      groupIndex++
     })
 
     try {
