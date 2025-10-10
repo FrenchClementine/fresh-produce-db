@@ -214,6 +214,67 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
     }
   }
 
+  const handleCopyCustomerOpportunities = async (customerOpportunities: any[], e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent expanding/collapsing
+
+    const dateStr = new Date().toLocaleDateString('en-GB')
+    const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+
+    let text = `📊 ${customerOpportunities[0]?.customer?.name || 'Customer'} - ${dateStr} ${timeStr}\n`
+    text += `${'='.repeat(50)}\n\n`
+
+    // Group by route/transport details
+    const groupedForCopy = new Map()
+
+    customerOpportunities.forEach((opp) => {
+      const originHub = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || opp.supplier?.city || '-'
+      const destinationHub = opp.delivery_hub?.name || opp.customer?.city || '-'
+      const deliveryMode = (opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY') ? 'DDP' : 'EXW'
+      const routeText = deliveryMode === 'DDP' ? `${originHub} → ${destinationHub}` : `${originHub} (pickup)`
+      const transportPrice = opp.selected_transport_band?.price_per_pallet || null
+
+      const groupKey = `${routeText}|${transportPrice}`
+
+      if (!groupedForCopy.has(groupKey)) {
+        groupedForCopy.set(groupKey, {
+          routeText,
+          deliveryMode,
+          transportPrice,
+          products: []
+        })
+      }
+
+      groupedForCopy.get(groupKey).products.push({
+        name: opp.product_packaging_specs?.products?.name || '-',
+        size: `${opp.product_packaging_specs?.packaging_options?.label || ''} ${opp.product_packaging_specs?.size_options?.name || '-'}`.trim(),
+        price: opp.offer_price_per_unit,
+        unit: opp.product_packaging_specs?.products?.sold_by || 'unit'
+      })
+    })
+
+    groupedForCopy.forEach((group) => {
+      text += `${group.deliveryMode === 'DDP' ? 'Route' : 'Pickup location'}: ${group.routeText}\n`
+
+      if (group.transportPrice) {
+        text += `Transport: €${group.transportPrice.toFixed(2)}/pallet\n`
+      }
+
+      group.products.forEach((product) => {
+        text += `Product: ${product.name} - Size: ${product.size}\n`
+        text += `Price: €${product.price?.toFixed(2)}/${product.unit}\n`
+      })
+
+      text += `\n`
+    })
+
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success(`Copied ${customerOpportunities[0]?.customer?.name}'s opportunities!`)
+    } catch (err) {
+      toast.error('Failed to copy to clipboard')
+    }
+  }
+
   const handleCopyAsText = async () => {
     const dateStr = new Date().toLocaleDateString('en-GB')
     const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -457,6 +518,15 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
                               <span className="text-terminal-text text-sm font-mono font-semibold">
                                 {group.customerName}
                               </span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => handleCopyCustomerOpportunities(group.opportunities, e)}
+                                className="h-5 w-5 p-0 hover:bg-terminal-accent/20 text-terminal-muted hover:text-terminal-accent"
+                                title="Copy this customer's opportunities"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
                               {isExpanded ? (
                                 <ChevronUp className="h-4 w-4 text-terminal-muted" />
                               ) : (
