@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,21 +11,40 @@ import {
   TrendingUp,
   Clock,
   DollarSign,
-  Building2
+  Building2,
+  Package,
+  Printer
 } from 'lucide-react'
-import { useOpportunitySummary } from '@/hooks/use-opportunities'
-import { useCurrentSupplierPrices } from '@/hooks/use-supplier-prices'
-import { QuickAccessPanel } from './components/quick-access-panel'
-import { QuickFeedbackPanel } from './components/quick-feedback-panel'
+import { useOpportunitySummary, useOpportunitiesRealtime } from '@/hooks/use-opportunities'
+import { useCurrentSupplierPrices, useSupplierPricesRealtime } from '@/hooks/use-supplier-prices'
+import { usePriceTrendsRealtime } from '@/hooks/use-price-trends'
+import { SupplierPricesPanel } from './components/supplier-prices-panel'
 import { WeatherCropIntel } from './components/weather-crop-intel'
 import { ActiveOpportunitiesTerminal } from './components/active-opportunities-terminal'
 import { WeatherTicker } from './components/weather-ticker'
+import { PrintPricesModal } from './components/print-prices-modal'
 
 export default function TradeOverviewTerminal() {
   const router = useRouter()
   const { data: summary } = useOpportunitySummary()
   const { data: supplierPrices } = useCurrentSupplierPrices()
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null)
+  const [showPrintModal, setShowPrintModal] = useState(false)
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  // Enable realtime subscriptions
+  useSupplierPricesRealtime()
+  useOpportunitiesRealtime()
+  usePriceTrendsRealtime()
+
+  // Update clock every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
 
   return (
     <div className="min-h-screen bg-terminal-dark p-4 space-y-4">
@@ -47,23 +66,59 @@ export default function TradeOverviewTerminal() {
           <Badge className="bg-terminal-success text-terminal-dark font-mono">
             LIVE
           </Badge>
+
+          {/* Quick Access Buttons */}
+          <div className="flex items-center gap-2 ml-4">
+            <Button
+              onClick={() => router.push('/trade/prices')}
+              variant="outline"
+              size="sm"
+              className="bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
+            >
+              <DollarSign className="h-4 w-4 mr-2" />
+              Input Prices
+            </Button>
+
+            <Button
+              onClick={() => router.push('/trade/requests')}
+              variant="outline"
+              size="sm"
+              className="bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
+            >
+              <Package className="h-4 w-4 mr-2" />
+              Customer Request
+            </Button>
+
+            <Button
+              onClick={() => router.push('/trade/potential')}
+              variant="outline"
+              size="sm"
+              className="bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
+            >
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Product Potential
+            </Button>
+
+            <Button
+              onClick={() => setShowPrintModal(true)}
+              size="sm"
+              className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print Prices
+            </Button>
+          </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-terminal-muted font-mono text-sm">
-            {new Date().toLocaleTimeString('en-US', {
+          <div className="flex items-center gap-2 text-terminal-muted font-mono text-sm">
+            <Clock className="h-4 w-4" />
+            {currentTime.toLocaleTimeString('en-US', {
               hour: '2-digit',
               minute: '2-digit',
               second: '2-digit',
               hour12: false
             })}
           </div>
-          <Button
-            onClick={() => router.push('/admin-dashboard')}
-            className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono"
-          >
-            <Building2 className="mr-2 h-4 w-4" />
-            Admin Dashboard
-          </Button>
         </div>
       </div>
 
@@ -146,10 +201,9 @@ export default function TradeOverviewTerminal() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-3 gap-4">
-        {/* Left Column - Quick Actions */}
+        {/* Left Column - Supplier Prices */}
         <div className="col-span-1 space-y-4">
-          <QuickAccessPanel />
-          <QuickFeedbackPanel />
+          <SupplierPricesPanel />
         </div>
 
         {/* Middle Column - Active Opportunities */}
@@ -167,6 +221,12 @@ export default function TradeOverviewTerminal() {
           />
         </div>
       </div>
+
+      {/* Print Prices Modal */}
+      <PrintPricesModal
+        open={showPrintModal}
+        onOpenChange={setShowPrintModal}
+      />
     </div>
   )
 }

@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { CheckCircle, AlertCircle, XCircle, MinusCircle, Check, X, Eye } from 'lucide-react'
+import { CheckCircle, AlertCircle, XCircle, MinusCircle, Check, X, Eye, CheckSquare, Square } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 import { useExcludePotential, extractExclusionData } from '@/hooks/use-excluded-potentials'
 import { useSuppliers } from '@/hooks/use-suppliers'
 import { useCustomers } from '@/hooks/use-customers'
@@ -62,6 +63,9 @@ export default function TradePotentialTableMode({
   const [supplierFilter, setSupplierFilter] = useState<string>('all')
   const [agentFilter, setAgentFilter] = useState<string>('all')
   const [pricingState, setPricingState] = useState<PricingState>({})
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkMargin, setBulkMargin] = useState<number>(10)
+  const [autoSelectEnabled, setAutoSelectEnabled] = useState<boolean>(true)
 
   const { customers } = useCustomers()
   const { data: suppliers } = useSuppliers()
@@ -162,6 +166,151 @@ export default function TradePotentialTableMode({
     missingTransport: data.filter(p => p.status === 'missing_transport').length,
     missingBoth: data.filter(p => p.status === 'missing_both').length,
     completionRate: data.length > 0 ? (data.filter(p => p.status === 'complete').length / data.length) * 100 : 0
+  }
+
+  // Bulk selection helpers
+  const selectablePotentials = data.filter(p => p.status === 'complete' && !p.hasOpportunity)
+  const filteredSelectablePotentials = selectablePotentials.filter(potential => {
+    // Customer filter
+    if (customerFilter !== 'all' && potential.customer.id !== customerFilter) {
+      return false
+    }
+
+    // Supplier filter
+    if (supplierFilter !== 'all' && potential.supplier.id !== supplierFilter) {
+      return false
+    }
+
+    // Agent filter
+    if (agentFilter !== 'all' && potential.customer.agent?.id !== agentFilter) {
+      return false
+    }
+
+    return true
+  })
+
+  // Auto-select filtered items when filters change
+  React.useEffect(() => {
+    if (autoSelectEnabled) {
+      setSelectedIds(new Set(filteredSelectablePotentials.map(p => p.id)))
+    }
+  }, [customerFilter, supplierFilter, agentFilter, statusFilter, showOpportunityFilter, autoSelectEnabled, filteredSelectablePotentials.length])
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredSelectablePotentials.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredSelectablePotentials.map(p => p.id)))
+    }
+  }
+
+  const toggleSelect = (id: string) => {
+    // Disable auto-select when user manually toggles
+    setAutoSelectEnabled(false)
+    const newSet = new Set(selectedIds)
+    if (newSet.has(id)) {
+      newSet.delete(id)
+    } else {
+      newSet.add(id)
+    }
+    setSelectedIds(newSet)
+  }
+
+  const handleFilterChange = (type: 'customer' | 'supplier' | 'agent' | 'status', value: string | PotentialStatus) => {
+    // Re-enable auto-select when filters change
+    setAutoSelectEnabled(true)
+    switch (type) {
+      case 'customer':
+        setCustomerFilter(value as string)
+        break
+      case 'supplier':
+        setSupplierFilter(value as string)
+        break
+      case 'agent':
+        setAgentFilter(value as string)
+        break
+      case 'status':
+        setStatusFilter(value as PotentialStatus)
+        break
+    }
+  }
+
+  const handleOpportunityFilterChange = (checked: boolean) => {
+    setAutoSelectEnabled(true)
+    setShowOpportunityFilter(checked)
+  }
+
+  const applyBulkMargin = () => {
+    const updates: PricingState = {}
+    selectedIds.forEach(id => {
+      const potential = data.find(p => p.id === id)
+      if (potential) {
+        const productCost = potential.supplierPrice?.pricePerUnit || 0
+        const currentState = pricingState[id] || { selectedBandIndex: 0 }
+        const transportCost = getTransportCostPerUnit(potential, currentState.selectedBandIndex)
+        const totalCost = productCost + transportCost
+        const offerPrice = totalCost * (1 + bulkMargin / 100)
+
+        updates[id] = {
+          marginPercent: bulkMargin,
+          offerPrice: offerPrice,
+          isEditing: true,
+          selectedBandIndex: currentState.selectedBandIndex
+        }
+      }
+    })
+    setPricingState(prev => ({ ...prev, ...updates }))
+    toast.success(`Applied ${bulkMargin}% margin to ${selectedIds.size} items`)
+  }
+
+  const handleBulkCreate = async () => {
+    const count = selectedIds.size
+    if (count === 0) {
+      toast.error('No items selected')
+      return
+    }
+
+    if (!confirm(`Create ${count} opportunities?`)) {
+      return
+    }
+
+    let successCount = 0
+    let errorCount = 0
+
+    for (const id of Array.from(selectedIds)) {
+      const potential = data.find(p => p.id === id)
+      if (!potential) continue
+
+      const pricing = getPricingState(potential)
+
+      try {
+        await createOpportunityMutation.mutateAsync({
+          customer_id: potential.customer.id,
+          supplier_id: potential.supplier.id,
+          product_packaging_spec_id: potential.product.specId,
+          offer_price_per_unit: pricing.offerPrice,
+          offer_currency: potential.supplierPrice?.currency || 'EUR',
+          status: 'draft',
+          priority: 'medium',
+          supplier_price_id: potential.supplierPrice?.id,
+          assigned_to: potential.customer.agent?.id
+        })
+        successCount++
+      } catch (error) {
+        console.error(`Failed to create opportunity for ${potential.id}:`, error)
+        errorCount++
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`Created ${successCount} opportunities`)
+      setSelectedIds(new Set())
+      queryClient.invalidateQueries({ queryKey: ['trade-potential'] })
+    }
+
+    if (errorCount > 0) {
+      toast.error(`Failed to create ${errorCount} opportunities`)
+    }
   }
 
   // Filter potentials based on all filters
@@ -291,7 +440,7 @@ export default function TradePotentialTableMode({
         <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
           <div>
             <Label htmlFor="status-filter" className="font-mono text-terminal-muted text-xs uppercase">Status Filter</Label>
-            <Select value={statusFilter} onValueChange={(value: PotentialStatus) => setStatusFilter(value)}>
+            <Select value={statusFilter} onValueChange={(value: PotentialStatus) => handleFilterChange('status', value)}>
               <SelectTrigger id="status-filter" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                 <SelectValue />
               </SelectTrigger>
@@ -307,7 +456,7 @@ export default function TradePotentialTableMode({
 
           <div>
             <Label htmlFor="customer-filter" className="font-mono text-terminal-muted text-xs uppercase">Customer</Label>
-            <Select value={customerFilter} onValueChange={setCustomerFilter}>
+            <Select value={customerFilter} onValueChange={(value) => handleFilterChange('customer', value)}>
               <SelectTrigger id="customer-filter" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                 <SelectValue />
               </SelectTrigger>
@@ -324,7 +473,7 @@ export default function TradePotentialTableMode({
 
           <div>
             <Label htmlFor="supplier-filter" className="font-mono text-terminal-muted text-xs uppercase">Supplier</Label>
-            <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+            <Select value={supplierFilter} onValueChange={(value) => handleFilterChange('supplier', value)}>
               <SelectTrigger id="supplier-filter" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                 <SelectValue />
               </SelectTrigger>
@@ -341,7 +490,7 @@ export default function TradePotentialTableMode({
 
           <div>
             <Label htmlFor="agent-filter" className="font-mono text-terminal-muted text-xs uppercase">Agent</Label>
-            <Select value={agentFilter} onValueChange={setAgentFilter}>
+            <Select value={agentFilter} onValueChange={(value) => handleFilterChange('agent', value)}>
               <SelectTrigger id="agent-filter" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                 <SelectValue />
               </SelectTrigger>
@@ -360,9 +509,77 @@ export default function TradePotentialTableMode({
             <Switch
               id="opportunity-filter"
               checked={showOpportunityFilter}
-              onCheckedChange={setShowOpportunityFilter}
+              onCheckedChange={handleOpportunityFilterChange}
             />
             <Label htmlFor="opportunity-filter" className="font-mono text-terminal-muted text-sm">Hide converted</Label>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Bulk Actions Toolbar - Always Visible */}
+      <Card className={cn(
+        "border-2 transition-colors",
+        selectedIds.size > 0
+          ? "bg-terminal-accent/10 border-terminal-accent"
+          : "bg-terminal-panel border-terminal-border"
+      )}>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Badge className={cn(
+                "font-mono font-bold",
+                selectedIds.size > 0
+                  ? "bg-terminal-accent text-terminal-dark"
+                  : "bg-terminal-border text-terminal-muted"
+              )}>
+                {selectedIds.size} SELECTED
+              </Badge>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="bulk-margin" className="font-mono text-terminal-text text-sm">
+                  Bulk Margin:
+                </Label>
+                <Input
+                  id="bulk-margin"
+                  type="number"
+                  step="0.1"
+                  value={bulkMargin}
+                  onChange={(e) => setBulkMargin(parseFloat(e.target.value) || 10)}
+                  className="w-20 h-9 bg-terminal-dark border-terminal-border text-terminal-text font-mono"
+                />
+                <span className="text-terminal-muted font-mono">%</span>
+                <Button
+                  size="sm"
+                  onClick={applyBulkMargin}
+                  disabled={selectedIds.size === 0}
+                  className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono disabled:opacity-50"
+                >
+                  Apply to All
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={handleBulkCreate}
+                disabled={createOpportunityMutation.isPending || selectedIds.size === 0}
+                className="bg-terminal-success text-white hover:bg-green-600 font-mono disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Create {selectedIds.size} Opportunities
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setSelectedIds(new Set())
+                  setAutoSelectEnabled(false)
+                }}
+                disabled={selectedIds.size === 0}
+                className="border-terminal-border text-terminal-text hover:bg-terminal-dark font-mono disabled:opacity-50"
+              >
+                Clear Selection
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -384,10 +601,19 @@ export default function TradePotentialTableMode({
             <Table>
               <TableHeader>
                 <TableRow className="border-terminal-border">
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedIds.size === filteredSelectablePotentials.length && filteredSelectablePotentials.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                      disabled={filteredSelectablePotentials.length === 0}
+                      className="border-terminal-border data-[state=checked]:bg-terminal-accent data-[state=checked]:text-terminal-dark"
+                    />
+                  </TableHead>
                   <TableHead className="font-mono text-terminal-muted uppercase">Customer</TableHead>
                   <TableHead className="font-mono text-terminal-muted uppercase">Supplier</TableHead>
                   <TableHead className="font-mono text-terminal-muted uppercase">Product</TableHead>
                   <TableHead className="font-mono text-terminal-muted uppercase">Status</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase">Price Delivered To</TableHead>
                   <TableHead className="font-mono text-terminal-muted uppercase">Transport</TableHead>
                   <TableHead className="font-mono text-terminal-muted uppercase">Product Cost</TableHead>
                   <TableHead className="font-mono text-terminal-muted uppercase">Transport Cost</TableHead>
@@ -409,9 +635,26 @@ export default function TradePotentialTableMode({
                   const profit = pricing.offerPrice - totalCost
                   const hasOpportunity = potential.hasOpportunity
                   const hasBands = potential.transportRoute?.availableBands && potential.transportRoute.availableBands.length > 0
+                  const isSelectable = potential.status === 'complete' && !hasOpportunity
+                  const isSelected = selectedIds.has(potential.id)
 
                   return (
-                    <TableRow key={potential.id} className={cn("border-terminal-border hover:bg-terminal-dark/50", hasOpportunity ? 'bg-blue-900/20' : '')}>
+                    <TableRow key={potential.id} className={cn(
+                      "border-terminal-border hover:bg-terminal-dark/50",
+                      hasOpportunity ? 'bg-blue-900/20' : '',
+                      isSelected ? 'bg-terminal-accent/5 border-l-4 border-l-terminal-accent' : ''
+                    )}>
+                      <TableCell>
+                        {isSelectable ? (
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelect(potential.id)}
+                            className="border-terminal-border data-[state=checked]:bg-terminal-accent data-[state=checked]:text-terminal-dark"
+                          />
+                        ) : (
+                          <div className="w-5" />
+                        )}
+                      </TableCell>
                       <TableCell className="font-mono text-terminal-text">
                         <div className="space-y-1">
                           <div className="font-medium">{potential.customer.name}</div>
@@ -452,6 +695,18 @@ export default function TradePotentialTableMode({
                       </TableCell>
 
                       <TableCell className="font-mono text-terminal-text">
+                        {potential.supplierPrice ? (
+                          <div className="space-y-1">
+                            <div className="text-sm font-medium">
+                              {potential.supplierPrice.hubName}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-terminal-muted">No price</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="font-mono text-terminal-text">
                         {potential.transportRoute ? (
                           <div className="space-y-1">
                             <div className="text-sm font-medium text-blue-400">
@@ -471,7 +726,7 @@ export default function TradePotentialTableMode({
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent className="bg-terminal-panel border-terminal-border">
-                                  {potential.transportRoute.availableBands.map((band, index) => (
+                                  {potential.transportRoute?.availableBands?.map((band, index) => (
                                     <SelectItem key={index} value={index.toString()} className="font-mono text-terminal-text">
                                       {band.min_pallets}-{band.max_pallets} pallets: {formatCurrency(band.price_per_pallet)}/pallet
                                     </SelectItem>

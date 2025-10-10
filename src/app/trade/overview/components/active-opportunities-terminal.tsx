@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
+import { useFlashOnChangeById } from '@/hooks/use-flash-on-change'
 
 interface ActiveOpportunitiesTerminalProps {
   onSupplierSelect: (supplierId: string) => void
@@ -37,6 +38,14 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [customerFilter, setCustomerFilter] = useState<string>('all')
   const [agentFilter, setAgentFilter] = useState<string>('all')
+  const [currentPage, setCurrentPage] = useState(0)
+  const [fadeIn, setFadeIn] = useState(true)
+
+  // Track which opportunities have changed
+  const flashingIds = useFlashOnChangeById(
+    opportunities?.map(o => ({ id: o.id, status: o.status, offer_price_per_unit: o.offer_price_per_unit })) || [],
+    2000
+  )
 
   // Get unique customers (filtered by agent if selected)
   const uniqueCustomers = useMemo(() => {
@@ -64,8 +73,34 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
       filtered = filtered.filter(opp => opp.customer?.agent?.id === agentFilter)
     }
 
-    return filtered.slice(0, 15)
+    return filtered
   }, [opportunities, customerFilter, agentFilter])
+
+  // Pagination for opportunities
+  const OPP_ITEMS_PER_PAGE = 5
+  const totalOppPages = Math.ceil(filteredOpportunities.length / OPP_ITEMS_PER_PAGE)
+  const shouldPaginateOpps = filteredOpportunities.length > OPP_ITEMS_PER_PAGE
+
+  const visibleOpportunities = useMemo(() => {
+    if (!shouldPaginateOpps) return filteredOpportunities
+    const start = currentPage * OPP_ITEMS_PER_PAGE
+    return filteredOpportunities.slice(start, start + OPP_ITEMS_PER_PAGE)
+  }, [filteredOpportunities, currentPage, shouldPaginateOpps])
+
+  // Auto-rotate pages with fade effect for opportunities
+  useEffect(() => {
+    if (!shouldPaginateOpps) return
+
+    const interval = setInterval(() => {
+      setFadeIn(false)
+      setTimeout(() => {
+        setCurrentPage((prev) => (prev + 1) % totalOppPages)
+        setFadeIn(true)
+      }, 300)
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [shouldPaginateOpps, totalOppPages])
 
   const openRequests = requests?.slice(0, 15) || []
 
@@ -172,9 +207,10 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
             <tr>
               <th>Customer</th>
               <th>Product</th>
-              <th>Hub</th>
-              <th>Transport Band</th>
+              <th>Size</th>
+              <th>Price Delivered</th>
               <th>Sales Price</th>
+              <th>Transport Band</th>
               <th>Status</th>
               <th>Offered</th>
             </tr>
@@ -182,16 +218,17 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
           <tbody>
             ${filteredOpportunities.map(opp => {
               const hubName = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || '-'
-              const deliveryMode = opp.supplier_price?.delivery_mode === 'DELIVERY' ? 'Delivery' : 'Ex Works'
-              const hubDisplay = hubName !== '-' ? `${hubName}<br/><small style="color: #666;">(${deliveryMode})</small>` : '-'
+              const sizeName = opp.product_packaging_specs?.size_options?.name || '-'
+              const packagingLabel = opp.product_packaging_specs?.packaging_options?.label || ''
 
               return `
                 <tr>
                   <td>${opp.customer?.name || '-'}</td>
                   <td>${opp.product_packaging_specs?.products?.name || '-'}</td>
-                  <td>${hubDisplay}</td>
-                  <td>${opp.selected_transport_band?.price_per_pallet ? `€${opp.selected_transport_band.price_per_pallet.toFixed(2)}` : '-'}</td>
+                  <td>${packagingLabel} ${sizeName}</td>
+                  <td>${hubName}</td>
                   <td>€${opp.offer_price_per_unit?.toFixed(2)}/${opp.product_packaging_specs?.products?.sold_by || 'unit'}</td>
+                  <td>${opp.selected_transport_band?.price_per_pallet ? `€${opp.selected_transport_band.price_per_pallet.toFixed(2)}` : '-'}</td>
                   <td class="status-${opp.status}">${opp.status?.toUpperCase() || '-'}</td>
                   <td>${opp.status === 'offered' || opp.status === 'confirmed' ? 'Yes' : 'No'}</td>
                 </tr>
@@ -273,9 +310,12 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
               </div>
             </div>
 
-            <ScrollArea className="h-[calc(100%-5rem)]">
-              <div className="divide-y divide-terminal-border">
-                {filteredOpportunities.map((opp) => {
+            <div className="overflow-hidden">
+              <div
+                className="divide-y divide-terminal-border transition-opacity duration-300"
+                style={{ opacity: fadeIn ? 1 : 0 }}
+              >
+                {visibleOpportunities.map((opp) => {
               const statusColors = {
                 draft: 'text-terminal-muted',
                 active: 'text-terminal-accent',
@@ -287,11 +327,16 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
               }
 
               const isProcessing = processingId === opp.id
+              const isFlashing = flashingIds.has(opp.id)
 
               return (
                 <div
                   key={opp.id}
-                  className="p-3 hover:bg-terminal-dark transition-colors group"
+                  className={`p-3 transition-all duration-500 ${
+                    isFlashing
+                      ? 'bg-terminal-accent/10 border-l-2 border-terminal-accent shadow-lg shadow-terminal-accent/20'
+                      : 'hover:bg-terminal-dark border-l-2 border-transparent'
+                  } group`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div
@@ -409,7 +454,23 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
               )
             })}
               </div>
-            </ScrollArea>
+
+              {/* Pagination Indicator */}
+              {shouldPaginateOpps && (
+                <div className="flex justify-center gap-1 py-3 border-t border-terminal-border">
+                  {Array.from({ length: totalOppPages }).map((_, index) => (
+                    <div
+                      key={index}
+                      className={`h-1.5 w-1.5 rounded-full transition-all ${
+                        index === currentPage
+                          ? 'bg-terminal-accent w-4'
+                          : 'bg-terminal-border'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="requests" className="m-0 h-[calc(100%-3rem)]">

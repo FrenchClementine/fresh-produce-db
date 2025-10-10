@@ -3,6 +3,8 @@
 import { usePriceTrends, ProductPriceTrend } from '@/hooks/use-price-trends'
 import { TrendingUp, TrendingDown, Minus, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { useState, useEffect, useRef } from 'react'
+import { useFlashOnChangeById } from '@/hooks/use-flash-on-change'
 
 // Simple currency formatter
 const formatCurrency = (amount: number, currency: string = 'EUR') => {
@@ -84,6 +86,37 @@ function TrendBadge({ trend }: { trend: ProductPriceTrend }) {
 
 export function PriceTrendsWidget() {
   const { data: trends, isLoading, error } = usePriceTrends()
+  const [isHovering, setIsHovering] = useState(false)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // Track which items have changed
+  const flashingIds = useFlashOnChangeById(
+    trends?.map(t => ({ id: t.product_id, current_avg_price: t.current_avg_price })) || [],
+    2000,
+    'current_avg_price'
+  )
+
+  // Auto-scroll functionality
+  useEffect(() => {
+    if (!scrollContainerRef.current || isHovering || !trends || trends.length === 0) return
+
+    const container = scrollContainerRef.current
+    let scrollAmount = 0
+    const scrollSpeed = 0.5 // pixels per interval
+
+    const interval = setInterval(() => {
+      if (container.scrollTop + container.clientHeight >= container.scrollHeight) {
+        // Reset to top when reaching bottom
+        container.scrollTop = 0
+        scrollAmount = 0
+      } else {
+        scrollAmount += scrollSpeed
+        container.scrollTop = scrollAmount
+      }
+    }, 30) // Update every 30ms for smooth scrolling
+
+    return () => clearInterval(interval)
+  }, [isHovering, trends])
 
   if (isLoading) {
     return (
@@ -123,14 +156,24 @@ export function PriceTrendsWidget() {
       </div>
 
       {/* Table */}
-      <div className="space-y-1 max-h-[400px] overflow-y-auto">
+      <div
+        ref={scrollContainerRef}
+        className="space-y-1 max-h-[400px] overflow-y-auto scroll-smooth"
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
         {trends.map((trend) => {
           const emoji = categoryEmojis[trend.product_category.toLowerCase()] || '📦'
+          const isFlashing = flashingIds.has(trend.product_id)
 
           return (
             <div
               key={trend.product_id}
-              className="grid grid-cols-4 gap-4 items-center py-2 px-3 hover:bg-terminal-dark/50 rounded border border-transparent hover:border-terminal-border transition-colors"
+              className={`grid grid-cols-4 gap-4 items-center py-2 px-3 hover:bg-terminal-dark/50 rounded border transition-all duration-500 ${
+                isFlashing
+                  ? 'border-terminal-accent bg-terminal-accent/10 shadow-lg shadow-terminal-accent/20'
+                  : 'border-transparent hover:border-terminal-border'
+              }`}
             >
               {/* Product Name */}
               <div className="flex items-center gap-2">
