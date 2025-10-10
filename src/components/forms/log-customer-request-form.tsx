@@ -47,7 +47,7 @@ const formSchema = z.object({
   certifications: z.array(z.string()).optional(),
   target_price_per_unit: z.coerce.number().optional(),
   target_currency: z.string().default('EUR'),
-  delivery_mode: z.enum(['DELIVERY', 'EX_WORKS']),
+  delivery_mode: z.enum(['DELIVERY', 'Ex Works', 'TRANSIT']),
   delivery_hub_id: z.string().optional(),
   needed_by_date: z.string().optional(),
   availability_window_start: z.string().optional(),
@@ -354,8 +354,9 @@ export function LogCustomerRequestForm({ open, onOpenChange }: LogCustomerReques
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="Ex Works">Ex Works</SelectItem>
                         <SelectItem value="DELIVERY">Delivery (DDP)</SelectItem>
-                        <SelectItem value="EX_WORKS">Ex Works</SelectItem>
+                        <SelectItem value="TRANSIT">TRANSIT</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

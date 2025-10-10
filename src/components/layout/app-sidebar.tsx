@@ -49,28 +49,6 @@ const navigationItems: NavItem[] = [
     icon: Home,
   },
   {
-    href: '/my',
-    label: 'My Workspace',
-    icon: User,
-    children: [
-      {
-        href: '/my/suppliers',
-        label: 'My Suppliers',
-        icon: Building2,
-      },
-      {
-        href: '/my/customers',
-        label: 'My Customers',
-        icon: Users,
-      },
-      {
-        href: '/my/transporters',
-        label: 'My Transporters',
-        icon: Truck,
-      },
-    ],
-  },
-  {
     href: '/product-sourcing',
     label: 'Product Sourcing',
     icon: Search,

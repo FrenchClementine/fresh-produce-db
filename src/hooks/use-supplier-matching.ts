@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 
 export function useSupplierPricesForMatching(
   productId?: string,
-  deliveryMode?: 'DELIVERY' | 'EX_WORKS',
+  deliveryMode?: 'DELIVERY' | 'Ex Works' | 'TRANSIT',
   hubId?: string,
   enabled: boolean = false
 ) {

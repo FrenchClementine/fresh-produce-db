@@ -30,11 +30,28 @@ export function PrintPricesModal({ open, onOpenChange }: PrintPricesModalProps) 
   const groupedOpportunities = useMemo(() => {
     if (!selectedAgent || !opportunities) return []
 
+    console.log('🔍 Print Prices - Selected Agent:', selectedAgent)
+    console.log('🔍 Print Prices - Total Opportunities:', opportunities.length)
+
+    // Debug: Check first few opportunities
+    if (opportunities.length > 0) {
+      console.log('🔍 Sample opportunity:', {
+        customer: opportunities[0].customer,
+        agent: opportunities[0].customer?.agent,
+        status: opportunities[0].status
+      })
+    }
+
     // Filter opportunities for this agent's customers
     const agentOpps = opportunities.filter(
-      (opp) => opp.customer?.agent?.id === selectedAgent &&
-               (opp.status === 'active' || opp.status === 'offered')
+      (opp) => {
+        const hasAgent = opp.customer?.agent?.id === selectedAgent
+        const hasCorrectStatus = opp.status === 'active' || opp.status === 'offered'
+        return hasAgent && hasCorrectStatus
+      }
     )
+
+    console.log('🔍 Filtered agent opportunities:', agentOpps.length)
 
     // Group by customer
     const grouped = agentOpps.reduce((acc, opp) => {

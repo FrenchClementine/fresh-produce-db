@@ -16,7 +16,7 @@ import {
 import { useOpportunities, useUpdateOpportunity, useDeleteOpportunity } from '@/hooks/use-opportunities'
 import { useCustomerRequests } from '@/hooks/use-customer-requests'
 import { useActiveStaff } from '@/hooks/use-staff'
-import { Activity, MoreVertical, Check, MessageSquare, Trash2, Package2, Filter, Printer } from 'lucide-react'
+import { Activity, MoreVertical, Check, MessageSquare, Trash2, Package2, Filter, Printer, Copy } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
@@ -178,6 +178,41 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
     }
   }
 
+  const handleCopyAsText = async () => {
+    const dateStr = new Date().toLocaleDateString('en-GB')
+    const timeStr = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+
+    let text = `📊 ACTIVE OPPORTUNITIES - ${dateStr} ${timeStr}\n`
+    text += `Total: ${filteredOpportunities.length} opportunities\n`
+    text += `${'='.repeat(50)}\n\n`
+
+    filteredOpportunities.forEach((opp, index) => {
+      const hubName = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || '-'
+      const sizeName = opp.product_packaging_specs?.size_options?.name || '-'
+      const packagingLabel = opp.product_packaging_specs?.packaging_options?.label || ''
+      const deliveryMode = (opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY') ? 'DDP' : 'EXW'
+
+      text += `${index + 1}. ${opp.customer?.name || '-'}\n`
+      text += `   Product: ${opp.product_packaging_specs?.products?.name || '-'}\n`
+      text += `   Size: ${packagingLabel} ${sizeName}\n`
+      text += `   Price: €${opp.offer_price_per_unit?.toFixed(2)}/${opp.product_packaging_specs?.products?.sold_by || 'unit'} (${deliveryMode})\n`
+      text += `   Delivered to: ${hubName}\n`
+
+      if (opp.selected_transport_band?.price_per_pallet) {
+        text += `   Transport: €${opp.selected_transport_band.price_per_pallet.toFixed(2)}/pallet\n`
+      }
+
+      text += `\n`
+    })
+
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success('Copied to clipboard! Ready to paste in WhatsApp')
+    } catch (err) {
+      toast.error('Failed to copy to clipboard')
+    }
+  }
+
   const handlePrint = () => {
     const printWindow = window.open('', '', 'width=800,height=600')
     if (!printWindow) return
@@ -208,7 +243,7 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
               <th>Customer</th>
               <th>Product</th>
               <th>Size</th>
-              <th>Price Delivered</th>
+              <th>Delivered To</th>
               <th>Sales Price</th>
               <th>Transport Band</th>
               <th>Status</th>
@@ -255,14 +290,24 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
             <Activity className="h-4 w-4 text-terminal-success" />
             ACTIVE ITEMS
           </CardTitle>
-          <Button
-            size="sm"
-            onClick={handlePrint}
-            className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono h-7"
-          >
-            <Printer className="h-3 w-3 mr-1" />
-            Print
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={handleCopyAsText}
+              className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono h-7"
+            >
+              <Copy className="h-3 w-3 mr-1" />
+              Copy Text
+            </Button>
+            <Button
+              size="sm"
+              onClick={handlePrint}
+              className="bg-terminal-dark border-2 border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono h-7"
+            >
+              <Printer className="h-3 w-3 mr-1" />
+              Print
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-0">
@@ -357,10 +402,15 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
                   </div>
 
                   <div
-                    className="text-terminal-text text-xs font-mono mb-2 cursor-pointer"
+                    className="text-terminal-text text-xs font-mono mb-1 cursor-pointer"
                     onClick={() => opp.supplier?.id && onSupplierSelect(opp.supplier.id)}
                   >
                     {opp.product_packaging_specs?.products.name}
+                  </div>
+
+                  {/* Hub/Destination */}
+                  <div className="text-terminal-muted text-xs font-mono mb-2">
+                    📍 {opp.supplier_price?.hub_name || opp.customer?.city || '-'}
                   </div>
 
                   <div className="flex items-center justify-between mb-2">
@@ -372,11 +422,11 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
                         €{opp.offer_price_per_unit?.toFixed(2)}/{opp.product_packaging_specs?.products.sold_by}
                       </span>
                       <Badge variant="outline" className={`text-xs font-mono ${
-                        opp.supplier_price?.delivery_mode === 'DELIVERY'
+                        opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY'
                           ? 'border-terminal-success text-terminal-success'
                           : 'border-terminal-accent text-terminal-accent'
                       }`}>
-                        {opp.supplier_price?.delivery_mode === 'DELIVERY' ? 'DDP' : 'EXW'}
+                        {opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY' ? 'DDP' : 'EXW'}
                       </Badge>
                     </div>
                     {opp.customer_feedback && (

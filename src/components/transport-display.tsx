@@ -8,6 +8,7 @@ interface TransportDisplayProps {
 
 export function TransportDisplay({ opportunity }: TransportDisplayProps) {
   const hasTransporter = opportunity.selected_transporter?.name
+  const hasTransportBand = opportunity.selected_transport_band || opportunity.selected_transport_band_id
   const deliveryMode = opportunity.supplier_price?.delivery_mode
 
   // Get hub information from supplier price
@@ -24,6 +25,7 @@ export function TransportDisplay({ opportunity }: TransportDisplayProps) {
       deliveryMode,
       hubName,
       hasTransporter,
+      hasTransportBand,
       origin,
       destination
     })
@@ -42,8 +44,8 @@ export function TransportDisplay({ opportunity }: TransportDisplayProps) {
   // Check if we have supplier transport info from delivery mode even without a transporter
   const hasSupplierTransport = isSupplierDelivery && hubName
 
-  // If there's a transporter with route info
-  if (hasTransporter) {
+  // If there's a transporter with route info OR transport band is selected (meaning DDP/Delivery)
+  if (hasTransporter || hasTransportBand) {
     return (
       <div className="space-y-1 text-xs font-mono">
         <div className="flex items-center gap-1">
@@ -83,9 +85,9 @@ export function TransportDisplay({ opportunity }: TransportDisplayProps) {
           </div>
         ) : null}
 
-        {/* Show Third Party Transport for transporter deliveries */}
-        <Badge variant="outline" className="text-xs border-terminal-border text-terminal-text font-mono">
-          Third Party Transport
+        {/* Show DDP badge for transporter/transport band deliveries */}
+        <Badge variant="outline" className="text-xs border-terminal-success text-terminal-success font-mono">
+          DDP
         </Badge>
       </div>
     )
@@ -138,11 +140,16 @@ export function TransportDisplay({ opportunity }: TransportDisplayProps) {
         <>
           <div className="flex items-center gap-1 text-terminal-text">
             <Building className="h-3 w-3" />
-            <span>Ex Works {origin}</span>
+            <span>Ex Works {hubName || origin}</span>
           </div>
           <Badge variant="outline" className="text-xs border-terminal-border text-terminal-text font-mono">
             Ex Works
           </Badge>
+          {hubCode && (
+            <div className="text-xs text-terminal-muted">
+              Hub: {hubCode}
+            </div>
+          )}
         </>
       )}
 

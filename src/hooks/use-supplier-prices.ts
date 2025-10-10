@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { useEffect } from 'react'
 
 export interface SupplierPrice {
   id: string
@@ -58,34 +59,169 @@ export interface CurrentSupplierPrice extends SupplierPrice {
   }
 }
 
-// Fetch current active prices from the view
+// Fetch current active prices from the view (including recently expired ones)
 export function useCurrentSupplierPrices(supplierId?: string) {
   return useQuery({
     queryKey: ['current-supplier-prices', supplierId],
     queryFn: async () => {
-      let query = supabase
+      const now = new Date()
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+      // First, get active prices from the view
+      let activeQuery = supabase
         .from('current_supplier_prices')
-        .select(`
-          *,
-          suppliers:supplier_id (
-            agent_id,
-            staff:agent_id (
-              id,
-              name,
-              role
-            )
-          )
-        `)
+        .select('*')
         .order('product_name', { ascending: true })
 
       if (supplierId) {
-        query = query.eq('supplier_id', supplierId)
+        activeQuery = activeQuery.eq('supplier_id', supplierId)
       }
 
-      const { data, error } = await query
+      const { data: activeData, error: activeError } = await activeQuery
 
-      if (error) throw error
-      return data as CurrentSupplierPrice[]
+      if (activeError) throw activeError
+
+      // Then, get recently expired prices (active but expired within 7 days)
+      let expiredQuery = supabase
+        .from('supplier_prices')
+        .select(`
+          id,
+          supplier_id,
+          supplier_product_packaging_spec_id,
+          hub_id,
+          price_per_unit,
+          currency,
+          delivery_mode,
+          valid_from,
+          valid_until,
+          is_active,
+          created_at,
+          notes
+        `)
+        .eq('is_active', true)
+        .lt('valid_until', now.toISOString())
+        .gte('valid_until', sevenDaysAgo.toISOString())
+
+      if (supplierId) {
+        expiredQuery = expiredQuery.eq('supplier_id', supplierId)
+      }
+
+      const { data: expiredRaw, error: expiredError } = await expiredQuery
+
+      if (expiredError) throw expiredError
+
+      // Enrich expired prices with product/supplier/hub info
+      const enrichedExpired = await Promise.all(
+        (expiredRaw || []).map(async (price) => {
+          // Get supplier info
+          const { data: supplier } = await supabase
+            .from('suppliers')
+            .select('id, name, agent_id')
+            .eq('id', price.supplier_id)
+            .single()
+
+          // Get hub info
+          const { data: hub } = await supabase
+            .from('hubs')
+            .select('id, name, city, country, hub_code')
+            .eq('id', price.hub_id)
+            .single()
+
+          // Get product spec info
+          const { data: supplierSpec } = await supabase
+            .from('supplier_product_packaging_spec')
+            .select(`
+              product_packaging_specs (
+                id,
+                product_id,
+                boxes_per_pallet,
+                weight_per_box,
+                weight_per_pallet,
+                weight_unit,
+                products (id, name, category, sold_by),
+                packaging_options (label),
+                size_options (name)
+              )
+            `)
+            .eq('id', price.supplier_product_packaging_spec_id)
+            .single()
+
+          const spec = supplierSpec?.product_packaging_specs
+          const product = spec?.products
+
+          return {
+            ...price,
+            supplier_name: supplier?.name || '',
+            hub_name: hub?.name || '',
+            hub_code: hub?.hub_code || '',
+            hub_city: hub?.city || '',
+            hub_country: hub?.country || '',
+            product_packaging_spec_id: spec?.id || '',
+            product_id: product?.id || '',
+            product_name: product?.name || '',
+            sold_by: product?.sold_by || '',
+            packaging_label: spec?.packaging_options?.label || '',
+            size_name: spec?.size_options?.name || '',
+            boxes_per_pallet: spec?.boxes_per_pallet || 0,
+            weight_per_box: spec?.weight_per_box || 0,
+            weight_per_pallet: spec?.weight_per_pallet || 0,
+            weight_unit: spec?.weight_unit || '',
+            units_per_pallet: product?.sold_by?.toLowerCase().includes('kg')
+              ? (spec?.weight_per_pallet || 0)
+              : (spec?.boxes_per_pallet || 0),
+            product_packaging_specs: {
+              products: {
+                id: product?.id || '',
+                name: product?.name || '',
+                category: product?.category || '',
+                sold_by: product?.sold_by || ''
+              },
+              weight_per_pallet: spec?.weight_per_pallet || 0,
+              boxes_per_pallet: spec?.boxes_per_pallet || 0,
+              weight_per_box: spec?.weight_per_box || 0,
+              weight_unit: spec?.weight_unit || ''
+            },
+            suppliers: {
+              agent_id: supplier?.agent_id || null,
+              staff: null
+            }
+          }
+        })
+      )
+
+      // Combine active and expired prices
+      const allPrices = [...(activeData || []), ...enrichedExpired]
+
+      // Get staff info for all unique agent IDs
+      const agentIds = [...new Set(allPrices.map(p => p.suppliers?.agent_id).filter(Boolean))]
+      let staffMap = new Map()
+
+      if (agentIds.length > 0) {
+        const { data: staffData } = await supabase
+          .from('staff')
+          .select('id, name, role')
+          .in('id', agentIds)
+
+        staffData?.forEach(s => staffMap.set(s.id, s))
+      }
+
+      // Add staff info to all prices
+      const finalPrices = allPrices.map(p => ({
+        ...p,
+        suppliers: {
+          ...p.suppliers,
+          staff: p.suppliers?.agent_id ? staffMap.get(p.suppliers.agent_id) : null
+        }
+      }))
+
+      // Sort: active first, then by product name
+      return finalPrices.sort((a, b) => {
+        const aExpired = new Date(a.valid_until) < now
+        const bExpired = new Date(b.valid_until) < now
+
+        if (aExpired !== bExpired) return aExpired ? 1 : -1
+        return a.product_name.localeCompare(b.product_name)
+      }) as CurrentSupplierPrice[]
     },
     enabled: true
   })
@@ -324,6 +460,44 @@ export function usePriceHistory(
   })
 }
 
+// Extend price by 1 day
+export function useExtendPriceByDay() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (priceId: string) => {
+      // Get the current price
+      const { data: currentPrice, error: fetchError } = await supabase
+        .from('supplier_prices')
+        .select('valid_until')
+        .eq('id', priceId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      // Calculate new date (current valid_until + 1 day)
+      const currentDate = new Date(currentPrice.valid_until)
+      const newDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000)
+
+      // Update the price
+      const { error } = await supabase
+        .from('supplier_prices')
+        .update({ valid_until: newDate.toISOString() })
+        .eq('id', priceId)
+
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['current-supplier-prices'] })
+      queryClient.invalidateQueries({ queryKey: ['supplier-hub-prices'] })
+      toast.success('Price extended by 1 day')
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to extend price: ${error.message}`)
+    }
+  })
+}
+
 // Deactivate (soft delete) a price
 export function useDeactivateSupplierPrice() {
   const queryClient = useQueryClient()
@@ -390,4 +564,32 @@ export function useDeactivateSupplierPrice() {
       toast.error(`Failed to deactivate price: ${error.message}`)
     }
   })
+}
+
+// Realtime subscription for supplier prices
+export function useSupplierPricesRealtime() {
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('supplier_prices_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'supplier_prices'
+        },
+        () => {
+          // Invalidate all supplier price queries
+          queryClient.invalidateQueries({ queryKey: ['current-supplier-prices'] })
+          queryClient.invalidateQueries({ queryKey: ['supplier-hub-prices'] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [queryClient])
 }

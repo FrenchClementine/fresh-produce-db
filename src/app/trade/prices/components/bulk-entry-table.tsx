@@ -157,6 +157,7 @@ export function BulkEntryTable({
                 <TableHead className="w-[120px] font-mono text-terminal-muted">Price *</TableHead>
                 <TableHead className="w-[100px] font-mono text-terminal-muted">Units/Pallet</TableHead>
                 <TableHead className="w-[150px] font-mono text-terminal-muted">Hub</TableHead>
+                <TableHead className="w-[130px] font-mono text-terminal-muted">Delivery Mode</TableHead>
                 <TableHead className="w-[120px] font-mono text-terminal-muted">Valid Until</TableHead>
                 <TableHead className="w-[100px] font-mono text-terminal-muted">Actions</TableHead>
               </TableRow>
@@ -164,7 +165,7 @@ export function BulkEntryTable({
             <TableBody>
               {entries.length === 0 ? (
                 <TableRow className="border-terminal-border">
-                  <TableCell colSpan={7} className="h-24 text-center">
+                  <TableCell colSpan={8} className="h-24 text-center">
                     <div className="flex flex-col items-center gap-2 text-terminal-muted font-mono">
                       <Package className="h-8 w-8 text-terminal-accent" />
                       <p>No entries yet. Click "Add Row" to start.</p>
@@ -265,6 +266,28 @@ export function BulkEntryTable({
                           {hubs.map(hub => (
                             <SelectItem key={hub.id} value={hub.id} className="font-mono text-terminal-text">
                               {hub.name} ({hub.hub_code})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+
+                    {/* Delivery Mode */}
+                    <TableCell>
+                      <Select
+                        value={entry.delivery_mode || 'default'}
+                        onValueChange={(value) => onUpdateEntry(entry.id, 'delivery_mode', value === 'default' ? '' : value)}
+                      >
+                        <SelectTrigger className="text-sm bg-terminal-dark border-terminal-border text-terminal-text font-mono">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-terminal-panel border-terminal-border">
+                          <SelectItem value="default" className="font-mono text-terminal-text">
+                            <span className="text-terminal-muted">Use Default</span>
+                          </SelectItem>
+                          {deliveryModes.map(mode => (
+                            <SelectItem key={mode} value={mode} className="font-mono text-terminal-text">
+                              {mode}
                             </SelectItem>
                           ))}
                         </SelectContent>

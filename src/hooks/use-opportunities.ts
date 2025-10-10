@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { Opportunity, CreateOpportunityData, UpdateOpportunityData, OpportunitySummary, OpportunityStatus, OpportunityPriority } from '@/types/opportunities'
 import { toast } from 'sonner'
+import { useEffect } from 'react'
 
 // Get all opportunities with filters
 async function fetchOpportunities(
@@ -13,6 +14,17 @@ async function fetchOpportunities(
   assignedTo?: string
 ): Promise<Opportunity[]> {
   console.log('🔍 Fetching opportunities...', { statusFilter, priorityFilter, activeOnly, assignedTo })
+
+  // First, cleanup any opportunities with expired supplier prices
+  try {
+    const { data: cleanupResult, error: cleanupError } = await supabase.rpc('cleanup_expired_opportunities')
+    if (!cleanupError && cleanupResult > 0) {
+      console.log(`🧹 Cleaned up ${cleanupResult} opportunities with expired prices`)
+    }
+  } catch (error) {
+    console.error('Error cleaning up expired opportunities:', error)
+    // Continue anyway - this is not critical
+  }
 
   let query = supabase
     .from('opportunities')
@@ -368,6 +380,10 @@ async function createOpportunity(data: CreateOpportunityData): Promise<Opportuni
 
     if (error) {
       console.error('❌ Supabase error creating opportunity:', error)
+      console.error('❌ Error code:', error.code)
+      console.error('❌ Error details:', error.details)
+      console.error('❌ Error hint:', error.hint)
+      // Re-throw with the error object so calling code can check error.code
       throw error
     }
 
@@ -495,4 +511,32 @@ export function useDeleteOpportunity() {
       toast.error('Failed to delete opportunity')
     },
   })
+}
+
+// Realtime subscription for opportunities
+export function useOpportunitiesRealtime() {
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('opportunities_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'opportunities'
+        },
+        () => {
+          // Invalidate all opportunity queries
+          queryClient.invalidateQueries({ queryKey: ['opportunities'] })
+          queryClient.invalidateQueries({ queryKey: ['opportunity-summary'] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [queryClient])
 }

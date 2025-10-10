@@ -317,10 +317,20 @@ export function QueueMode({ potentials, onRefresh }: QueueModeProps) {
               </div>
             )}
 
+            {/* Price Delivered To */}
+            {currentItem.supplierPrice?.hubName && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
+                <div className="font-semibold text-blue-900">📍 PRICE DELIVERED TO</div>
+                <div className="text-sm">
+                  {currentItem.supplierPrice.hubName}
+                </div>
+              </div>
+            )}
+
             {/* Transport */}
             {currentItem.transportRoute && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-                <div className="font-semibold text-blue-900">🚚 LOGISTICS</div>
+                <div className="font-semibold text-blue-900">🚚 TRANSPORT</div>
                 <div className="text-sm">
                   {currentItem.transportRoute.transporterName} • {currentItem.transportRoute.durationDays} days
                 </div>

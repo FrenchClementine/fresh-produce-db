@@ -43,7 +43,7 @@ export function BuildOpportunityModal({ open, onClose, potential }: BuildOpportu
   const [pricePerUnit, setPricePerUnit] = useState('')
   const [currency, setCurrency] = useState('EUR')
   const [validUntil, setValidUntil] = useState(format(addDays(new Date(), 30), 'yyyy-MM-dd'))
-  const [deliveryMode, setDeliveryMode] = useState('EX_WORKS')
+  const [deliveryMode, setDeliveryMode] = useState('Ex Works')
   const [hubId, setHubId] = useState('')
 
   // Transport form state
@@ -85,7 +85,7 @@ export function BuildOpportunityModal({ open, onClose, potential }: BuildOpportu
     if (potential.supplierPrice) {
       setPricePerUnit(potential.supplierPrice.pricePerUnit.toString())
       setCurrency(potential.supplierPrice.currency)
-      setDeliveryMode(potential.supplierPrice.deliveryMode || 'EX_WORKS')
+      setDeliveryMode(potential.supplierPrice.deliveryMode || 'Ex Works')
       setHubId(potential.supplierPrice.hubId)
       if (potential.supplierPrice.validUntil) {
         setValidUntil(format(new Date(potential.supplierPrice.validUntil), 'yyyy-MM-dd'))
@@ -423,10 +423,9 @@ export function BuildOpportunityModal({ open, onClose, potential }: BuildOpportu
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="EX_WORKS">Ex Works</SelectItem>
-                          <SelectItem value="FOB">FOB</SelectItem>
-                          <SelectItem value="CIF">CIF</SelectItem>
-                          <SelectItem value="DAP">DAP</SelectItem>
+                          <SelectItem value="Ex Works">Ex Works</SelectItem>
+                          <SelectItem value="DELIVERY">Delivery</SelectItem>
+                          <SelectItem value="TRANSIT">TRANSIT</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

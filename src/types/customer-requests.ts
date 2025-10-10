@@ -37,7 +37,7 @@ export interface CustomerProductRequest {
   // Pricing & Logistics
   target_price_per_unit?: number
   target_currency: string
-  delivery_mode: 'DELIVERY' | 'EX_WORKS'
+  delivery_mode: 'DELIVERY' | 'Ex Works' | 'TRANSIT'
   delivery_hub_id?: string
 
   // Timeline
@@ -158,7 +158,7 @@ export interface CreateCustomerRequestData {
   certifications?: string[]
   target_price_per_unit?: number
   target_currency?: string
-  delivery_mode: 'DELIVERY' | 'EX_WORKS'
+  delivery_mode: 'DELIVERY' | 'Ex Works' | 'TRANSIT'
   delivery_hub_id?: string
   needed_by_date?: string
   availability_window_start?: string

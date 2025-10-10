@@ -7,8 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { useCurrentSupplierPrices, useDeactivateSupplierPrice, useQuickUpdatePrice } from '@/hooks/use-supplier-prices'
-import { Trash2, Edit2, Save, X, Search, Package, Plus } from 'lucide-react'
+import { useCurrentSupplierPrices, useDeactivateSupplierPrice, useQuickUpdatePrice, useExtendPriceByDay } from '@/hooks/use-supplier-prices'
+import { Trash2, Edit2, Save, X, Search, Package, Plus, Clock } from 'lucide-react'
 import { format } from 'date-fns'
 import { useCurrentStaffMember } from '@/hooks/use-staff'
 
@@ -26,6 +26,7 @@ export function ManagePricesMode({ onAddNew }: ManagePricesModeProps) {
   const { data: prices, isLoading } = useCurrentSupplierPrices()
   const deactivatePrice = useDeactivateSupplierPrice()
   const updatePrice = useQuickUpdatePrice()
+  const extendPrice = useExtendPriceByDay()
   const { data: currentStaff } = useCurrentStaffMember()
 
   // Get unique suppliers for filter
@@ -138,13 +139,16 @@ export function ManagePricesMode({ onAddNew }: ManagePricesModeProps) {
         <CardHeader className="border-b border-terminal-border">
           <CardTitle className="flex items-center gap-2 font-mono text-sm text-terminal-text">
             <Package className="h-4 w-4 text-terminal-accent" />
-            ACTIVE PRICES
+            RECENT PRICES
             {filteredPrices && (
               <Badge variant="secondary" className="bg-terminal-success/20 text-terminal-success border-terminal-success font-mono">
                 {filteredPrices.length} item{filteredPrices.length !== 1 ? 's' : ''}
               </Badge>
             )}
           </CardTitle>
+          <p className="text-xs text-terminal-muted font-mono mt-1">
+            Showing active and recently expired prices (within 7 days)
+          </p>
         </CardHeader>
         <CardContent className="pt-6">
           {isLoading ? (
@@ -168,9 +172,10 @@ export function ManagePricesMode({ onAddNew }: ManagePricesModeProps) {
                 <TableBody>
                   {filteredPrices.map((price) => {
                     const isEditing = editingId === price.id
+                    const isExpired = new Date(price.valid_until) < new Date()
 
                     return (
-                      <TableRow key={price.id} className="border-terminal-border hover:bg-terminal-dark/50">
+                      <TableRow key={price.id} className={`border-terminal-border hover:bg-terminal-dark/50 ${isExpired ? 'opacity-60' : ''}`}>
                         <TableCell className="font-mono text-terminal-text text-sm">
                           {price.supplier_name}
                         </TableCell>
@@ -198,7 +203,7 @@ export function ManagePricesMode({ onAddNew }: ManagePricesModeProps) {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="font-mono text-xs border-terminal-border text-terminal-text">
-                            {price.delivery_mode}
+                            {price.delivery_mode === 'DELIVERY' ? 'DELIVERY' : 'Ex Works'}
                           </Badge>
                         </TableCell>
                         <TableCell className="font-mono text-terminal-text text-sm">
@@ -210,7 +215,14 @@ export function ManagePricesMode({ onAddNew }: ManagePricesModeProps) {
                               className="w-36 bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                             />
                           ) : (
-                            price.valid_until ? format(new Date(price.valid_until), 'dd MMM yyyy') : '-'
+                            <div className="flex items-center gap-2">
+                              {price.valid_until ? format(new Date(price.valid_until), 'dd MMM yyyy') : '-'}
+                              {isExpired && (
+                                <Badge variant="outline" className="bg-terminal-alert/20 text-terminal-alert border-terminal-alert font-mono text-xs">
+                                  EXPIRED
+                                </Badge>
+                              )}
+                            </div>
                           )}
                         </TableCell>
                         <TableCell>
@@ -234,6 +246,17 @@ export function ManagePricesMode({ onAddNew }: ManagePricesModeProps) {
                               </>
                             ) : (
                               <>
+                                {isExpired && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => extendPrice.mutate(price.id)}
+                                    disabled={extendPrice.isPending}
+                                    className="bg-terminal-warning hover:bg-yellow-600 text-terminal-dark font-mono"
+                                    title="Extend by 1 day"
+                                  >
+                                    <Clock className="h-3 w-3" />
+                                  </Button>
+                                )}
                                 <Button
                                   size="sm"
                                   onClick={() => handleEdit(price)}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -26,10 +26,12 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { useProductSpecs } from '@/hooks/use-products'
+import { useSupplierProducts } from '@/hooks/use-suppliers'
 import {
   Popover,
   PopoverContent,
@@ -128,6 +130,17 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
   const [isProductPopoverOpen, setIsProductPopoverOpen] = useState(false)
   const queryClient = useQueryClient()
   const { productSpecs, isLoading: isLoadingSpecs } = useProductSpecs()
+  const { data: existingSupplierProducts } = useSupplierProducts(supplierId)
+
+  // Create a Set of already-linked product packaging spec IDs for quick lookup
+  const alreadyLinkedSpecIds = useMemo(() => {
+    if (!existingSupplierProducts) return new Set<string>()
+    return new Set(
+      existingSupplierProducts
+        .map(sp => sp.product_packaging_specs?.id)
+        .filter(Boolean)
+    )
+  }, [existingSupplierProducts])
 
   const form = useForm<AddSupplierProductFormValues>({
     resolver: zodResolver(addSupplierProductSchema),
@@ -332,13 +345,13 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[520px] p-0 bg-terminal-panel border-terminal-border">
-                      <Command className="bg-terminal-panel">
+                    <PopoverContent className="w-[520px] h-[500px] p-0 bg-terminal-panel border-terminal-border">
+                      <Command className="bg-terminal-panel h-full flex flex-col">
                         <CommandInput
                           placeholder="Type to search products..."
                           value={productSearchQuery}
                           onValueChange={setProductSearchQuery}
-                          className="font-mono text-terminal-text"
+                          className="font-mono text-terminal-text shrink-0"
                         />
                         <CommandEmpty className="text-terminal-muted font-mono p-4">
                           {isLoadingSpecs
@@ -348,35 +361,54 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                               : 'No product specifications found.'}
                         </CommandEmpty>
                         {filteredSpecs.length > 0 && (
-                          <CommandGroup className="max-h-72 overflow-y-auto overflow-x-hidden">
-                            {filteredSpecs.map((spec) => (
-                              <CommandItem
-                                key={spec.id}
-                                value={`${spec.products?.name} ${spec.packaging_options?.label} ${spec.size_options?.name} ${spec.pallets?.label}`}
-                                onSelect={() => {
-                                  const isSelected = field.value?.includes(spec.id)
-                                  if (isSelected) {
-                                    field.onChange(field.value.filter((id) => id !== spec.id))
-                                  } else {
-                                    field.onChange([...(field.value || []), spec.id])
-                                  }
-                                }}
-                                className="font-mono text-terminal-text hover:bg-terminal-dark"
-                              >
-                                <Check
+                          <CommandGroup className="overflow-y-auto overflow-x-hidden flex-1">
+                            {filteredSpecs.map((spec) => {
+                              const isAlreadyLinked = alreadyLinkedSpecIds.has(spec.id)
+                              const isSelected = field.value?.includes(spec.id)
+
+                              return (
+                                <CommandItem
+                                  key={spec.id}
+                                  value={`${spec.products?.name} ${spec.packaging_options?.label} ${spec.size_options?.name} ${spec.pallets?.label}`}
+                                  onSelect={() => {
+                                    if (isAlreadyLinked) {
+                                      toast.info('This product is already linked to the supplier')
+                                      return
+                                    }
+
+                                    if (isSelected) {
+                                      field.onChange(field.value.filter((id) => id !== spec.id))
+                                    } else {
+                                      field.onChange([...(field.value || []), spec.id])
+                                    }
+                                  }}
                                   className={cn(
-                                    'mr-2 h-4 w-4 text-terminal-accent',
-                                    field.value?.includes(spec.id) ? 'opacity-100' : 'opacity-0'
+                                    'font-mono text-terminal-text hover:bg-terminal-dark',
+                                    isAlreadyLinked && 'opacity-60'
                                   )}
-                                />
-                                <div className="flex flex-col">
-                                  <span className="font-medium text-terminal-text">{spec.products?.name}</span>
-                                  <span className="text-sm text-terminal-muted">
-                                    {spec.packaging_options?.label} ({spec.size_options?.name}) on {spec.pallets?.label}
-                                  </span>
-                                </div>
-                              </CommandItem>
-                            ))}
+                                >
+                                  <Check
+                                    className={cn(
+                                      'mr-2 h-4 w-4 text-terminal-accent',
+                                      isSelected ? 'opacity-100' : 'opacity-0'
+                                    )}
+                                  />
+                                  <div className="flex flex-col flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium text-terminal-text">{spec.products?.name}</span>
+                                      {isAlreadyLinked && (
+                                        <Badge variant="outline" className="text-[10px] bg-terminal-dark border-terminal-accent text-terminal-accent font-mono">
+                                          ALREADY ADDED
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <span className="text-sm text-terminal-muted">
+                                      {spec.packaging_options?.label} ({spec.size_options?.name}) on {spec.pallets?.label}
+                                    </span>
+                                  </div>
+                                </CommandItem>
+                              )
+                            })}
                           </CommandGroup>
                         )}
                       </Command>

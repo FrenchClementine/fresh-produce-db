@@ -178,7 +178,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
 
   if (supplierLogisticsError) throw supplierLogisticsError
 
-  // 9. Get existing opportunities to check which potentials already have opportunities
+  // 9. Get existing ACTIVE opportunities to check which potentials already have opportunities
   const { data: existingOpportunities, error: opportunitiesError } = await supabase
     .from('opportunities')
     .select(`
@@ -195,6 +195,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
       valid_till,
       quote_feedback
     `)
+    .eq('is_active', true)
 
   if (opportunitiesError) throw opportunitiesError
 

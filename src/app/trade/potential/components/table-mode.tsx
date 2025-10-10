@@ -275,6 +275,7 @@ export default function TradePotentialTableMode({
     }
 
     let successCount = 0
+    let duplicateCount = 0
     let errorCount = 0
 
     for (const id of Array.from(selectedIds)) {
@@ -282,6 +283,9 @@ export default function TradePotentialTableMode({
       if (!potential) continue
 
       const pricing = getPricingState(potential)
+
+      // Get transport band if available
+      const selectedBand = potential.transportRoute?.availableBands?.[pricing.selectedBandIndex]
 
       try {
         await createOpportunityMutation.mutateAsync({
@@ -293,12 +297,21 @@ export default function TradePotentialTableMode({
           status: 'draft',
           priority: 'medium',
           supplier_price_id: potential.supplierPrice?.id,
-          assigned_to: potential.customer.agent?.id
+          assigned_to: potential.customer.agent?.id,
+          // Add transport information - use transporterId not route id, and only if it exists
+          selected_transporter_id: potential.transportRoute?.transporterId || undefined,
+          selected_transport_band_id: selectedBand?.id || undefined
         })
         successCount++
-      } catch (error) {
-        console.error(`Failed to create opportunity for ${potential.id}:`, error)
-        errorCount++
+      } catch (error: any) {
+        // Check if it's a duplicate error (409 conflict)
+        if (error?.code === '23505' || error?.message?.includes('duplicate') || error?.message?.includes('unique')) {
+          console.log(`Opportunity already exists for ${potential.customer.name} - ${potential.product.name}`)
+          duplicateCount++
+        } else {
+          console.error(`Failed to create opportunity for ${potential.id}:`, error)
+          errorCount++
+        }
       }
     }
 
@@ -306,6 +319,10 @@ export default function TradePotentialTableMode({
       toast.success(`Created ${successCount} opportunities`)
       setSelectedIds(new Set())
       queryClient.invalidateQueries({ queryKey: ['trade-potential'] })
+    }
+
+    if (duplicateCount > 0) {
+      toast.warning(`Skipped ${duplicateCount} duplicate opportunities`)
     }
 
     if (errorCount > 0) {
@@ -353,6 +370,9 @@ export default function TradePotentialTableMode({
   const handleQuickCreate = async (potential: TradePotential) => {
     const pricing = getPricingState(potential)
 
+    // Get transport band if available
+    const selectedBand = potential.transportRoute?.availableBands?.[pricing.selectedBandIndex]
+
     try {
       await createOpportunityMutation.mutateAsync({
         customer_id: potential.customer.id,
@@ -363,7 +383,10 @@ export default function TradePotentialTableMode({
         status: 'draft',
         priority: 'medium',
         supplier_price_id: potential.supplierPrice?.id,
-        assigned_to: potential.customer.agent?.id
+        assigned_to: potential.customer.agent?.id,
+        // Add transport information - use transporterId not route id, and only if it exists
+        selected_transporter_id: potential.transportRoute?.transporterId || undefined,
+        selected_transport_band_id: selectedBand?.id || undefined
       })
 
       toast.success('Opportunity created!')

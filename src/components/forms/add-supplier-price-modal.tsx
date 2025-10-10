@@ -43,7 +43,7 @@ const formSchema = z.object({
   hub_id: z.string().min(1, 'Hub is required'),
   price_per_unit: z.string().min(1, 'Price is required'),
   currency: z.string().default('EUR'),
-  delivery_mode: z.enum(['DELIVERY', 'EX_WORKS']),
+  delivery_mode: z.enum(['DELIVERY', 'Ex Works', 'TRANSIT']),
   valid_from: z.string().min(1, 'Valid from date is required'),
   valid_until: z.string().min(1, 'Valid until date is required'),
   notes: z.string().optional(),
@@ -276,8 +276,9 @@ export function AddSupplierPriceModal({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="bg-terminal-dark border-terminal-border">
+                        <SelectItem value="Ex Works">Ex Works</SelectItem>
                         <SelectItem value="DELIVERY">DDP (Delivered Duty Paid)</SelectItem>
-                        <SelectItem value="EX_WORKS">Ex Works</SelectItem>
+                        <SelectItem value="TRANSIT">TRANSIT</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

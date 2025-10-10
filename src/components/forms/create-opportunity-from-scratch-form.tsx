@@ -48,7 +48,7 @@ export function CreateOpportunityFromScratchForm({ open, onClose }: CreateOpport
   // Step 3: Pricing
   const [supplierPricePerUnit, setSupplierPricePerUnit] = useState('')
   const [currency, setCurrency] = useState('EUR')
-  const [deliveryMode, setDeliveryMode] = useState('EX_WORKS')
+  const [deliveryMode, setDeliveryMode] = useState('Ex Works')
   const [hubId, setHubId] = useState('')
 
   // Step 4: Transport
@@ -280,11 +280,9 @@ export function CreateOpportunityFromScratchForm({ open, onClose }: CreateOpport
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-terminal-panel border-terminal-border">
-                        <SelectItem value="EX_WORKS" className="font-mono text-terminal-text">Ex Works</SelectItem>
-                        <SelectItem value="FOB" className="font-mono text-terminal-text">FOB</SelectItem>
-                        <SelectItem value="CIF" className="font-mono text-terminal-text">CIF</SelectItem>
-                        <SelectItem value="DAP" className="font-mono text-terminal-text">DAP</SelectItem>
+                        <SelectItem value="Ex Works" className="font-mono text-terminal-text">Ex Works</SelectItem>
                         <SelectItem value="DELIVERY" className="font-mono text-terminal-text">Delivery</SelectItem>
+                        <SelectItem value="TRANSIT" className="font-mono text-terminal-text">TRANSIT</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

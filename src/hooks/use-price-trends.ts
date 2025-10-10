@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { subDays, format, parseISO } from 'date-fns'
+import { useEffect } from 'react'
 
 export interface ProductPriceTrend {
   product_id: string
@@ -22,14 +23,17 @@ interface SupplierPriceData {
   price_per_unit: number
   currency: string
   created_at: string
-  product_packaging_specs: {
+  supplier_product_packaging_spec: {
     id: string
-    product_id: string
-    products: {
+    product_packaging_specs: {
       id: string
-      name: string
-      category: string
-      sold_by: string
+      product_id: string
+      products: {
+        id: string
+        name: string
+        category: string
+        sold_by: string
+      }
     }
   }
 }
@@ -42,6 +46,7 @@ export function usePriceTrends() {
       const tenDaysAgo = subDays(new Date(), 10).toISOString()
 
       // Fetch all supplier prices from last 10 days with product info
+      // Only include Ex Works prices to avoid too many delivered goods prices
       const { data: supplierPrices, error } = await supabase
         .from('supplier_prices')
         .select(`
@@ -49,17 +54,21 @@ export function usePriceTrends() {
           price_per_unit,
           currency,
           created_at,
-          product_packaging_specs!inner(
+          supplier_product_packaging_spec!inner(
             id,
-            product_id,
-            products!inner(
+            product_packaging_specs!inner(
               id,
-              name,
-              category,
-              sold_by
+              product_id,
+              products!inner(
+                id,
+                name,
+                category,
+                sold_by
+              )
             )
           )
         `)
+        .eq('delivery_mode', 'Ex Works')
         .gte('created_at', tenDaysAgo)
         .gte('valid_until', new Date().toISOString())
         .order('created_at', { ascending: false })
@@ -90,7 +99,7 @@ function processPriceTrends(supplierPrices: SupplierPriceData[]): ProductPriceTr
   }>()
 
   supplierPrices.forEach(sp => {
-    const product = sp.product_packaging_specs.products
+    const product = sp.supplier_product_packaging_spec.product_packaging_specs.products
     const date = format(parseISO(sp.created_at), 'yyyy-MM-dd')
 
     if (!productMap.has(product.id)) {
@@ -166,4 +175,31 @@ function processPriceTrends(supplierPrices: SupplierPriceData[]): ProductPriceTr
   trends.sort((a, b) => a.product_name.localeCompare(b.product_name))
 
   return trends
+}
+
+// Realtime subscription for price trends
+export function usePriceTrendsRealtime() {
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('price_trends_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'supplier_prices'
+        },
+        () => {
+          // Invalidate price trends query
+          queryClient.invalidateQueries({ queryKey: ['price-trends'] })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [queryClient])
 }
