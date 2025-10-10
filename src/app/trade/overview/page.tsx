@@ -18,6 +18,7 @@ import {
 import { useOpportunitySummary, useOpportunitiesRealtime } from '@/hooks/use-opportunities'
 import { useCurrentSupplierPrices, useSupplierPricesRealtime } from '@/hooks/use-supplier-prices'
 import { usePriceTrendsRealtime } from '@/hooks/use-price-trends'
+import { useCustomerRequests } from '@/hooks/use-customer-requests'
 import { SupplierPricesPanel } from './components/supplier-prices-panel'
 import { WeatherCropIntel } from './components/weather-crop-intel'
 import { ActiveOpportunitiesTerminal } from './components/active-opportunities-terminal'
@@ -28,6 +29,7 @@ export default function TradeOverviewTerminal() {
   const router = useRouter()
   const { data: summary } = useOpportunitySummary()
   const { data: supplierPrices } = useCurrentSupplierPrices()
+  const { data: activeRequests } = useCustomerRequests({ status: 'open' })
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null)
   const [showPrintModal, setShowPrintModal] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -128,7 +130,7 @@ export default function TradeOverviewTerminal() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-terminal-muted text-xs font-mono mb-1">OPPORTUNITIES</div>
+                <div className="text-terminal-muted text-xs font-mono mb-1">Opportunity</div>
                 <div className="text-3xl font-mono font-bold text-terminal-text">
                   {summary?.total || 0}
                 </div>
@@ -142,12 +144,12 @@ export default function TradeOverviewTerminal() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-terminal-muted text-xs font-mono mb-1">OFFERED</div>
+                <div className="text-terminal-muted text-xs font-mono mb-1">Active Requests</div>
                 <div className="text-3xl font-mono font-bold text-terminal-warning">
-                  {summary?.offered || 0}
+                  {activeRequests?.length || 0}
                 </div>
               </div>
-              <DollarSign className="h-8 w-8 text-terminal-warning" />
+              <Package className="h-8 w-8 text-terminal-warning" />
             </div>
           </CardContent>
         </Card>
