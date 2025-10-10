@@ -439,8 +439,6 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
                               <div className="space-y-1">
                                 <div className="flex items-center gap-3 text-xs font-mono text-terminal-muted">
                                   <span>🏷️ {group.opportunities.length} Product{group.opportunities.length > 1 ? 's' : ''}</span>
-                                  <span>•</span>
-                                  <span>💰 Total: €{totalValue.toFixed(2)}</span>
                                 </div>
                                 <div className="text-xs font-mono text-terminal-muted">
                                   📦 {uniqueSuppliers.length} Supplier{uniqueSuppliers.length > 1 ? 's' : ''}: {uniqueSuppliers.slice(0, 2).join(', ')}{uniqueSuppliers.length > 2 ? ` +${uniqueSuppliers.length - 2} more` : ''}

@@ -6,12 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command'
 import { useCurrentSupplierPrices, useDeactivateSupplierPrice, useQuickUpdatePrice } from '@/hooks/use-supplier-prices'
-import { Trash2, Edit2, Save, X, DollarSign, ChevronsUpDown, Check } from 'lucide-react'
+import { Trash2, Edit2, Save, X, DollarSign, ChevronsUpDown, Check, ChevronDown, ChevronUp, Package } from 'lucide-react'
 import { format } from 'date-fns'
 import { useCurrentStaffMember } from '@/hooks/use-staff'
 import { useSuppliers } from '@/hooks/use-suppliers'
@@ -28,6 +27,7 @@ export function SupplierPricesPanel() {
   const [isHovering, setIsHovering] = useState(false)
   const [productSearchOpen, setProductSearchOpen] = useState(false)
   const [productSearchQuery, setProductSearchQuery] = useState('')
+  const [expandedSuppliers, setExpandedSuppliers] = useState<Set<string>>(new Set())
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const { data: prices, isLoading } = useCurrentSupplierPrices()
@@ -83,6 +83,40 @@ export function SupplierPricesPanel() {
       return true
     })
   }, [prices, supplierFilter, productFilter])
+
+  // Group prices by supplier
+  const groupedPrices = useMemo(() => {
+    const groups = new Map()
+
+    filteredPrices.forEach(price => {
+      if (!price.supplier_id) return
+
+      if (!groups.has(price.supplier_id)) {
+        groups.set(price.supplier_id, {
+          supplierId: price.supplier_id,
+          supplierName: price.supplier_name,
+          prices: []
+        })
+      }
+
+      groups.get(price.supplier_id).prices.push(price)
+    })
+
+    return Array.from(groups.values())
+  }, [filteredPrices])
+
+  // Toggle supplier expansion
+  const toggleSupplierExpansion = (supplierId: string) => {
+    setExpandedSuppliers(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(supplierId)) {
+        newSet.delete(supplierId)
+      } else {
+        newSet.add(supplierId)
+      }
+      return newSet
+    })
+  }
 
   // Auto-scroll functionality
   useEffect(() => {
@@ -248,107 +282,152 @@ export function SupplierPricesPanel() {
           </div>
         </div>
 
-        {/* Prices Table */}
-        <div className="rounded-md border border-terminal-border overflow-hidden">
-          <div
-            ref={scrollContainerRef}
-            className="max-h-[calc(100vh-28rem)] overflow-y-auto scroll-smooth"
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
-          >
-            <Table>
-              <TableHeader className="sticky top-0 bg-terminal-panel z-10">
-                <TableRow className="border-terminal-border hover:bg-terminal-dark">
-                  <TableHead className="font-mono text-terminal-muted text-xs">SUPPLIER</TableHead>
-                  <TableHead className="font-mono text-terminal-muted text-xs">PRODUCT</TableHead>
-                  <TableHead className="font-mono text-terminal-muted text-xs">HUB</TableHead>
-                  <TableHead className="font-mono text-terminal-muted text-xs">PRICE</TableHead>
-                  <TableHead className="font-mono text-terminal-muted text-xs">ACTIONS</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPrices.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-terminal-muted font-mono text-xs">
-                      No prices found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredPrices.map((price) => {
-                    const isEditing = editingId === price.id
-                    const isExpired = price.valid_until && new Date(price.valid_until) < new Date()
-                    const isFlashing = flashingIds.has(price.id)
+        {/* Grouped Prices */}
+        <div
+          ref={scrollContainerRef}
+          className="max-h-[calc(100vh-28rem)] overflow-y-auto scroll-smooth divide-y divide-terminal-border border border-terminal-border rounded-md"
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => setIsHovering(false)}
+        >
+          {groupedPrices.length === 0 ? (
+            <div className="text-center py-8 text-terminal-muted font-mono text-xs">
+              No prices found
+            </div>
+          ) : (
+            groupedPrices.map((group) => {
+              const isExpanded = expandedSuppliers.has(group.supplierId)
+              const uniqueProducts = Array.from(new Set(group.prices.map(p => p.product_name)))
+              const hasFlashingItems = group.prices.some(p => flashingIds.has(p.id))
 
-                    return (
-                      <TableRow
-                        key={price.id}
-                        className={`border-terminal-border transition-all duration-500 ${
-                          isFlashing
-                            ? 'bg-terminal-accent/10 shadow-lg shadow-terminal-accent/20'
-                            : 'hover:bg-terminal-dark/50'
-                        }`}
-                      >
-                        <TableCell className="font-mono text-terminal-text text-xs">
-                          {price.supplier_name}
-                          {isExpired && (
-                            <div className="text-[10px] text-terminal-alert font-semibold">EXPIRED</div>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-mono text-terminal-text text-xs">
-                          <div className="font-semibold">{price.product_name}</div>
-                          <div className="text-[10px] text-terminal-muted">
-                            {price.packaging_label} - {price.size_name}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-terminal-text text-xs">
-                          <div>{price.hub_name || 'No Hub'}</div>
-                          {price.hub_code && (
-                            <div className="text-[10px] text-terminal-muted">({price.hub_code})</div>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-mono text-terminal-text text-xs">
-                          {isEditing ? (
-                            <div className="flex items-center gap-1">
-                              <Input
-                                type="number"
-                                step="0.01"
-                                value={editPrice}
-                                onChange={(e) => setEditPrice(e.target.value)}
-                                onBlur={() => handleSave(price.id)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleSave(price.id)
-                                  if (e.key === 'Escape') handleCancel()
-                                }}
-                                autoFocus
-                                className="w-20 h-7 text-xs bg-terminal-dark border-terminal-border text-terminal-text font-mono"
-                              />
-                              <span className="text-[10px] text-terminal-muted">/{price.sold_by}</span>
-                            </div>
+              return (
+                <div
+                  key={group.supplierId}
+                  className={`transition-all duration-500 ${
+                    hasFlashingItems
+                      ? 'bg-terminal-accent/10 border-l-2 border-terminal-accent shadow-lg shadow-terminal-accent/20'
+                      : 'border-l-2 border-transparent'
+                  }`}
+                >
+                  {/* Collapsed Supplier Header */}
+                  <div
+                    className="p-3 hover:bg-terminal-dark cursor-pointer"
+                    onClick={() => toggleSupplierExpansion(group.supplierId)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Package className="h-4 w-4 text-terminal-success" />
+                          <span className="text-terminal-text text-sm font-mono font-semibold">
+                            {group.supplierName}
+                          </span>
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-terminal-muted" />
                           ) : (
-                            <div
-                              className="font-semibold cursor-pointer hover:text-terminal-accent transition-colors"
-                              onClick={() => handleEdit(price)}
-                            >
-                              €{price.price_per_unit.toFixed(2)}/{price.sold_by}
-                            </div>
+                            <ChevronDown className="h-4 w-4 text-terminal-muted" />
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            onClick={() => handleDelete(price.id)}
-                            className="h-6 w-6 p-0 bg-terminal-alert hover:bg-red-700 text-white font-mono"
+                        </div>
+
+                        {!isExpanded && (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-3 text-xs font-mono text-terminal-muted">
+                              <span>📦 {group.prices.length} Price{group.prices.length > 1 ? 's' : ''}</span>
+                            </div>
+                            <div className="text-xs font-mono text-terminal-muted">
+                              🏷️ {uniqueProducts.length} Product{uniqueProducts.length > 1 ? 's' : ''}: {uniqueProducts.slice(0, 2).join(', ')}{uniqueProducts.length > 2 ? ` +${uniqueProducts.length - 2} more` : ''}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expanded Prices List */}
+                  {isExpanded && (
+                    <div className="border-t border-terminal-border/50">
+                      {group.prices.map((price, index) => {
+                        const isEditing = editingId === price.id
+                        const isExpired = price.valid_until && new Date(price.valid_until) < new Date()
+                        const isFlashing = flashingIds.has(price.id)
+
+                        return (
+                          <div
+                            key={price.id}
+                            className={`p-3 ml-6 transition-all duration-500 ${
+                              index < group.prices.length - 1 ? 'border-b border-terminal-border/30' : ''
+                            } ${
+                              isFlashing
+                                ? 'bg-terminal-accent/5'
+                                : 'hover:bg-terminal-dark/50'
+                            }`}
                           >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <div className="font-mono text-terminal-text text-sm font-semibold">
+                                    {price.product_name}
+                                  </div>
+                                  {isExpired && (
+                                    <Badge variant="destructive" className="text-[10px] font-mono h-4">
+                                      EXPIRED
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="text-xs font-mono text-terminal-muted mb-2">
+                                  {price.packaging_label} - {price.size_name}
+                                </div>
+                                <div className="flex items-center gap-3 text-xs font-mono text-terminal-muted">
+                                  <span>📍 {price.hub_name || 'No Hub'}</span>
+                                  {price.hub_code && <span className="text-[10px]">({price.hub_code})</span>}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {isEditing ? (
+                                  <div className="flex items-center gap-1">
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      value={editPrice}
+                                      onChange={(e) => setEditPrice(e.target.value)}
+                                      onBlur={() => handleSave(price.id)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSave(price.id)
+                                        if (e.key === 'Escape') handleCancel()
+                                      }}
+                                      autoFocus
+                                      className="w-20 h-7 text-xs bg-terminal-dark border-terminal-border text-terminal-text font-mono"
+                                    />
+                                    <span className="text-xs text-terminal-muted font-mono">/{price.sold_by}</span>
+                                  </div>
+                                ) : (
+                                  <div
+                                    className="font-semibold cursor-pointer hover:text-terminal-accent transition-colors text-terminal-success font-mono text-sm"
+                                    onClick={() => handleEdit(price)}
+                                  >
+                                    €{price.price_per_unit.toFixed(2)}/{price.sold_by}
+                                  </div>
+                                )}
+                                <Button
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleDelete(price.id)
+                                  }}
+                                  className="h-6 w-6 p-0 bg-terminal-alert hover:bg-red-700 text-white font-mono"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          )}
         </div>
       </CardContent>
     </Card>
