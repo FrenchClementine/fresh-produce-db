@@ -187,16 +187,18 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
     text += `${'='.repeat(50)}\n\n`
 
     filteredOpportunities.forEach((opp, index) => {
-      const hubName = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || '-'
+      const originHub = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || opp.supplier?.city || '-'
+      const destinationHub = opp.delivery_hub?.name || opp.customer?.city || '-'
       const sizeName = opp.product_packaging_specs?.size_options?.name || '-'
       const packagingLabel = opp.product_packaging_specs?.packaging_options?.label || ''
       const deliveryMode = (opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY') ? 'DDP' : 'EXW'
+      const routeText = deliveryMode === 'DDP' ? `${originHub} → ${destinationHub}` : `${originHub} (pickup)`
 
       text += `${index + 1}. ${opp.customer?.name || '-'}\n`
       text += `   Product: ${opp.product_packaging_specs?.products?.name || '-'}\n`
       text += `   Size: ${packagingLabel} ${sizeName}\n`
       text += `   Price: €${opp.offer_price_per_unit?.toFixed(2)}/${opp.product_packaging_specs?.products?.sold_by || 'unit'} (${deliveryMode})\n`
-      text += `   Delivered to: ${hubName}\n`
+      text += `   ${deliveryMode === 'DDP' ? 'Route' : 'Pickup location'}: ${routeText}\n`
 
       if (opp.selected_transport_band?.price_per_pallet) {
         text += `   Transport: €${opp.selected_transport_band.price_per_pallet.toFixed(2)}/pallet\n`
@@ -243,7 +245,7 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
               <th>Customer</th>
               <th>Product</th>
               <th>Size</th>
-              <th>Delivered To</th>
+              <th>Route</th>
               <th>Sales Price</th>
               <th>Transport Band</th>
               <th>Status</th>
@@ -252,16 +254,19 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
           </thead>
           <tbody>
             ${filteredOpportunities.map(opp => {
-              const hubName = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || '-'
+              const originHub = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || opp.supplier?.city || '-'
+              const destinationHub = opp.delivery_hub?.name || opp.customer?.city || '-'
               const sizeName = opp.product_packaging_specs?.size_options?.name || '-'
               const packagingLabel = opp.product_packaging_specs?.packaging_options?.label || ''
+              const deliveryMode = (opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY') ? 'DDP' : 'EXW'
+              const routeText = deliveryMode === 'DDP' ? `${originHub} → ${destinationHub}` : `${originHub} (pickup)`
 
               return `
                 <tr>
                   <td>${opp.customer?.name || '-'}</td>
                   <td>${opp.product_packaging_specs?.products?.name || '-'}</td>
                   <td>${packagingLabel} ${sizeName}</td>
-                  <td>${hubName}</td>
+                  <td>${routeText}</td>
                   <td>€${opp.offer_price_per_unit?.toFixed(2)}/${opp.product_packaging_specs?.products?.sold_by || 'unit'}</td>
                   <td>${opp.selected_transport_band?.price_per_pallet ? `€${opp.selected_transport_band.price_per_pallet.toFixed(2)}` : '-'}</td>
                   <td class="status-${opp.status}">${opp.status?.toUpperCase() || '-'}</td>
@@ -411,7 +416,11 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
 
                   {/* Hub/Destination */}
                   <div className="text-terminal-muted text-xs font-mono mb-2">
-                    📍 {opp.supplier_price?.hub_name || opp.customer?.city || '-'}
+                    {(opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY') ? (
+                      <>📍 {opp.supplier_price?.hub_name || opp.supplier?.city || '-'} → {opp.delivery_hub?.name || opp.customer?.city || '-'}</>
+                    ) : (
+                      <>📍 {opp.supplier_price?.hub_name || opp.supplier?.city || '-'} (pickup)</>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between mb-2">
