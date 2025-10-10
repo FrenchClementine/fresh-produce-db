@@ -19,6 +19,8 @@ export interface OpportunityPriceStatus {
   price_change_detected_at?: string
   price_change_notes?: string
   supplier_price_per_unit: number
+  offer_price_per_unit?: number
+  status: string
   customer?: { name: string }
   supplier?: { name: string }
   product_packaging_specs?: {
@@ -75,7 +77,25 @@ export function useOpportunitiesWithPriceChanges() {
         throw error
       }
 
-      return data as OpportunityPriceStatus[]
+      // Transform the data to match the expected interface
+      return (data as any[]).map((item: any) => ({
+        id: item.id,
+        price_status: item.price_status,
+        price_change_detected_at: item.price_change_detected_at,
+        price_change_notes: item.price_change_notes,
+        supplier_price_per_unit: item.supplier_price_per_unit,
+        offer_price_per_unit: item.offer_price_per_unit,
+        status: item.status,
+        customer: Array.isArray(item.customer) ? item.customer[0] : item.customer,
+        supplier: Array.isArray(item.supplier) ? item.supplier[0] : item.supplier,
+        product_packaging_specs: Array.isArray(item.product_packaging_specs)
+          ? {
+              products: Array.isArray(item.product_packaging_specs[0]?.products)
+                ? item.product_packaging_specs[0].products[0]
+                : item.product_packaging_specs[0]?.products
+            }
+          : item.product_packaging_specs
+      })) as OpportunityPriceStatus[]
     },
     staleTime: 1000 * 60 * 2, // 2 minutes
   })
@@ -231,9 +251,9 @@ export function useAutoDeactivateOnPriceChange() {
       }
 
       // Get opportunities that should be deactivated (price expired or no longer active)
-      const opportunitiesToDeactivate = changes.filter(change =>
+      const opportunitiesToDeactivate = changes.filter((change: PriceChangeDetection) =>
         change.supplier_price_expired || !change.supplier_price_active
-      ).map(change => change.opportunity_id)
+      ).map((change: PriceChangeDetection) => change.opportunity_id)
 
       let deactivatedCount = 0
 
@@ -257,7 +277,7 @@ export function useAutoDeactivateOnPriceChange() {
       }
 
       // Flag remaining opportunities with price changes (but keep them active)
-      const opportunitiesToFlag = changes.filter(change =>
+      const opportunitiesToFlag = changes.filter((change: PriceChangeDetection) =>
         !change.supplier_price_expired &&
         change.supplier_price_active &&
         change.new_supplier_price !== change.current_supplier_price

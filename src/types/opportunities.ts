@@ -181,6 +181,7 @@ export interface UpdateOpportunityData {
   quote_sent_date?: string
   quote_feedback?: string
   customer_feedback?: string
+  feedback_date?: string
   feedback_status?: 'none' | 'pending' | 'received' | 'addressed'
   valid_till?: string
   is_active?: boolean

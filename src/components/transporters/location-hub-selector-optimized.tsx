@@ -93,7 +93,7 @@ export function LocationHubSelectorOptimized({
       }
 
       // Try to find a hub in the same city as a proxy for coordinates
-      const sameCityHub = activeHubs.find((h: any) =>
+      const sameCityHub: any = activeHubs.find((h: any) =>
         h.city_name?.toLowerCase().includes(normalizedQuery) ||
         h.name?.toLowerCase().includes(normalizedQuery) ||
         normalizedQuery.includes(h.city_name?.toLowerCase() || '') ||

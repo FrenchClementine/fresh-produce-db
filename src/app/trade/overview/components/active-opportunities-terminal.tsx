@@ -132,7 +132,7 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
 
     try {
       // Determine status based on feedback
-      let newStatus = 'negotiating'
+      let newStatus: 'draft' | 'active' | 'negotiating' | 'offered' | 'confirmed' | 'cancelled' | 'completed' | 'feedback_received' = 'negotiating'
       if (feedback === 'accepted') {
         newStatus = 'confirmed'
       } else if (feedback === 'not_interested') {
@@ -366,6 +366,7 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
                 active: 'text-terminal-accent',
                 negotiating: 'text-terminal-warning',
                 offered: 'text-terminal-warning',
+                feedback_received: 'text-terminal-warning',
                 confirmed: 'text-terminal-success',
                 cancelled: 'text-terminal-alert',
                 completed: 'text-terminal-success'

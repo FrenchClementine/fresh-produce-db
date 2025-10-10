@@ -137,7 +137,7 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
     if (!existingSupplierProducts) return new Set<string>()
     return new Set(
       existingSupplierProducts
-        .map(sp => sp.product_packaging_specs?.id)
+        .map(sp => (sp.product_packaging_specs as any)?.id)
         .filter(Boolean)
     )
   }, [existingSupplierProducts])

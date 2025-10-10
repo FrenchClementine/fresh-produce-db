@@ -116,7 +116,7 @@ export function FeedbackDisplay({ opportunity }: FeedbackDisplayProps) {
 
             <div>
               <label className="text-sm font-medium font-mono text-terminal-text">Feedback Status</label>
-              <Select value={status} onValueChange={setStatus}>
+              <Select value={status} onValueChange={(value) => setStatus(value as 'pending' | 'none' | 'received' | 'addressed')}>
                 <SelectTrigger className="mt-1 bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                   <SelectValue />
                 </SelectTrigger>

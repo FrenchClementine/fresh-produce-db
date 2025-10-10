@@ -141,7 +141,8 @@ export function CustomerProductSpecsTable({
           <TableBody>
             {Object.entries(groupedSpecs).map(([productName, specs]) => {
               // Use the first spec for common product info
-              const firstSpec = specs[0]
+              const specsArray = specs as any[]
+              const firstSpec = specsArray[0]
               const productionStatus = getProductionModeStatus(firstSpec)
 
               return (
@@ -156,7 +157,7 @@ export function CustomerProductSpecsTable({
                   </TableCell>
                   <TableCell className="font-mono text-terminal-text">
                     <div className="space-y-2">
-                      {specs.map((spec, index) => (
+                      {specsArray.map((spec, index) => (
                         <div key={spec.id} className="space-y-1">
                           <div className="text-sm text-terminal-text">
                             {spec.product_packaging_specs?.packaging_options?.label} -
@@ -165,7 +166,7 @@ export function CustomerProductSpecsTable({
                           <div className="text-xs text-terminal-muted">
                             {spec.product_packaging_specs?.pallets?.label}
                           </div>
-                          {index < specs.length - 1 && (
+                          {index < specsArray.length - 1 && (
                             <div className="border-b border-terminal-border my-1"></div>
                           )}
                         </div>
@@ -205,7 +206,7 @@ export function CustomerProductSpecsTable({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex flex-col items-end gap-1">
-                      {specs.map((spec) => (
+                      {specsArray.map((spec) => (
                         <div key={spec.id} className="flex items-center gap-2">
                           <Button
                             variant="ghost"

@@ -242,7 +242,7 @@ export function BuildOpportunityFromRequestModalV2({
       const opportunity = await createOpportunity.mutateAsync({
         customer_id: request.customer_id,
         supplier_id: selectedMatch.supplier.id,
-        product_packaging_spec_id: request.product_packaging_spec_id || '',
+        product_packaging_spec_id: (request as any).product_packaging_spec_id || '',
         selected_supplier_id: selectedMatch.supplier.id,
         supplier_price_per_unit: supplierCost,
         transport_cost_per_unit: transportCost,
@@ -261,7 +261,6 @@ export function BuildOpportunityFromRequestModalV2({
         id: requestId,
         data: {
           status: 'closed',
-          quotes_sent: (request.quotes_sent || 0) + 1,
         }
       })
 

@@ -104,7 +104,6 @@ export function BuildOpportunityFromRequestModal({
         id: requestId,
         data: {
           status: 'closed',
-          quotes_sent: (request.quotes_sent || 0) + 1,
         }
       })
 

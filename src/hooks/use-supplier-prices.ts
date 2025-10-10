@@ -146,8 +146,12 @@ export function useCurrentSupplierPrices(supplierId?: string) {
             .eq('id', price.supplier_product_packaging_spec_id)
             .single()
 
-          const spec = supplierSpec?.product_packaging_specs
-          const product = spec?.products
+          const spec = Array.isArray(supplierSpec?.product_packaging_specs)
+            ? supplierSpec.product_packaging_specs[0]
+            : supplierSpec?.product_packaging_specs
+          const product = Array.isArray(spec?.products) ? spec.products[0] : spec?.products
+          const packaging = Array.isArray(spec?.packaging_options) ? spec.packaging_options[0] : spec?.packaging_options
+          const size = Array.isArray(spec?.size_options) ? spec.size_options[0] : spec?.size_options
 
           return {
             ...price,
@@ -160,8 +164,8 @@ export function useCurrentSupplierPrices(supplierId?: string) {
             product_id: product?.id || '',
             product_name: product?.name || '',
             sold_by: product?.sold_by || '',
-            packaging_label: spec?.packaging_options?.label || '',
-            size_name: spec?.size_options?.name || '',
+            packaging_label: packaging?.label || '',
+            size_name: size?.name || '',
             boxes_per_pallet: spec?.boxes_per_pallet || 0,
             weight_per_box: spec?.weight_per_box || 0,
             weight_per_pallet: spec?.weight_per_pallet || 0,

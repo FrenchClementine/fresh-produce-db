@@ -22,7 +22,7 @@ export function QuickQuotePanel() {
 
   const { customers } = useCustomers()
   const { data: suppliers } = useSuppliers()
-  const { data: products } = useProducts()
+  const { products } = useProducts()
   const createOpportunity = useCreateOpportunity()
 
   const handleSendQuote = async () => {

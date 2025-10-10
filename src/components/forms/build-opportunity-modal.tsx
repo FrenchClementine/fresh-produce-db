@@ -168,8 +168,9 @@ export function BuildOpportunityModal({ open, onClose, potential }: BuildOpportu
           price_per_unit: parseFloat(pricePerUnit),
           currency,
           valid_until: validUntil,
-          delivery_mode: deliveryMode,
-          hub_id: hubId || undefined,
+          delivery_mode: deliveryMode as "Ex Works" | "DELIVERY" | "TRANSIT",
+          hub_id: hubId,
+          is_active: true,
         })
       }
 

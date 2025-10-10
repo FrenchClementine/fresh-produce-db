@@ -140,6 +140,7 @@ export default function TradeOpportunitiesPage() {
     active: { color: 'bg-blue-600/20 text-blue-400 border-blue-600 font-mono', label: 'Active' },
     negotiating: { color: 'bg-yellow-600/20 text-yellow-400 border-yellow-600 font-mono', label: 'Negotiating' },
     offered: { color: 'bg-purple-600/20 text-purple-400 border-purple-600 font-mono', label: 'Offered' },
+    feedback_received: { color: 'bg-orange-600/20 text-orange-400 border-orange-600 font-mono', label: 'Feedback Received' },
     confirmed: { color: 'bg-terminal-success/20 text-terminal-success border-terminal-success font-mono', label: 'Confirmed' },
     cancelled: { color: 'bg-terminal-alert/20 text-terminal-alert border-terminal-alert font-mono', label: 'Cancelled' },
     completed: { color: 'bg-terminal-success/20 text-terminal-success border-terminal-success font-mono', label: 'Completed' },
@@ -265,7 +266,7 @@ export default function TradeOpportunitiesPage() {
                   <td class="price">${formatCurrency(opp.offer_price_per_unit || 0, opp.offer_currency)}/${spec?.products.sold_by || 'unit'}</td>
                   <td>${unitsPerPallet} ${spec?.products.sold_by || 'units'}</td>
                   <td class="price">${formatCurrency(pricePerPallet, opp.offer_currency)}</td>
-                  <td class="transport">${opp.selected_transporter?.name || opp.supplier_delivery_mode || 'N/A'}</td>
+                  <td class="transport">${opp.selected_transporter?.name || (opp.supplier_price?.delivery_mode === 'DELIVERY' ? 'DDP' : 'EXW')}</td>
                   <td>${transportBand ? `${transportBand.min_pallets}-${transportBand.max_pallets} pallets` : 'N/A'}</td>
                   <td>${opp.valid_till ? format(new Date(opp.valid_till), 'MMM dd, yyyy') : 'N/A'}</td>
                 </tr>

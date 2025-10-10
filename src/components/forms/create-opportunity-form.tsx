@@ -352,7 +352,6 @@ export function CreateOpportunityModal({ open, onOpenChange, potential }: Create
               )}
 
               {/* Transport Band Selection */}
-              {console.log('🚛 Available bands for transport:', potential.transportRoute?.availableBands)}
               {potential.transportRoute?.availableBands && potential.transportRoute.availableBands.length >= 1 && (
                 <FormField
                   control={form.control}

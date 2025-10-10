@@ -9,9 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { useCustomers } from '@/hooks/use-products'
-import { useSuppliers } from '@/hooks/use-products'
-import { useProductPackagingSpecs } from '@/hooks/use-product-packaging-specs'
+import { useCustomers } from '@/hooks/use-customers'
+import { useProductSpecs, useSuppliers } from '@/hooks/use-products'
 import { useSupplierHubs } from '@/hooks/use-suppliers'
 import { useHubs } from '@/hooks/use-hubs'
 import { useTransporters, useTransporterRoutes } from '@/hooks/use-transporters'
@@ -68,7 +67,7 @@ export function CreateOpportunityFromScratchForm({ open, onClose }: CreateOpport
   // Hooks
   const { customers } = useCustomers()
   const { suppliers } = useSuppliers()
-  const { data: productSpecs } = useProductPackagingSpecs()
+  const { productSpecs } = useProductSpecs()
   const { data: supplierHubs } = useSupplierHubs(supplierId)
   const { data: allHubs } = useHubs()
   const { data: transporters } = useTransporters()
@@ -112,7 +111,6 @@ export function CreateOpportunityFromScratchForm({ open, onClose }: CreateOpport
         priority,
         internal_notes: internalNotes,
         customer_requirements: customerRequirements,
-        supplier_delivery_mode: supplierDeliveryMode || deliveryMode,
         selected_transporter_id: selectedTransporterId || undefined,
       })
 

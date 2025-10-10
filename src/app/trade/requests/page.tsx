@@ -177,7 +177,7 @@ export default function CustomerRequestsPage() {
               onValueChange={(value) =>
                 setFilters({
                   ...filters,
-                  delivery_mode: value === 'all' ? undefined : value as 'DELIVERY' | 'Ex Works' | 'TRANSIT'
+                  delivery_mode: value === 'all' ? undefined : value as 'DELIVERY' | 'EX_WORKS'
                 })
               }
             >
@@ -186,9 +186,8 @@ export default function CustomerRequestsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Modes</SelectItem>
-                <SelectItem value="Ex Works">Ex Works</SelectItem>
+                <SelectItem value="EX_WORKS">Ex Works</SelectItem>
                 <SelectItem value="DELIVERY">Delivery (DDP)</SelectItem>
-                <SelectItem value="TRANSIT">TRANSIT</SelectItem>
               </SelectContent>
             </Select>
             <Button

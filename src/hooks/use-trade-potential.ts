@@ -502,15 +502,16 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
               logisticsSolution = 'THIRD_PARTY_TRANSPORT'
               const pricePerPallet = availableRoute.transporter_route_price_bands?.[0]?.price_per_pallet || 0
               const pricePerUnit = unitsPerPallet > 0 ? pricePerPallet / unitsPerPallet : 0
+              const transporterName = (availableRoute.transporters as any)?.name || 'Third-party Transport'
 
-              console.log(`✅ Found realistic transport: ${availableRoute.transporters?.name} from hub ${availableRoute.origin_hub_id} → ${availableRoute.destination_hub_id}`)
+              console.log(`✅ Found realistic transport: ${transporterName} from hub ${availableRoute.origin_hub_id} → ${availableRoute.destination_hub_id}`)
 
               transportRoute = {
                 id: availableRoute.id,
                 transporterId: availableRoute.transporter_id,
                 originHubId: availableRoute.origin_hub_id,
                 destinationHubId: availableRoute.destination_hub_id,
-                transporterName: (availableRoute.transporters as any)?.name || 'Third-party Transport',
+                transporterName: transporterName,
                 durationDays: availableRoute.transport_duration_days,
                 pricePerPallet: pricePerPallet,
                 pricePerUnit: pricePerUnit,

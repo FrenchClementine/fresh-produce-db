@@ -32,7 +32,8 @@ export function QuickFeedbackPanel() {
         id: selectedOpportunity,
         data: {
           feedback_status: feedbackStatus as any,
-          feedback_notes: notes || undefined
+          customer_feedback: notes || undefined,
+          feedback_date: new Date().toISOString()
         }
       })
 

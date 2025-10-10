@@ -42,7 +42,6 @@ import { OpportunityStatus, OpportunityPriority, CreateOpportunityData } from '@
 import { format, isAfter, isBefore, addDays } from 'date-fns'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { getPriceStatus, formatPriceStatusBadge } from '@/lib/price-utils'
 import {
   useBatchFlagPriceChanges,
   useOpportunitiesWithPriceChanges,
@@ -503,9 +502,22 @@ export default function OpportunityPage() {
                               </div>
                             )}
                             {opportunity.price_status && (
-                              <div className="text-xs">
-                                {formatPriceStatusBadge(opportunity.price_status)}
-                              </div>
+                              <Badge
+                                variant={
+                                  opportunity.price_status === 'expired' || opportunity.price_status === 'changed'
+                                    ? 'destructive'
+                                    : opportunity.price_status === 'reviewed'
+                                    ? 'secondary'
+                                    : 'outline'
+                                }
+                                className="text-xs"
+                              >
+                                {opportunity.price_status === 'current' ? 'Price Current' :
+                                 opportunity.price_status === 'changed' ? 'Price Changed' :
+                                 opportunity.price_status === 'expired' ? 'Price Expired' :
+                                 opportunity.price_status === 'reviewed' ? 'Reviewed' :
+                                 opportunity.price_status}
+                              </Badge>
                             )}
                           </div>
                         </TableCell>
@@ -709,7 +721,7 @@ export default function OpportunityPage() {
                     <Label htmlFor="priority">Priority</Label>
                     <Select
                       value={newOpportunity.priority || 'medium'}
-                      onValueChange={(value) => setNewOpportunity(prev => ({ ...prev, priority: value as OpportunityPriority }))}
+                      onValueChange={(value: 'low' | 'medium' | 'high' | 'urgent') => setNewOpportunity(prev => ({ ...prev, priority: value }))}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -832,7 +844,23 @@ export default function OpportunityPage() {
                           <TableCell>{opportunity.supplier?.name}</TableCell>
                           <TableCell>{opportunity.product_packaging_specs?.products.name}</TableCell>
                           <TableCell>
-                            {formatPriceStatusBadge(opportunity.price_status)}
+                            {opportunity.price_status && (
+                              <Badge
+                                variant={
+                                  opportunity.price_status === 'expired' || opportunity.price_status === 'changed'
+                                    ? 'destructive'
+                                    : opportunity.price_status === 'reviewed'
+                                    ? 'secondary'
+                                    : 'outline'
+                                }
+                              >
+                                {opportunity.price_status === 'current' ? 'Price Current' :
+                                 opportunity.price_status === 'changed' ? 'Price Changed' :
+                                 opportunity.price_status === 'expired' ? 'Price Expired' :
+                                 opportunity.price_status === 'reviewed' ? 'Reviewed' :
+                                 opportunity.price_status}
+                              </Badge>
+                            )}
                           </TableCell>
                           <TableCell>
                             {opportunity.offer_price_per_unit &&

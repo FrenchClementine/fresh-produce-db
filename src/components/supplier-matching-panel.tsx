@@ -82,12 +82,10 @@ export function SupplierMatchingPanel({ requestId, request }: SupplierMatchingPa
       quote_sent: false
     })
 
-    // Update request counters
+    // Update request status
     await updateRequest.mutateAsync({
       id: requestId,
       data: {
-        suppliers_checked: (request.suppliers_checked || 0) + 1,
-        potential_matches: (request.potential_matches || 0) + 1,
         status: 'matched'
       }
     })
