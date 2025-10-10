@@ -16,7 +16,7 @@ import {
 import { useOpportunities, useUpdateOpportunity, useDeleteOpportunity } from '@/hooks/use-opportunities'
 import { useCustomerRequests } from '@/hooks/use-customer-requests'
 import { useActiveStaff } from '@/hooks/use-staff'
-import { Activity, MoreVertical, Check, MessageSquare, Trash2, Package2, Filter, Printer, Copy } from 'lucide-react'
+import { Activity, MoreVertical, Check, MessageSquare, Trash2, Package2, Filter, Printer, Copy, ChevronDown, ChevronUp, Users } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
@@ -40,6 +40,7 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
   const [agentFilter, setAgentFilter] = useState<string>('all')
   const [currentPage, setCurrentPage] = useState(0)
   const [fadeIn, setFadeIn] = useState(true)
+  const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set())
 
   // Track which opportunities have changed
   const flashingIds = useFlashOnChangeById(
@@ -76,16 +77,51 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
     return filtered
   }, [opportunities, customerFilter, agentFilter])
 
-  // Pagination for opportunities
-  const OPP_ITEMS_PER_PAGE = 5
-  const totalOppPages = Math.ceil(filteredOpportunities.length / OPP_ITEMS_PER_PAGE)
-  const shouldPaginateOpps = filteredOpportunities.length > OPP_ITEMS_PER_PAGE
+  // Group opportunities by customer
+  const groupedOpportunities = useMemo(() => {
+    const groups = new Map()
 
-  const visibleOpportunities = useMemo(() => {
-    if (!shouldPaginateOpps) return filteredOpportunities
+    filteredOpportunities.forEach(opp => {
+      if (!opp.customer_id) return
+
+      if (!groups.has(opp.customer_id)) {
+        groups.set(opp.customer_id, {
+          customerId: opp.customer_id,
+          customerName: opp.customer?.name || 'Unknown',
+          agent: opp.customer?.agent,
+          opportunities: []
+        })
+      }
+
+      groups.get(opp.customer_id).opportunities.push(opp)
+    })
+
+    return Array.from(groups.values())
+  }, [filteredOpportunities])
+
+  // Pagination for customer groups
+  const OPP_ITEMS_PER_PAGE = 5
+  const totalOppPages = Math.ceil(groupedOpportunities.length / OPP_ITEMS_PER_PAGE)
+  const shouldPaginateOpps = groupedOpportunities.length > OPP_ITEMS_PER_PAGE
+
+  const visibleCustomerGroups = useMemo(() => {
+    if (!shouldPaginateOpps) return groupedOpportunities
     const start = currentPage * OPP_ITEMS_PER_PAGE
-    return filteredOpportunities.slice(start, start + OPP_ITEMS_PER_PAGE)
-  }, [filteredOpportunities, currentPage, shouldPaginateOpps])
+    return groupedOpportunities.slice(start, start + OPP_ITEMS_PER_PAGE)
+  }, [groupedOpportunities, currentPage, shouldPaginateOpps])
+
+  // Toggle customer expansion
+  const toggleCustomerExpansion = (customerId: string) => {
+    setExpandedCustomers(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(customerId)) {
+        newSet.delete(customerId)
+      } else {
+        newSet.add(customerId)
+      }
+      return newSet
+    })
+  }
 
   // Auto-rotate pages with fade effect for opportunities
   useEffect(() => {
@@ -365,154 +401,212 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
                 className="divide-y divide-terminal-border transition-opacity duration-300"
                 style={{ opacity: fadeIn ? 1 : 0 }}
               >
-                {visibleOpportunities.map((opp) => {
-              const statusColors = {
-                draft: 'text-terminal-muted',
-                active: 'text-terminal-accent',
-                negotiating: 'text-terminal-warning',
-                offered: 'text-terminal-warning',
-                feedback_received: 'text-terminal-warning',
-                confirmed: 'text-terminal-success',
-                cancelled: 'text-terminal-alert',
-                completed: 'text-terminal-success'
-              }
+                {visibleCustomerGroups.map((group) => {
+                  const isExpanded = expandedCustomers.has(group.customerId)
+                  const totalValue = group.opportunities.reduce((sum, opp) => sum + (opp.offer_price_per_unit || 0), 0)
+                  const uniqueSuppliers = Array.from(new Set(group.opportunities.map(opp => opp.supplier?.name).filter(Boolean)))
+                  const hasFlashingItems = group.opportunities.some(opp => flashingIds.has(opp.id))
 
-              const isProcessing = processingId === opp.id
-              const isFlashing = flashingIds.has(opp.id)
-
-              return (
-                <div
-                  key={opp.id}
-                  className={`p-3 transition-all duration-500 ${
-                    isFlashing
-                      ? 'bg-terminal-accent/10 border-l-2 border-terminal-accent shadow-lg shadow-terminal-accent/20'
-                      : 'hover:bg-terminal-dark border-l-2 border-transparent'
-                  } group`}
-                >
-                  <div className="flex items-start justify-between mb-2">
+                  return (
                     <div
-                      className="flex-1 cursor-pointer"
-                      onClick={() => opp.supplier?.id && onSupplierSelect(opp.supplier.id)}
+                      key={group.customerId}
+                      className={`transition-all duration-500 ${
+                        hasFlashingItems
+                          ? 'bg-terminal-accent/10 border-l-2 border-terminal-accent shadow-lg shadow-terminal-accent/20'
+                          : 'border-l-2 border-transparent'
+                      }`}
                     >
-                      <div className="text-terminal-text text-sm font-mono font-semibold">
-                        {opp.customer?.name}
-                      </div>
-                      <div className="text-terminal-muted text-xs font-mono">
-                        {opp.supplier?.name}
-                      </div>
-                    </div>
-
-                    <Badge className={`${statusColors[opp.status]} bg-transparent border-0 font-mono text-xs`}>
-                        {opp.status.toUpperCase()}
-                      </Badge>
-                  </div>
-
-                  <div
-                    className="text-terminal-text text-xs font-mono mb-1 cursor-pointer"
-                    onClick={() => opp.supplier?.id && onSupplierSelect(opp.supplier.id)}
-                  >
-                    {opp.product_packaging_specs?.products.name}
-                  </div>
-
-                  {/* Hub/Destination */}
-                  <div className="text-terminal-muted text-xs font-mono mb-2">
-                    {(opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY') ? (
-                      <>📍 {opp.supplier_price?.hub_name || opp.supplier?.city || '-'} → {opp.delivery_hub?.name || opp.customer?.city || '-'}</>
-                    ) : (
-                      <>📍 {opp.supplier_price?.hub_name || opp.supplier?.city || '-'} (pickup)</>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between mb-2">
-                    <div
-                      className="flex items-center gap-2 cursor-pointer"
-                      onClick={() => opp.supplier?.id && onSupplierSelect(opp.supplier.id)}
-                    >
-                      <span className="text-terminal-success text-sm font-mono font-bold">
-                        €{opp.offer_price_per_unit?.toFixed(2)}/{opp.product_packaging_specs?.products.sold_by}
-                      </span>
-                      <Badge variant="outline" className={`text-xs font-mono ${
-                        opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY'
-                          ? 'border-terminal-success text-terminal-success'
-                          : 'border-terminal-accent text-terminal-accent'
-                      }`}>
-                        {opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY' ? 'DDP' : 'EXW'}
-                      </Badge>
-                    </div>
-                    {opp.customer_feedback && (
-                      <Badge variant="outline" className="text-xs font-mono border-terminal-muted text-terminal-muted">
-                        {opp.customer_feedback}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Quick Action Buttons */}
-                  <div className="flex gap-1 pt-2 border-t border-terminal-border/50">
-                    <Button
-                      size="sm"
-                      onClick={(e) => handleMarkQuoted(opp.id, e)}
-                      disabled={isProcessing}
-                      className="flex-1 h-7 bg-terminal-warning hover:bg-yellow-600 text-terminal-dark font-mono text-xs"
-                    >
-                      <Check className="h-3 w-3 mr-1" />
-                      Quoted
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          size="sm"
-                          disabled={isProcessing}
-                          className="flex-1 h-7 bg-blue-600 hover:bg-blue-700 text-white font-mono text-xs"
-                        >
-                          <MessageSquare className="h-3 w-3 mr-1" />
-                          Feedback
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="bg-terminal-panel border-terminal-border"
+                      {/* Collapsed Customer Header */}
+                      <div
+                        className="p-3 hover:bg-terminal-dark cursor-pointer"
+                        onClick={() => toggleCustomerExpansion(group.customerId)}
                       >
-                        <DropdownMenuItem
-                          onClick={(e) => handleAddFeedback(opp.id, 'interested', e)}
-                          className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
-                        >
-                          <MessageSquare className="h-3 w-3 mr-2 text-green-500" />
-                          Interested
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => handleAddFeedback(opp.id, 'negotiating', e)}
-                          className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
-                        >
-                          <MessageSquare className="h-3 w-3 mr-2 text-yellow-500" />
-                          Negotiating
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => handleAddFeedback(opp.id, 'too_expensive', e)}
-                          className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
-                        >
-                          <MessageSquare className="h-3 w-3 mr-2 text-orange-500" />
-                          Too Expensive
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => handleAddFeedback(opp.id, 'not_interested', e)}
-                          className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
-                        >
-                          <MessageSquare className="h-3 w-3 mr-2 text-red-500" />
-                          Not Interested
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => handleAddFeedback(opp.id, 'accepted', e)}
-                          className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
-                        >
-                          <MessageSquare className="h-3 w-3 mr-2 text-green-600" />
-                          Accepted
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Users className="h-4 w-4 text-terminal-accent" />
+                              <span className="text-terminal-text text-sm font-mono font-semibold">
+                                {group.customerName}
+                              </span>
+                              {isExpanded ? (
+                                <ChevronUp className="h-4 w-4 text-terminal-muted" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4 text-terminal-muted" />
+                              )}
+                            </div>
+
+                            {!isExpanded && (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-3 text-xs font-mono text-terminal-muted">
+                                  <span>🏷️ {group.opportunities.length} Product{group.opportunities.length > 1 ? 's' : ''}</span>
+                                  <span>•</span>
+                                  <span>💰 Total: €{totalValue.toFixed(2)}</span>
+                                </div>
+                                <div className="text-xs font-mono text-terminal-muted">
+                                  📦 {uniqueSuppliers.length} Supplier{uniqueSuppliers.length > 1 ? 's' : ''}: {uniqueSuppliers.slice(0, 2).join(', ')}{uniqueSuppliers.length > 2 ? ` +${uniqueSuppliers.length - 2} more` : ''}
+                                </div>
+                                {group.agent && (
+                                  <div className="text-xs font-mono text-terminal-muted">
+                                    👔 Agent: {group.agent.name}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expanded Opportunities List */}
+                      {isExpanded && (
+                        <div className="border-t border-terminal-border/50">
+                          {group.opportunities.map((opp, index) => {
+                            const statusColors = {
+                              draft: 'text-terminal-muted',
+                              active: 'text-terminal-accent',
+                              negotiating: 'text-terminal-warning',
+                              offered: 'text-terminal-warning',
+                              feedback_received: 'text-terminal-warning',
+                              confirmed: 'text-terminal-success',
+                              cancelled: 'text-terminal-alert',
+                              completed: 'text-terminal-success'
+                            }
+
+                            const isProcessing = processingId === opp.id
+                            const isFlashing = flashingIds.has(opp.id)
+
+                            return (
+                              <div
+                                key={opp.id}
+                                className={`p-3 ml-6 transition-all duration-500 ${
+                                  index < group.opportunities.length - 1 ? 'border-b border-terminal-border/30' : ''
+                                } ${
+                                  isFlashing
+                                    ? 'bg-terminal-accent/5'
+                                    : 'hover:bg-terminal-dark/50'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div
+                                    className="flex-1 cursor-pointer"
+                                    onClick={() => opp.supplier?.id && onSupplierSelect(opp.supplier.id)}
+                                  >
+                                    <div className="text-terminal-text text-sm font-mono font-semibold">
+                                      {opp.product_packaging_specs?.products.name}
+                                    </div>
+                                    <div className="text-terminal-muted text-xs font-mono">
+                                      {opp.supplier?.name}
+                                    </div>
+                                  </div>
+
+                                  <Badge className={`${statusColors[opp.status]} bg-transparent border-0 font-mono text-xs`}>
+                                    {opp.status.toUpperCase()}
+                                  </Badge>
+                                </div>
+
+                                {/* Hub/Destination */}
+                                <div className="text-terminal-muted text-xs font-mono mb-2">
+                                  {(opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY') ? (
+                                    <>📍 {opp.supplier_price?.hub_name || opp.supplier?.city || '-'} → {opp.delivery_hub?.name || opp.customer?.city || '-'}</>
+                                  ) : (
+                                    <>📍 {opp.supplier_price?.hub_name || opp.supplier?.city || '-'} (pickup)</>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center justify-between mb-2">
+                                  <div
+                                    className="flex items-center gap-2 cursor-pointer"
+                                    onClick={() => opp.supplier?.id && onSupplierSelect(opp.supplier.id)}
+                                  >
+                                    <span className="text-terminal-success text-sm font-mono font-bold">
+                                      €{opp.offer_price_per_unit?.toFixed(2)}/{opp.product_packaging_specs?.products.sold_by}
+                                    </span>
+                                    <Badge variant="outline" className={`text-xs font-mono ${
+                                      opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY'
+                                        ? 'border-terminal-success text-terminal-success'
+                                        : 'border-terminal-accent text-terminal-accent'
+                                    }`}>
+                                      {opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY' ? 'DDP' : 'EXW'}
+                                    </Badge>
+                                  </div>
+                                  {opp.customer_feedback && (
+                                    <Badge variant="outline" className="text-xs font-mono border-terminal-muted text-terminal-muted">
+                                      {opp.customer_feedback}
+                                    </Badge>
+                                  )}
+                                </div>
+
+                                {/* Quick Action Buttons */}
+                                <div className="flex gap-1 pt-2 border-t border-terminal-border/50">
+                                  <Button
+                                    size="sm"
+                                    onClick={(e) => handleMarkQuoted(opp.id, e)}
+                                    disabled={isProcessing}
+                                    className="flex-1 h-7 bg-terminal-warning hover:bg-yellow-600 text-terminal-dark font-mono text-xs"
+                                  >
+                                    <Check className="h-3 w-3 mr-1" />
+                                    Quoted
+                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        disabled={isProcessing}
+                                        className="flex-1 h-7 bg-blue-600 hover:bg-blue-700 text-white font-mono text-xs"
+                                      >
+                                        <MessageSquare className="h-3 w-3 mr-1" />
+                                        Feedback
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                      align="end"
+                                      className="bg-terminal-panel border-terminal-border"
+                                    >
+                                      <DropdownMenuItem
+                                        onClick={(e) => handleAddFeedback(opp.id, 'interested', e)}
+                                        className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
+                                      >
+                                        <MessageSquare className="h-3 w-3 mr-2 text-green-500" />
+                                        Interested
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={(e) => handleAddFeedback(opp.id, 'negotiating', e)}
+                                        className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
+                                      >
+                                        <MessageSquare className="h-3 w-3 mr-2 text-yellow-500" />
+                                        Negotiating
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={(e) => handleAddFeedback(opp.id, 'too_expensive', e)}
+                                        className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
+                                      >
+                                        <MessageSquare className="h-3 w-3 mr-2 text-orange-500" />
+                                        Too Expensive
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={(e) => handleAddFeedback(opp.id, 'not_interested', e)}
+                                        className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
+                                      >
+                                        <MessageSquare className="h-3 w-3 mr-2 text-red-500" />
+                                        Not Interested
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={(e) => handleAddFeedback(opp.id, 'accepted', e)}
+                                        className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
+                                      >
+                                        <MessageSquare className="h-3 w-3 mr-2 text-green-600" />
+                                        Accepted
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
-                </div>
-              )
-            })}
+                  )
+                })}
               </div>
 
               {/* Pagination Indicator */}
