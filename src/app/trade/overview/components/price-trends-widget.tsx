@@ -52,7 +52,7 @@ function Sparkline({ data }: { data: Array<{ date: string; avg_price: number }> 
     return chars[index]
   }).join('')
 
-  return <span className="font-mono text-terminal-accent text-sm">{sparkline}</span>
+  return <span className="font-mono text-terminal-accent text-xs">{sparkline}</span>
 }
 
 function TrendBadge({ trend }: { trend: ProductPriceTrend }) {
@@ -60,8 +60,8 @@ function TrendBadge({ trend }: { trend: ProductPriceTrend }) {
 
   if (direction === 'up') {
     return (
-      <Badge variant="outline" className="bg-terminal-success/20 text-terminal-success border-terminal-success font-mono text-xs">
-        <TrendingUp className="h-3 w-3 mr-1" />
+      <Badge variant="outline" className="bg-terminal-success/20 text-terminal-success border-terminal-success font-mono text-[10px] px-1.5 py-0">
+        <TrendingUp className="h-2.5 w-2.5 mr-0.5" />
         +{trend_percentage.toFixed(1)}%
       </Badge>
     )
@@ -69,16 +69,16 @@ function TrendBadge({ trend }: { trend: ProductPriceTrend }) {
 
   if (direction === 'down') {
     return (
-      <Badge variant="outline" className="bg-terminal-alert/20 text-terminal-alert border-terminal-alert font-mono text-xs">
-        <TrendingDown className="h-3 w-3 mr-1" />
+      <Badge variant="outline" className="bg-terminal-alert/20 text-terminal-alert border-terminal-alert font-mono text-[10px] px-1.5 py-0">
+        <TrendingDown className="h-2.5 w-2.5 mr-0.5" />
         {trend_percentage.toFixed(1)}%
       </Badge>
     )
   }
 
   return (
-    <Badge variant="outline" className="bg-terminal-dark text-terminal-muted border-terminal-border font-mono text-xs">
-      <Minus className="h-3 w-3 mr-1" />
+    <Badge variant="outline" className="bg-terminal-dark text-terminal-muted border-terminal-border font-mono text-[10px] px-1.5 py-0">
+      <Minus className="h-2.5 w-2.5 mr-0.5" />
       {trend_percentage.toFixed(1)}%
     </Badge>
   )
@@ -144,13 +144,13 @@ export function PriceTrendsWidget() {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {/* Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-terminal-border">
-        <h3 className="text-sm font-mono text-terminal-text font-semibold">
+      <div className="flex items-center justify-between pb-1.5 border-b border-terminal-border">
+        <h3 className="text-xs font-mono text-terminal-text font-semibold">
           Product Price Trends (10 Days)
         </h3>
-        <span className="text-xs text-terminal-muted font-mono">
+        <span className="text-[10px] text-terminal-muted font-mono">
           {trends.length} products
         </span>
       </div>
@@ -158,7 +158,7 @@ export function PriceTrendsWidget() {
       {/* Table */}
       <div
         ref={scrollContainerRef}
-        className="space-y-1 max-h-[400px] overflow-y-auto scroll-smooth"
+        className="space-y-0.5 max-h-[600px] overflow-y-auto scroll-smooth"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
@@ -169,20 +169,20 @@ export function PriceTrendsWidget() {
           return (
             <div
               key={trend.product_id}
-              className={`grid grid-cols-4 gap-4 items-center py-2 px-3 hover:bg-terminal-dark/50 rounded border transition-all duration-500 ${
+              className={`grid grid-cols-4 gap-2 items-center py-1.5 px-2 hover:bg-terminal-dark/50 rounded border transition-all duration-500 ${
                 isFlashing
                   ? 'border-terminal-accent bg-terminal-accent/10 shadow-lg shadow-terminal-accent/20'
                   : 'border-transparent hover:border-terminal-border'
               }`}
             >
               {/* Product Name */}
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{emoji}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-base">{emoji}</span>
                 <div>
-                  <div className="font-mono text-terminal-text text-sm font-medium">
+                  <div className="font-mono text-terminal-text text-xs font-medium">
                     {trend.product_name}
                   </div>
-                  <div className="text-xs text-terminal-muted font-mono capitalize">
+                  <div className="text-[10px] text-terminal-muted font-mono capitalize">
                     {trend.product_category}
                   </div>
                 </div>
@@ -190,10 +190,10 @@ export function PriceTrendsWidget() {
 
               {/* Current Price */}
               <div className="text-right">
-                <div className="font-mono text-terminal-text font-semibold">
+                <div className="font-mono text-terminal-text font-semibold text-xs">
                   {formatCurrency(trend.current_avg_price, trend.currency)}
                 </div>
-                <div className="text-xs text-terminal-muted font-mono">
+                <div className="text-[10px] text-terminal-muted font-mono">
                   per {trend.sold_by}
                 </div>
               </div>
@@ -213,8 +213,8 @@ export function PriceTrendsWidget() {
       </div>
 
       {/* Footer info */}
-      <div className="pt-2 border-t border-terminal-border">
-        <p className="text-xs text-terminal-muted font-mono">
+      <div className="pt-1.5 border-t border-terminal-border">
+        <p className="text-[10px] text-terminal-muted font-mono">
           Average prices across all packaging specifications for each product
         </p>
       </div>

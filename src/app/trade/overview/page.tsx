@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -15,7 +15,7 @@ import {
   Package,
   Printer
 } from 'lucide-react'
-import { useOpportunitySummary, useOpportunitiesRealtime } from '@/hooks/use-opportunities'
+import { useOpportunitySummary, useOpportunitiesRealtime, useOpportunities } from '@/hooks/use-opportunities'
 import { useCurrentSupplierPrices, useSupplierPricesRealtime } from '@/hooks/use-supplier-prices'
 import { usePriceTrendsRealtime } from '@/hooks/use-price-trends'
 import { useCustomerRequests } from '@/hooks/use-customer-requests'
@@ -23,16 +23,48 @@ import { SupplierPricesPanel } from './components/supplier-prices-panel'
 import { WeatherCropIntel } from './components/weather-crop-intel'
 import { ActiveOpportunitiesTerminal } from './components/active-opportunities-terminal'
 import { WeatherTicker } from './components/weather-ticker'
-import { PrintPricesModal } from './components/print-prices-modal'
+import { WeatherForecastCycle } from './components/weather-forecast-cycle'
+import { ProductImagesCarousel } from './components/product-images-carousel'
 
 export default function TradeOverviewTerminal() {
   const router = useRouter()
   const { data: summary } = useOpportunitySummary()
+  const { data: opportunities } = useOpportunities('all', 'all', true)
   const { data: supplierPrices } = useCurrentSupplierPrices()
   const { data: activeRequests } = useCustomerRequests({ status: 'open' })
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null)
-  const [showPrintModal, setShowPrintModal] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
+
+  // Calculate unique customers and total opportunities
+  const opportunityStats = useMemo(() => {
+    if (!opportunities || opportunities.length === 0) {
+      return { uniqueCustomers: 0, totalOpportunities: 0 }
+    }
+
+    const uniqueCustomerIds = new Set(
+      opportunities
+        .filter(opp => opp.customer_id)
+        .map(opp => opp.customer_id)
+    )
+
+    return {
+      uniqueCustomers: uniqueCustomerIds.size,
+      totalOpportunities: opportunities.length
+    }
+  }, [opportunities])
+
+  // Calculate active suppliers and total prices
+  const supplierStats = useMemo(() => {
+    if (!supplierPrices || supplierPrices.length === 0) {
+      return { uniqueSuppliers: 0, totalPrices: 0 }
+    }
+
+    const uniqueSupplierIds = new Set(supplierPrices.map(p => p.supplier_id))
+    return {
+      uniqueSuppliers: uniqueSupplierIds.size,
+      totalPrices: supplierPrices.length
+    }
+  }, [supplierPrices])
 
   // Enable realtime subscriptions
   useSupplierPricesRealtime()
@@ -102,7 +134,7 @@ export default function TradeOverviewTerminal() {
             </Button>
 
             <Button
-              onClick={() => setShowPrintModal(true)}
+              onClick={() => router.push('/trade/overview/print-report')}
               size="sm"
               className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono"
             >
@@ -125,14 +157,17 @@ export default function TradeOverviewTerminal() {
       </div>
 
       {/* Stats Bar */}
-      <div className="flex gap-4">
+      <div className="flex gap-4 items-stretch">
         <Card className="bg-terminal-panel border-terminal-border w-64">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+          <CardContent className="p-4 h-full flex items-center">
+            <div className="flex items-center justify-between w-full">
               <div>
-                <div className="text-terminal-muted text-xs font-mono mb-1">Opportunity</div>
+                <div className="text-terminal-muted text-xs font-mono mb-1">Active Customers</div>
                 <div className="text-3xl font-mono font-bold text-terminal-text">
-                  {summary?.total || 0}
+                  {opportunityStats.uniqueCustomers}
+                </div>
+                <div className="text-terminal-muted text-xs font-mono mt-1">
+                  {opportunityStats.totalOpportunities} opportunities
                 </div>
               </div>
               <Activity className="h-8 w-8 text-terminal-accent" />
@@ -141,45 +176,25 @@ export default function TradeOverviewTerminal() {
         </Card>
 
         <Card className="bg-terminal-panel border-terminal-border w-64">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+          <CardContent className="p-4 h-full flex items-center">
+            <div className="flex items-center justify-between w-full">
               <div>
-                <div className="text-terminal-muted text-xs font-mono mb-1">Active Requests</div>
-                <div className="text-3xl font-mono font-bold text-terminal-warning">
-                  {activeRequests?.length || 0}
+                <div className="text-terminal-muted text-xs font-mono mb-1">Active Suppliers</div>
+                <div className="text-3xl font-mono font-bold text-terminal-success">
+                  {supplierStats.uniqueSuppliers}
+                </div>
+                <div className="text-terminal-muted text-xs font-mono mt-1">
+                  {supplierStats.totalPrices} prices
                 </div>
               </div>
-              <Package className="h-8 w-8 text-terminal-warning" />
+              <Building2 className="h-8 w-8 text-terminal-success" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-terminal-panel border-terminal-border flex-1">
-          <CardContent className="p-4 overflow-hidden">
-            <div className="text-terminal-muted text-xs font-mono mb-2">LIVE SUPPLIER PRICES</div>
-            <div className="overflow-hidden">
-              <div className="animate-scroll-fast whitespace-nowrap text-terminal-text font-mono text-sm">
-                {supplierPrices && supplierPrices.length > 0 ? (
-                  <>
-                    {supplierPrices.slice(0, 20).map((price, i) => (
-                      <span key={i}>
-                        {price.product_name} €{price.price_per_unit?.toFixed(2)}/{price.sold_by} {price.delivery_mode === 'DELIVERY' ? '🚚' : '📦'} {price.hub_code} ({price.supplier_name}) •{' '}
-                      </span>
-                    ))}
-                    {supplierPrices.slice(0, 20).map((price, i) => (
-                      <span key={`dup-${i}`}>
-                        {price.product_name} €{price.price_per_unit?.toFixed(2)}/{price.sold_by} {price.delivery_mode === 'DELIVERY' ? '🚚' : '📦'} {price.hub_code} ({price.supplier_name}) •{' '}
-                      </span>
-                    ))}
-                  </>
-                ) : (
-                  <>
-                    Loading supplier prices... •{' '}
-                    Loading supplier prices... •{' '}
-                  </>
-                )}
-              </div>
-            </div>
+          <CardContent className="p-4 h-full flex items-center">
+            <WeatherForecastCycle />
           </CardContent>
         </Card>
       </div>
@@ -215,20 +230,15 @@ export default function TradeOverviewTerminal() {
           />
         </div>
 
-        {/* Right Column - Weather & Crop Intelligence */}
-        <div className="col-span-1">
+        {/* Right Column - Weather & Crop Intelligence + Product Images */}
+        <div className="col-span-1 space-y-4">
           <WeatherCropIntel
             supplierId={selectedSupplier}
             onSupplierChange={(id) => setSelectedSupplier(id)}
           />
+          <ProductImagesCarousel />
         </div>
       </div>
-
-      {/* Print Prices Modal */}
-      <PrintPricesModal
-        open={showPrintModal}
-        onOpenChange={setShowPrintModal}
-      />
     </div>
   )
 }

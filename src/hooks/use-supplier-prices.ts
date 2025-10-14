@@ -18,6 +18,7 @@ export interface SupplierPrice {
   is_active: boolean
   created_by_staff_id: string | null
   notes?: string
+  image_urls?: string[] | null
   created_at: string
 }
 
@@ -96,7 +97,8 @@ export function useCurrentSupplierPrices(supplierId?: string) {
           valid_until,
           is_active,
           created_at,
-          notes
+          notes,
+          image_urls
         `)
         .eq('is_active', true)
         .lt('valid_until', now.toISOString())
@@ -407,7 +409,8 @@ export function useQuickUpdatePrice() {
           valid_until: validUntil,
           is_active: true,
           created_by_staff_id: currentUserId || null,
-          notes: notes || `Quick update from €${oldPrice.price_per_unit}`
+          notes: notes || `Quick update from €${oldPrice.price_per_unit}`,
+          image_urls: oldPrice.image_urls || null // Preserve existing images
         })
         .select()
         .single()

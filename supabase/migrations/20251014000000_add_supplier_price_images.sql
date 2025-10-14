@@ -3,22 +3,22 @@
 -- Description: Adds image_url column to supplier_prices table and sets up storage policies
 
 -- ============================================================================
--- 1. Add image_url column to supplier_prices table
+-- 1. Add image_urls column to supplier_prices table (supports multiple images)
 -- ============================================================================
 
 ALTER TABLE supplier_prices
-ADD COLUMN IF NOT EXISTS image_url TEXT;
+ADD COLUMN IF NOT EXISTS image_urls TEXT[];
 
-COMMENT ON COLUMN supplier_prices.image_url IS
-  'URL or storage path to product image in Supabase Storage bucket: supplier-price-images';
+COMMENT ON COLUMN supplier_prices.image_urls IS
+  'Array of URLs/paths to product images in Supabase Storage bucket: supplier-price-images';
 
 -- Add index for faster queries filtering by images
-CREATE INDEX IF NOT EXISTS idx_supplier_prices_has_image
-ON supplier_prices (image_url)
-WHERE image_url IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_supplier_prices_has_images
+ON supplier_prices USING GIN (image_urls)
+WHERE image_urls IS NOT NULL AND array_length(image_urls, 1) > 0;
 
 -- ============================================================================
--- 2. Update current_supplier_prices view to include image_url
+-- 2. Update current_supplier_prices view to include image_urls
 -- ============================================================================
 
 -- Note: If the view exists, we need to recreate it to include the new column
@@ -32,12 +32,12 @@ BEGIN
     AND table_name = 'current_supplier_prices'
   ) THEN
     -- Store the view definition for reference
-    -- The view will be recreated with the image_url column included
+    -- The view will be recreated with the image_urls column included
     -- This assumes the view selects * from supplier_prices or needs explicit columns
 
     DROP VIEW IF EXISTS current_supplier_prices CASCADE;
 
-    -- Recreate the view with image_url included
+    -- Recreate the view with image_urls included
     -- Note: Adjust this based on your actual view definition
     CREATE OR REPLACE VIEW current_supplier_prices AS
     SELECT
@@ -54,7 +54,7 @@ BEGIN
       sp.created_by_staff_id,
       sp.notes,
       sp.created_at,
-      sp.image_url,  -- NEW COLUMN
+      sp.image_urls,  -- NEW COLUMN (array)
       s.name as supplier_name,
       h.name as hub_name,
       h.hub_code,
@@ -71,7 +71,7 @@ BEGIN
       pps.weight_per_pallet,
       pps.weight_unit,
       CASE
-        WHEN LOWER(p.sold_by) LIKE '%kg%' THEN pps.weight_per_pallet
+        WHEN LOWER(p.sold_by::text) LIKE '%kg%' THEN pps.weight_per_pallet
         ELSE pps.boxes_per_pallet
       END as units_per_pallet
     FROM supplier_prices sp
@@ -81,13 +81,18 @@ BEGIN
     JOIN product_packaging_specs pps ON pps.id = spps.product_packaging_spec_id
     JOIN products p ON p.id = pps.product_id
     JOIN packaging_options po ON po.id = pps.packaging_id
-    JOIN size_options so ON so.id = pps.size_id
+    JOIN size_options so ON so.id = pps.size_option_id
     WHERE sp.is_active = true
     AND sp.valid_until >= CURRENT_DATE;
 
     -- Add comment to view
     COMMENT ON VIEW current_supplier_prices IS
-      'Current active supplier prices with product details and image URLs';
+      'Current active supplier prices with product details and image URLs (multiple images supported)';
+
+    -- Grant permissions on the view
+    GRANT SELECT ON current_supplier_prices TO authenticated;
+    GRANT SELECT ON current_supplier_prices TO anon;
+    GRANT SELECT ON current_supplier_prices TO service_role;
 
   END IF;
 END $$;
@@ -107,59 +112,10 @@ END $$;
 -- 5. File size limit: 5MB
 -- 6. Allowed MIME types: image/jpeg, image/png, image/webp
 --
--- METHOD 2: Supabase CLI
--- Run: npx supabase storage create supplier-price-images --public
---
--- After creating the bucket, the policies below will be applied automatically.
+-- NOTE: All RLS policies removed - bucket should be configured as PUBLIC with no policies
 
 -- ============================================================================
--- 4. Storage Policies for supplier-price-images bucket
--- ============================================================================
-
--- Allow authenticated users to upload images
-CREATE POLICY IF NOT EXISTS "Allow authenticated users to upload supplier price images"
-ON storage.objects
-FOR INSERT
-TO authenticated
-WITH CHECK (
-  bucket_id = 'supplier-price-images'
-  AND (storage.foldername(name))[1] IN (
-    SELECT id::text FROM suppliers
-  )
-);
-
--- Allow public access to view images (since bucket is public)
-CREATE POLICY IF NOT EXISTS "Allow public read access to supplier price images"
-ON storage.objects
-FOR SELECT
-TO public
-USING (
-  bucket_id = 'supplier-price-images'
-);
-
--- Allow authenticated users to update their images
-CREATE POLICY IF NOT EXISTS "Allow authenticated users to update supplier price images"
-ON storage.objects
-FOR UPDATE
-TO authenticated
-USING (
-  bucket_id = 'supplier-price-images'
-)
-WITH CHECK (
-  bucket_id = 'supplier-price-images'
-);
-
--- Allow authenticated users to delete images
-CREATE POLICY IF NOT EXISTS "Allow authenticated users to delete supplier price images"
-ON storage.objects
-FOR DELETE
-TO authenticated
-USING (
-  bucket_id = 'supplier-price-images'
-);
-
--- ============================================================================
--- 5. Helper Functions
+-- 4. Helper Functions
 -- ============================================================================
 
 -- Function to clean up orphaned images (images without associated prices)
@@ -168,17 +124,20 @@ RETURNS TABLE (deleted_count INTEGER) AS $$
 DECLARE
   image_path TEXT;
   count INTEGER := 0;
+  all_image_urls TEXT[];
 BEGIN
+  -- Collect all image URLs from all supplier_prices records
+  SELECT array_agg(DISTINCT url)
+  INTO all_image_urls
+  FROM supplier_prices, unnest(image_urls) AS url
+  WHERE image_urls IS NOT NULL;
+
   -- Find images in storage that don't have corresponding supplier_prices records
   FOR image_path IN
     SELECT name
     FROM storage.objects
     WHERE bucket_id = 'supplier-price-images'
-    AND name NOT IN (
-      SELECT image_url
-      FROM supplier_prices
-      WHERE image_url IS NOT NULL
-    )
+    AND (all_image_urls IS NULL OR name != ALL(all_image_urls))
   LOOP
     -- Delete the orphaned image
     DELETE FROM storage.objects
@@ -193,17 +152,22 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 COMMENT ON FUNCTION cleanup_orphaned_supplier_price_images() IS
-  'Removes images from storage that are no longer referenced by any supplier_prices records';
+  'Removes images from storage that are no longer referenced by any supplier_prices records (supports multiple images)';
 
--- Function to automatically delete image when price is deleted
+-- Function to automatically delete images when price is deleted
 CREATE OR REPLACE FUNCTION delete_supplier_price_image_on_delete()
 RETURNS TRIGGER AS $$
+DECLARE
+  image_url TEXT;
 BEGIN
-  -- If the price had an image, delete it from storage
-  IF OLD.image_url IS NOT NULL THEN
-    DELETE FROM storage.objects
-    WHERE bucket_id = 'supplier-price-images'
-    AND name = OLD.image_url;
+  -- If the price had images, delete them from storage
+  IF OLD.image_urls IS NOT NULL AND array_length(OLD.image_urls, 1) > 0 THEN
+    FOREACH image_url IN ARRAY OLD.image_urls
+    LOOP
+      DELETE FROM storage.objects
+      WHERE bucket_id = 'supplier-price-images'
+      AND name = image_url;
+    END LOOP;
   END IF;
 
   RETURN OLD;
@@ -220,40 +184,40 @@ EXECUTE FUNCTION delete_supplier_price_image_on_delete();
 COMMENT ON TRIGGER trigger_delete_supplier_price_image ON supplier_prices IS
   'Automatically deletes associated image from storage when a price record is deleted';
 
--- Function to delete old image when updating with new image
+-- Function to delete old images when updating with new images
 CREATE OR REPLACE FUNCTION cleanup_old_supplier_price_image()
 RETURNS TRIGGER AS $$
+DECLARE
+  old_image TEXT;
 BEGIN
-  -- If updating image_url and old value exists and is different
-  IF OLD.image_url IS NOT NULL
-     AND OLD.image_url IS DISTINCT FROM NEW.image_url THEN
-    -- Delete the old image from storage
-    DELETE FROM storage.objects
-    WHERE bucket_id = 'supplier-price-images'
-    AND name = OLD.image_url;
+  -- If updating image_urls and old value exists
+  IF OLD.image_urls IS NOT NULL
+     AND OLD.image_urls IS DISTINCT FROM NEW.image_urls THEN
+    -- Delete images that are in OLD but not in NEW
+    FOREACH old_image IN ARRAY OLD.image_urls
+    LOOP
+      IF NEW.image_urls IS NULL OR NOT (old_image = ANY(NEW.image_urls)) THEN
+        DELETE FROM storage.objects
+        WHERE bucket_id = 'supplier-price-images'
+        AND name = old_image;
+      END IF;
+    END LOOP;
   END IF;
 
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger to cleanup old image when updating
+-- Trigger to cleanup old images when updating
 DROP TRIGGER IF EXISTS trigger_cleanup_old_supplier_price_image ON supplier_prices;
 CREATE TRIGGER trigger_cleanup_old_supplier_price_image
 BEFORE UPDATE ON supplier_prices
 FOR EACH ROW
-WHEN (OLD.image_url IS DISTINCT FROM NEW.image_url)
+WHEN (OLD.image_urls IS DISTINCT FROM NEW.image_urls)
 EXECUTE FUNCTION cleanup_old_supplier_price_image();
 
 COMMENT ON TRIGGER trigger_cleanup_old_supplier_price_image ON supplier_prices IS
-  'Automatically deletes old image from storage when a price record is updated with a new image';
-
--- ============================================================================
--- 6. Grant permissions
--- ============================================================================
-
--- Ensure authenticated users can call the cleanup function
-GRANT EXECUTE ON FUNCTION cleanup_orphaned_supplier_price_images() TO authenticated;
+  'Automatically deletes old images from storage when a price record is updated with new images';
 
 -- ============================================================================
 -- ROLLBACK INSTRUCTIONS
@@ -265,7 +229,7 @@ GRANT EXECUTE ON FUNCTION cleanup_orphaned_supplier_price_images() TO authentica
 -- DROP FUNCTION IF EXISTS delete_supplier_price_image_on_delete();
 -- DROP FUNCTION IF EXISTS cleanup_old_supplier_price_image();
 -- DROP FUNCTION IF EXISTS cleanup_orphaned_supplier_price_images();
--- DROP INDEX IF EXISTS idx_supplier_prices_has_image;
--- ALTER TABLE supplier_prices DROP COLUMN IF EXISTS image_url;
+-- DROP INDEX IF EXISTS idx_supplier_prices_has_images;
+-- ALTER TABLE supplier_prices DROP COLUMN IF EXISTS image_urls;
 --
 -- Then manually delete the storage bucket via Dashboard or CLI

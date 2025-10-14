@@ -23,7 +23,7 @@ export function WeatherCropIntel({ supplierId, onSupplierChange }: WeatherCropIn
   }, [supplierId])
 
   return (
-    <Card className="bg-terminal-panel border-terminal-border h-[calc(100vh-16rem)] flex flex-col">
+    <Card className="bg-terminal-panel border-terminal-border h-[calc(50vh-8rem)] flex flex-col">
       <CardHeader className="border-b border-terminal-border pb-3 flex-shrink-0">
         <CardTitle className="text-terminal-text font-mono text-sm">
           PRICE TRENDS
