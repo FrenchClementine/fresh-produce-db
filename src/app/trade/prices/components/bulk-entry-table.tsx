@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Plus, Trash2, Copy, Package, Euro, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useState } from 'react'
+import { ProductCombobox } from './product-combobox'
 
 export interface BulkPriceEntry {
   id: string
@@ -183,24 +184,13 @@ export function BulkEntryTable({
                     {/* Product */}
                     <TableCell>
                       <div className="space-y-1">
-                        <Select
+                        <ProductCombobox
+                          products={products}
                           value={entry.product_packaging_spec_id}
-                          onValueChange={(value) => onUpdateEntry(entry.id, 'product_packaging_spec_id', value)}
-                        >
-                          <SelectTrigger className={entry.errors.product ? 'border-terminal-alert bg-terminal-dark text-terminal-text font-mono' : 'bg-terminal-dark border-terminal-border text-terminal-text font-mono'}>
-                            <SelectValue placeholder="Select product..." />
-                          </SelectTrigger>
-                          <SelectContent className="bg-terminal-panel border-terminal-border">
-                            {products.map(product => (
-                              <SelectItem key={product.id} value={product.id} className="text-terminal-text font-mono">
-                                <div className="flex items-center gap-2">
-                                  <Package className="h-4 w-4" />
-                                  <span className="text-sm">{getProductLabel(product.id)}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          onChange={(value) => onUpdateEntry(entry.id, 'product_packaging_spec_id', value)}
+                          hasError={!!entry.errors.product}
+                          placeholder="Select product..."
+                        />
                         {entry.errors.product && (
                           <p className="text-xs text-terminal-alert font-mono">{entry.errors.product}</p>
                         )}

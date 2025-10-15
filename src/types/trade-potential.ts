@@ -27,6 +27,7 @@ export interface TradePotential {
     sizeName: string
     soldBy: string
     specId: string
+    palletDimensions: string | null
   }
   status: 'complete' | 'missing_price' | 'missing_transport' | 'missing_both'
 
@@ -55,6 +56,7 @@ export interface TradePotential {
     pricePerPallet: number
     pricePerUnit: number
     unitsPerPallet: number
+    customsCostPerShipment: number
     availableBands: Array<{
       id: string
       pallet_dimensions?: string
@@ -63,6 +65,27 @@ export interface TradePotential {
       price_per_pallet: number
     }>
   }
+
+  // All available transport routes for this origin-destination pair
+  availableTransportRoutes?: Array<{
+    id: string
+    transporterId: string | null
+    originHubId: string
+    destinationHubId: string
+    transporterName: string
+    durationDays: number
+    pricePerPallet: number
+    pricePerUnit: number
+    unitsPerPallet: number
+    customsCostPerShipment: number
+    availableBands: Array<{
+      id: string
+      pallet_dimensions?: string
+      min_pallets?: number
+      max_pallets?: number
+      price_per_pallet: number
+    }>
+  }>
 
   // Gap analysis
   priceGap: boolean

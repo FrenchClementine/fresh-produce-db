@@ -89,7 +89,7 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
   })
 
   const filteredSpecs = productSpecs?.filter(spec => {
-    if (!searchQuery || searchQuery.length === 0) return false
+    if (!searchQuery || searchQuery.length === 0) return true // Show all when no search query
 
     const searchTerm = searchQuery.toLowerCase()
     const productName = spec.products?.name?.toLowerCase() || ''
@@ -97,10 +97,10 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
     const sizeName = spec.size_options?.name?.toLowerCase() || ''
     const palletName = spec.pallets?.label?.toLowerCase() || ''
 
-    return productName.includes(searchTerm) ||
-           packagingName.includes(searchTerm) ||
-           sizeName.includes(searchTerm) ||
-           palletName.includes(searchTerm)
+    // Combine all fields for comprehensive search
+    const combinedText = `${productName} ${packagingName} ${sizeName} ${palletName}`.toLowerCase()
+
+    return combinedText.includes(searchTerm)
   }) || []
 
   // Helper function to calculate opposite period
@@ -278,12 +278,9 @@ export function AddCustomerProductSpecForm({ open, onOpenChange, customerId }: A
                             value={searchQuery}
                             onValueChange={setSearchQuery}
                           />
-                          <CommandList>
+                          <CommandList className="max-h-[300px] overflow-y-auto">
                             <CommandEmpty>
-                              {searchQuery.length === 0
-                                ? "Type at least one character to search..."
-                                : "No products found."
-                              }
+                              No products found.
                             </CommandEmpty>
                             {filteredSpecs.length > 0 && (
                               <CommandGroup>

@@ -39,6 +39,12 @@ interface TradePotentialTableModeProps {
   setStatusFilter: (status: PotentialStatus) => void
   showOpportunityFilter: boolean
   setShowOpportunityFilter: (show: boolean) => void
+  customerFilter: string
+  setCustomerFilter: (filter: string) => void
+  supplierFilter: string
+  setSupplierFilter: (filter: string) => void
+  agentFilter: string
+  setAgentFilter: (filter: string) => void
   onRefresh: () => void
 }
 
@@ -48,6 +54,7 @@ interface PricingState {
     offerPrice: number
     isEditing: boolean
     selectedBandIndex: number
+    selectedTransporterIndex: number
   }
 }
 
@@ -57,11 +64,14 @@ export default function TradePotentialTableMode({
   setStatusFilter,
   showOpportunityFilter,
   setShowOpportunityFilter,
+  customerFilter,
+  setCustomerFilter,
+  supplierFilter,
+  setSupplierFilter,
+  agentFilter,
+  setAgentFilter,
   onRefresh
 }: TradePotentialTableModeProps) {
-  const [customerFilter, setCustomerFilter] = useState<string>('all')
-  const [supplierFilter, setSupplierFilter] = useState<string>('all')
-  const [agentFilter, setAgentFilter] = useState<string>('all')
   const [pricingState, setPricingState] = useState<PricingState>({})
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkMargin, setBulkMargin] = useState<number>(10)
@@ -74,19 +84,86 @@ export default function TradePotentialTableMode({
   const excludePotentialMutation = useExcludePotential()
   const createOpportunityMutation = useCreateOpportunity()
 
-  // Get transport cost per unit for a selected band
-  const getTransportCostPerUnit = (potential: TradePotential, bandIndex: number = 0) => {
-    const route = potential.transportRoute
-    if (!route || !route.availableBands || route.availableBands.length === 0) {
-      return route?.pricePerUnit || 0
+  // Filter customers by selected agent
+  const filteredCustomers = React.useMemo(() => {
+    if (!customers) return []
+    if (agentFilter === 'all') return customers
+
+    // Filter customers that have the selected agent
+    return customers.filter(customer => customer.agent_id === agentFilter)
+  }, [customers, agentFilter])
+
+  // Filter transport bands to match product's pallet dimensions
+  const getFilteredBands = (potential: TradePotential) => {
+    const bands = potential.transportRoute?.availableBands
+    if (!bands || bands.length === 0) return []
+
+    const productPalletDimensions = potential.product.palletDimensions
+    if (!productPalletDimensions) return bands
+
+    // Filter bands that match the product's pallet dimensions
+    return bands.filter(band => {
+      // If band has no pallet_dimensions, include it (backwards compatibility)
+      if (!band.pallet_dimensions) return true
+
+      // Match the pallet dimensions
+      return band.pallet_dimensions === productPalletDimensions
+    })
+  }
+
+  // Get transport cost per unit for a selected band and transporter
+  const getTransportCostPerUnit = (potential: TradePotential, bandIndex: number = 0, transporterIndex: number = 0) => {
+    // Use selected transporter if available, otherwise fall back to default transportRoute
+    let route = potential.transportRoute
+    if (potential.availableTransportRoutes && potential.availableTransportRoutes.length > 0) {
+      route = potential.availableTransportRoutes[transporterIndex] || potential.transportRoute
     }
 
-    const band = route.availableBands[bandIndex]
+    if (!route) {
+      return 0
+    }
+
+    // Use filtered bands instead of raw bands
+    const filteredBands = getFilteredBands(potential)
+
+    // If no filtered bands, check if we can use raw bands or route.pricePerUnit
+    if (filteredBands.length === 0) {
+      // If there are raw bands but they were filtered out, use the first raw band for customs calculation
+      if (route.availableBands && route.availableBands.length > 0) {
+        const rawBand = route.availableBands[0]
+        let customsCostPerPallet = 0
+
+        if (route.customsCostPerShipment > 0 && rawBand.min_pallets && rawBand.max_pallets && route.unitsPerPallet > 0) {
+          const avgPallets = (rawBand.min_pallets + rawBand.max_pallets) / 2
+          customsCostPerPallet = route.customsCostPerShipment / avgPallets
+          const customsCostPerUnit = customsCostPerPallet / route.unitsPerPallet
+          return (route.pricePerUnit || 0) + customsCostPerUnit
+        }
+      }
+      // No bands at all, return the stored pricePerUnit (includes supplier delivery, same location, etc.)
+      return route.pricePerUnit || 0
+    }
+
+    const band = filteredBands[bandIndex]
+
     if (!band || !route.unitsPerPallet || route.unitsPerPallet === 0) {
       return 0
     }
 
-    return band.price_per_pallet / route.unitsPerPallet
+    // Calculate customs cost per pallet based on average band size
+    let customsCostPerPallet = 0
+
+    if (route.customsCostPerShipment > 0 && band.min_pallets && band.max_pallets) {
+      const avgPallets = (band.min_pallets + band.max_pallets) / 2
+      customsCostPerPallet = route.customsCostPerShipment / avgPallets
+    }
+
+    // Total cost per pallet includes transport + customs
+    const totalCostPerPallet = band.price_per_pallet + customsCostPerPallet
+
+    const costPerUnit = totalCostPerPallet / route.unitsPerPallet
+
+    return costPerUnit
   }
 
   // Initialize pricing state for a potential
@@ -96,7 +173,7 @@ export default function TradePotentialTableMode({
     }
 
     const cost = potential.supplierPrice?.pricePerUnit || 0
-    const transportCost = getTransportCostPerUnit(potential, 0)
+    const transportCost = getTransportCostPerUnit(potential, 0, 0)
     const totalCost = cost + transportCost
     const defaultMargin = 10 // 10% default margin
     const offerPrice = totalCost * (1 + defaultMargin / 100)
@@ -105,21 +182,23 @@ export default function TradePotentialTableMode({
       marginPercent: defaultMargin,
       offerPrice: offerPrice,
       isEditing: false,
-      selectedBandIndex: 0
+      selectedBandIndex: 0,
+      selectedTransporterIndex: 0
     }
   }
 
   // Update margin percentage
   const updateMargin = (potentialId: string, totalCost: number, newMargin: number) => {
     const offerPrice = totalCost * (1 + newMargin / 100)
-    const currentState = pricingState[potentialId] || { selectedBandIndex: 0 }
+    const currentState = pricingState[potentialId] || { selectedBandIndex: 0, selectedTransporterIndex: 0 }
     setPricingState(prev => ({
       ...prev,
       [potentialId]: {
         marginPercent: newMargin,
         offerPrice: offerPrice,
         isEditing: true,
-        selectedBandIndex: currentState.selectedBandIndex
+        selectedBandIndex: currentState.selectedBandIndex,
+        selectedTransporterIndex: currentState.selectedTransporterIndex
       }
     }))
   }
@@ -127,14 +206,15 @@ export default function TradePotentialTableMode({
   // Update offer price
   const updateOfferPrice = (potentialId: string, totalCost: number, newOfferPrice: number) => {
     const margin = totalCost > 0 ? ((newOfferPrice - totalCost) / totalCost) * 100 : 0
-    const currentState = pricingState[potentialId] || { selectedBandIndex: 0 }
+    const currentState = pricingState[potentialId] || { selectedBandIndex: 0, selectedTransporterIndex: 0 }
     setPricingState(prev => ({
       ...prev,
       [potentialId]: {
         marginPercent: margin,
         offerPrice: newOfferPrice,
         isEditing: true,
-        selectedBandIndex: currentState.selectedBandIndex
+        selectedBandIndex: currentState.selectedBandIndex,
+        selectedTransporterIndex: currentState.selectedTransporterIndex
       }
     }))
   }
@@ -142,9 +222,9 @@ export default function TradePotentialTableMode({
   // Update selected transport band
   const updateTransportBand = (potential: TradePotential, bandIndex: number) => {
     const cost = potential.supplierPrice?.pricePerUnit || 0
-    const transportCost = getTransportCostPerUnit(potential, bandIndex)
+    const currentState = pricingState[potential.id] || { marginPercent: 10, isEditing: false, selectedTransporterIndex: 0 }
+    const transportCost = getTransportCostPerUnit(potential, bandIndex, currentState.selectedTransporterIndex)
     const totalCost = cost + transportCost
-    const currentState = pricingState[potential.id] || { marginPercent: 10, isEditing: false }
     const offerPrice = totalCost * (1 + currentState.marginPercent / 100)
 
     setPricingState(prev => ({
@@ -153,7 +233,28 @@ export default function TradePotentialTableMode({
         marginPercent: currentState.marginPercent,
         offerPrice: offerPrice,
         isEditing: true,
-        selectedBandIndex: bandIndex
+        selectedBandIndex: bandIndex,
+        selectedTransporterIndex: currentState.selectedTransporterIndex
+      }
+    }))
+  }
+
+  // Update selected transporter
+  const updateSelectedTransporter = (potential: TradePotential, transporterIndex: number) => {
+    const cost = potential.supplierPrice?.pricePerUnit || 0
+    const currentState = pricingState[potential.id] || { marginPercent: 10, isEditing: false, selectedBandIndex: 0 }
+    const transportCost = getTransportCostPerUnit(potential, currentState.selectedBandIndex, transporterIndex)
+    const totalCost = cost + transportCost
+    const offerPrice = totalCost * (1 + currentState.marginPercent / 100)
+
+    setPricingState(prev => ({
+      ...prev,
+      [potential.id]: {
+        marginPercent: currentState.marginPercent,
+        offerPrice: offerPrice,
+        isEditing: true,
+        selectedBandIndex: currentState.selectedBandIndex,
+        selectedTransporterIndex: transporterIndex
       }
     }))
   }
@@ -216,23 +317,36 @@ export default function TradePotentialTableMode({
     setSelectedIds(newSet)
   }
 
-  const handleFilterChange = (type: 'customer' | 'supplier' | 'agent' | 'status', value: string | PotentialStatus) => {
+  const handleFilterChange = (type: 'customer' | 'supplier' | 'agent', value: string) => {
     // Re-enable auto-select when filters change
     setAutoSelectEnabled(true)
     switch (type) {
       case 'customer':
-        setCustomerFilter(value as string)
+        setCustomerFilter(value)
         break
       case 'supplier':
-        setSupplierFilter(value as string)
+        setSupplierFilter(value)
         break
       case 'agent':
-        setAgentFilter(value as string)
-        break
-      case 'status':
-        setStatusFilter(value as PotentialStatus)
+        setAgentFilter(value)
+        // Reset customer filter to 'all' when agent changes
+        // This ensures we don't have an invalid customer selected
+        if (customerFilter !== 'all') {
+          const customerStillValid = customers?.some(
+            c => c.id === customerFilter && (value === 'all' || c.agent_id === value)
+          )
+          if (!customerStillValid) {
+            setCustomerFilter('all')
+          }
+        }
         break
     }
+  }
+
+  const handleStatusFilterChange = (value: PotentialStatus) => {
+    // Re-enable auto-select when filters change
+    setAutoSelectEnabled(true)
+    setStatusFilter(value)
   }
 
   const handleOpportunityFilterChange = (checked: boolean) => {
@@ -246,8 +360,8 @@ export default function TradePotentialTableMode({
       const potential = data.find(p => p.id === id)
       if (potential) {
         const productCost = potential.supplierPrice?.pricePerUnit || 0
-        const currentState = pricingState[id] || { selectedBandIndex: 0 }
-        const transportCost = getTransportCostPerUnit(potential, currentState.selectedBandIndex)
+        const currentState = pricingState[id] || { selectedBandIndex: 0, selectedTransporterIndex: 0 }
+        const transportCost = getTransportCostPerUnit(potential, currentState.selectedBandIndex, currentState.selectedTransporterIndex)
         const totalCost = productCost + transportCost
         const offerPrice = totalCost * (1 + bulkMargin / 100)
 
@@ -255,7 +369,8 @@ export default function TradePotentialTableMode({
           marginPercent: bulkMargin,
           offerPrice: offerPrice,
           isEditing: true,
-          selectedBandIndex: currentState.selectedBandIndex
+          selectedBandIndex: currentState.selectedBandIndex,
+          selectedTransporterIndex: currentState.selectedTransporterIndex
         }
       }
     })
@@ -284,8 +399,18 @@ export default function TradePotentialTableMode({
 
       const pricing = getPricingState(potential)
 
-      // Get transport band if available
-      const selectedBand = potential.transportRoute?.availableBands?.[pricing.selectedBandIndex]
+      // Get transport band if available (use filtered bands)
+      const filteredBands = getFilteredBands(potential)
+      const selectedBand = filteredBands[pricing.selectedBandIndex]
+
+      // Get the selected transporter
+      let selectedTransporterId: string | undefined = undefined
+      if (potential.availableTransportRoutes && potential.availableTransportRoutes.length > 0) {
+        const selectedRoute = potential.availableTransportRoutes[pricing.selectedTransporterIndex]
+        selectedTransporterId = selectedRoute?.transporterId || undefined
+      } else if (potential.transportRoute?.transporterId) {
+        selectedTransporterId = potential.transportRoute.transporterId
+      }
 
       try {
         await createOpportunityMutation.mutateAsync({
@@ -298,8 +423,8 @@ export default function TradePotentialTableMode({
           priority: 'medium',
           supplier_price_id: potential.supplierPrice?.id,
           assigned_to: potential.customer.agent?.id,
-          // Add transport information - use transporterId not route id, and only if it exists
-          selected_transporter_id: potential.transportRoute?.transporterId || undefined,
+          // Add transport information - use selected transporterId
+          selected_transporter_id: selectedTransporterId,
           selected_transport_band_id: selectedBand?.id || undefined
         })
         successCount++
@@ -370,8 +495,18 @@ export default function TradePotentialTableMode({
   const handleQuickCreate = async (potential: TradePotential) => {
     const pricing = getPricingState(potential)
 
-    // Get transport band if available
-    const selectedBand = potential.transportRoute?.availableBands?.[pricing.selectedBandIndex]
+    // Get transport band if available (use filtered bands)
+    const filteredBands = getFilteredBands(potential)
+    const selectedBand = filteredBands[pricing.selectedBandIndex]
+
+    // Get the selected transporter
+    let selectedTransporterId: string | undefined = undefined
+    if (potential.availableTransportRoutes && potential.availableTransportRoutes.length > 0) {
+      const selectedRoute = potential.availableTransportRoutes[pricing.selectedTransporterIndex]
+      selectedTransporterId = selectedRoute?.transporterId || undefined
+    } else if (potential.transportRoute?.transporterId) {
+      selectedTransporterId = potential.transportRoute.transporterId
+    }
 
     try {
       await createOpportunityMutation.mutateAsync({
@@ -384,8 +519,8 @@ export default function TradePotentialTableMode({
         priority: 'medium',
         supplier_price_id: potential.supplierPrice?.id,
         assigned_to: potential.customer.agent?.id,
-        // Add transport information - use transporterId not route id, and only if it exists
-        selected_transporter_id: potential.transportRoute?.transporterId || undefined,
+        // Add transport information - use selected transporterId
+        selected_transporter_id: selectedTransporterId,
         selected_transport_band_id: selectedBand?.id || undefined
       })
 
@@ -463,7 +598,7 @@ export default function TradePotentialTableMode({
         <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
           <div>
             <Label htmlFor="status-filter" className="font-mono text-terminal-muted text-xs uppercase">Status Filter</Label>
-            <Select value={statusFilter} onValueChange={(value: PotentialStatus) => handleFilterChange('status', value)}>
+            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
               <SelectTrigger id="status-filter" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                 <SelectValue />
               </SelectTrigger>
@@ -485,7 +620,7 @@ export default function TradePotentialTableMode({
               </SelectTrigger>
               <SelectContent className="bg-terminal-panel border-terminal-border">
                 <SelectItem value="all" className="font-mono text-terminal-text">All Customers</SelectItem>
-                {customers?.map((customer) => (
+                {filteredCustomers?.map((customer) => (
                   <SelectItem key={customer.id} value={customer.id} className="font-mono text-terminal-text">
                     {customer.name}
                   </SelectItem>
@@ -624,7 +759,7 @@ export default function TradePotentialTableMode({
             <Table>
               <TableHeader>
                 <TableRow className="border-terminal-border">
-                  <TableHead className="w-12">
+                  <TableHead className="w-8 p-2">
                     <Checkbox
                       checked={selectedIds.size === filteredSelectablePotentials.length && filteredSelectablePotentials.length > 0}
                       onCheckedChange={toggleSelectAll}
@@ -632,19 +767,19 @@ export default function TradePotentialTableMode({
                       className="border-terminal-border data-[state=checked]:bg-terminal-accent data-[state=checked]:text-terminal-dark"
                     />
                   </TableHead>
-                  <TableHead className="font-mono text-terminal-muted uppercase">Customer</TableHead>
-                  <TableHead className="font-mono text-terminal-muted uppercase">Supplier</TableHead>
-                  <TableHead className="font-mono text-terminal-muted uppercase">Product</TableHead>
-                  <TableHead className="font-mono text-terminal-muted uppercase">Status</TableHead>
-                  <TableHead className="font-mono text-terminal-muted uppercase">Price Delivered To</TableHead>
-                  <TableHead className="font-mono text-terminal-muted uppercase">Transport</TableHead>
-                  <TableHead className="font-mono text-terminal-muted uppercase">Product Cost</TableHead>
-                  <TableHead className="font-mono text-terminal-muted uppercase">Transport Cost</TableHead>
-                  <TableHead className="font-mono text-terminal-muted uppercase">Total Cost</TableHead>
-                  <TableHead className="font-mono text-terminal-muted uppercase">Margin %</TableHead>
-                  <TableHead className="font-mono text-terminal-muted uppercase">Offer Price</TableHead>
-                  <TableHead className="font-mono text-terminal-muted uppercase">Profit</TableHead>
-                  <TableHead className="font-mono text-terminal-muted uppercase text-right">Quick Actions</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase text-xs p-2">Customer</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase text-xs p-2">Supplier</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase text-xs p-2">Product</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase text-xs p-2">Status</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase text-xs p-2">Price Del. To</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase text-xs p-2">Transport</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase text-xs p-2">Prod. Cost</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase text-xs p-2">Trans. Cost</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase text-xs p-2">Total</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase text-xs p-2">Margin %</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase text-xs p-2">Offer</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase text-xs p-2">Profit</TableHead>
+                  <TableHead className="font-mono text-terminal-muted uppercase text-xs text-right p-2">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -653,13 +788,18 @@ export default function TradePotentialTableMode({
                   const statusColor = statusConfig[potential.status]?.color || 'text-gray-600'
                   const pricing = getPricingState(potential)
                   const productCost = potential.supplierPrice?.pricePerUnit || 0
-                  const transportCost = getTransportCostPerUnit(potential, pricing.selectedBandIndex)
+                  const transportCost = getTransportCostPerUnit(potential, pricing.selectedBandIndex, pricing.selectedTransporterIndex)
                   const totalCost = productCost + transportCost
                   const profit = pricing.offerPrice - totalCost
                   const hasOpportunity = potential.hasOpportunity
-                  const hasBands = potential.transportRoute?.availableBands && potential.transportRoute.availableBands.length > 0
+                  // Use filtered bands based on pallet dimensions
+                  const filteredBands = getFilteredBands(potential)
+                  const hasBands = filteredBands && filteredBands.length > 0
                   const isSelectable = potential.status === 'complete' && !hasOpportunity
                   const isSelected = selectedIds.has(potential.id)
+                  // Check if multiple transporters are available
+                  const hasMultipleTransporters = potential.availableTransportRoutes && potential.availableTransportRoutes.length > 1
+                  const availableTransporters = potential.availableTransportRoutes || []
 
                   return (
                     <TableRow key={potential.id} className={cn(
@@ -667,7 +807,7 @@ export default function TradePotentialTableMode({
                       hasOpportunity ? 'bg-blue-900/20' : '',
                       isSelected ? 'bg-terminal-accent/5 border-l-4 border-l-terminal-accent' : ''
                     )}>
-                      <TableCell>
+                      <TableCell className="p-2">
                         {isSelectable ? (
                           <Checkbox
                             checked={isSelected}
@@ -675,130 +815,157 @@ export default function TradePotentialTableMode({
                             className="border-terminal-border data-[state=checked]:bg-terminal-accent data-[state=checked]:text-terminal-dark"
                           />
                         ) : (
-                          <div className="w-5" />
+                          <div className="w-4" />
                         )}
                       </TableCell>
-                      <TableCell className="font-mono text-terminal-text">
-                        <div className="space-y-1">
-                          <div className="font-medium">{potential.customer.name}</div>
-                          <div className="text-xs text-terminal-muted">
-                            {potential.customer.city}, {potential.customer.country}
+                      <TableCell className="font-mono text-terminal-text p-2 text-xs">
+                        <div>
+                          <div className="font-medium whitespace-nowrap">{potential.customer.name}</div>
+                          <div className="text-[10px] text-terminal-muted whitespace-nowrap">
+                            {potential.customer.city}
                           </div>
                           {potential.customer.agent && (
-                            <Badge variant="outline" className="text-xs font-mono border-terminal-border text-terminal-muted">
+                            <Badge variant="outline" className="text-[10px] font-mono border-terminal-border text-terminal-muted mt-0.5">
                               {potential.customer.agent.name}
                             </Badge>
                           )}
                         </div>
                       </TableCell>
 
-                      <TableCell className="font-mono text-terminal-text">
-                        <div className="space-y-1">
-                          <div className="font-medium">{potential.supplier.name}</div>
-                          <div className="text-xs text-terminal-muted">
-                            {potential.supplier.city}, {potential.supplier.country}
+                      <TableCell className="font-mono text-terminal-text p-2 text-xs">
+                        <div>
+                          <div className="font-medium whitespace-nowrap">{potential.supplier.name}</div>
+                          <div className="text-[10px] text-terminal-muted whitespace-nowrap">
+                            {potential.supplier.city}
                           </div>
                         </div>
                       </TableCell>
 
-                      <TableCell className="font-mono text-terminal-text">
-                        <div className="space-y-1">
+                      <TableCell className="font-mono text-terminal-text p-2 text-xs">
+                        <div>
                           <div className="font-medium">{potential.product.name}</div>
                           <div className="flex gap-1 flex-wrap">
-                            <Badge variant="outline" className="text-xs font-mono border-terminal-border text-terminal-muted">{potential.product.packagingLabel}</Badge>
-                            <Badge variant="outline" className="text-xs font-mono border-terminal-border text-terminal-muted">{potential.product.sizeName}</Badge>
+                            <Badge variant="outline" className="text-[10px] font-mono border-terminal-border text-terminal-muted">{potential.product.packagingLabel}</Badge>
+                            <Badge variant="outline" className="text-[10px] font-mono border-terminal-border text-terminal-muted">{potential.product.sizeName}</Badge>
                           </div>
                         </div>
                       </TableCell>
 
-                      <TableCell>
-                        <Badge className={cn("font-mono font-bold", statusConfig[potential.status]?.bg)}>
+                      <TableCell className="p-2">
+                        <Badge className={cn("font-mono text-[10px]", statusConfig[potential.status]?.bg)}>
                           {statusConfig[potential.status]?.label}
                         </Badge>
                       </TableCell>
 
-                      <TableCell className="font-mono text-terminal-text">
+                      <TableCell className="font-mono text-terminal-text p-2 text-xs">
                         {potential.supplierPrice ? (
-                          <div className="space-y-1">
-                            <div className="text-sm font-medium">
-                              {potential.supplierPrice.hubName}
-                            </div>
+                          <div className="font-medium whitespace-nowrap">
+                            {potential.supplierPrice.hubName}
                           </div>
                         ) : (
-                          <span className="text-sm text-terminal-muted">No price</span>
+                          <span className="text-terminal-muted">-</span>
                         )}
                       </TableCell>
 
-                      <TableCell className="font-mono text-terminal-text">
+                      <TableCell className="font-mono text-terminal-text p-2 text-xs">
                         {potential.transportRoute ? (
-                          <div className="space-y-1">
-                            <div className="text-sm font-medium text-blue-400">
-                              {potential.transportRoute.transporterName}
-                            </div>
-                            {potential.transportRoute.durationDays > 0 && (
-                              <div className="text-xs text-terminal-muted">
-                                {potential.transportRoute.durationDays} days
-                              </div>
-                            )}
-                            {hasBands && potential.status === 'complete' && !hasOpportunity && (
+                          <div>
+                            {/* Transporter Selector */}
+                            {hasMultipleTransporters && potential.status === 'complete' && !hasOpportunity ? (
                               <Select
-                                value={pricing.selectedBandIndex.toString()}
-                                onValueChange={(value) => updateTransportBand(potential, parseInt(value))}
+                                value={pricing.selectedTransporterIndex.toString()}
+                                onValueChange={(value) => updateSelectedTransporter(potential, parseInt(value))}
                               >
-                                <SelectTrigger className="h-7 text-xs w-full bg-terminal-dark border-terminal-border text-terminal-text font-mono">
+                                <SelectTrigger className="h-6 text-[10px] w-full bg-terminal-dark border-terminal-border text-blue-400 font-mono">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent className="bg-terminal-panel border-terminal-border">
-                                  {potential.transportRoute?.availableBands?.map((band, index) => (
-                                    <SelectItem key={index} value={index.toString()} className="font-mono text-terminal-text">
-                                      {band.min_pallets}-{band.max_pallets} pallets: {formatCurrency(band.price_per_pallet)}/pallet
+                                  {availableTransporters.map((transporter, index) => (
+                                    <SelectItem key={index} value={index.toString()} className="font-mono text-terminal-text text-xs">
+                                      {transporter.transporterName} - {formatCurrency(transporter.pricePerPallet)}/pallet
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
+                            ) : (
+                              <div className="font-medium text-blue-400 whitespace-nowrap">
+                                {availableTransporters[pricing.selectedTransporterIndex]?.transporterName || potential.transportRoute.transporterName}
+                              </div>
+                            )}
+
+                            {/* Duration */}
+                            {(availableTransporters[pricing.selectedTransporterIndex]?.durationDays || potential.transportRoute.durationDays) > 0 && (
+                              <div className="text-[10px] text-terminal-muted">
+                                {availableTransporters[pricing.selectedTransporterIndex]?.durationDays || potential.transportRoute.durationDays}d
+                              </div>
+                            )}
+
+                            {/* Price Band Selector */}
+                            {hasBands && (
+                              <>
+                                {potential.status === 'complete' && !hasOpportunity ? (
+                                  <Select
+                                    value={pricing.selectedBandIndex.toString()}
+                                    onValueChange={(value) => updateTransportBand(potential, parseInt(value))}
+                                  >
+                                    <SelectTrigger className="h-6 text-[10px] w-full bg-terminal-dark border-terminal-border text-terminal-text font-mono mt-1">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-terminal-panel border-terminal-border">
+                                      {filteredBands.map((band, index) => (
+                                        <SelectItem key={index} value={index.toString()} className="font-mono text-terminal-text text-xs">
+                                          {band.min_pallets}-{band.max_pallets}p
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <div className="text-[10px] text-terminal-muted mt-1">
+                                    {filteredBands[pricing.selectedBandIndex]?.min_pallets}-{filteredBands[pricing.selectedBandIndex]?.max_pallets}p
+                                  </div>
+                                )}
+                              </>
+                            )}
+
+                            {/* Customs Cost */}
+                            {(availableTransporters[pricing.selectedTransporterIndex]?.customsCostPerShipment || potential.transportRoute.customsCostPerShipment) > 0 && (
+                              <div className="text-[10px] text-yellow-400 mt-1">
+                                +{formatCurrency(availableTransporters[pricing.selectedTransporterIndex]?.customsCostPerShipment || potential.transportRoute.customsCostPerShipment)} customs
+                              </div>
                             )}
                           </div>
                         ) : (
-                          <span className="text-sm text-terminal-muted">No transport</span>
+                          <span className="text-terminal-muted">-</span>
                         )}
                       </TableCell>
 
-                      <TableCell className="font-mono text-terminal-text">
+                      <TableCell className="font-mono text-terminal-text p-2 text-xs">
                         {potential.supplierPrice ? (
-                          <div className="font-medium">
+                          <div className="font-medium whitespace-nowrap">
                             {formatCurrency(productCost)}
-                            {potential.product.soldBy && (
-                              <span className="text-xs text-terminal-muted">/{potential.product.soldBy}</span>
-                            )}
                           </div>
                         ) : (
-                          <span className="text-sm text-terminal-muted">No price</span>
+                          <span className="text-terminal-muted">-</span>
                         )}
                       </TableCell>
 
-                      <TableCell className="font-mono text-terminal-text">
+                      <TableCell className="font-mono text-terminal-text p-2 text-xs">
                         {transportCost > 0 ? (
-                          <div className="font-medium text-blue-400">
+                          <div className="font-medium text-blue-400 whitespace-nowrap">
                             {formatCurrency(transportCost)}
-                            {potential.product.soldBy && (
-                              <span className="text-xs text-terminal-muted">/{potential.product.soldBy}</span>
-                            )}
                           </div>
                         ) : (
-                          <span className="text-sm text-terminal-success">Free</span>
+                          <span className="text-terminal-success">Free</span>
                         )}
                       </TableCell>
 
-                      <TableCell className="font-mono text-terminal-text">
-                        <div className="font-semibold">
+                      <TableCell className="font-mono text-terminal-text p-2 text-xs">
+                        <div className="font-semibold whitespace-nowrap">
                           {formatCurrency(totalCost)}
-                          {potential.product.soldBy && (
-                            <span className="text-xs text-terminal-muted">/{potential.product.soldBy}</span>
-                          )}
                         </div>
                       </TableCell>
 
-                      <TableCell className="font-mono text-terminal-text">
+                      <TableCell className="font-mono text-terminal-text p-2 text-xs">
                         {potential.status === 'complete' && !hasOpportunity ? (
                           <Input
                             type="text"
@@ -806,18 +973,18 @@ export default function TradePotentialTableMode({
                             value={pricing.marginPercent.toFixed(1)}
                             onChange={(e) => updateMargin(potential.id, totalCost, parseFloat(e.target.value) || 0)}
                             onFocus={(e) => e.target.select()}
-                            className="w-20 h-8 text-sm bg-terminal-dark border-terminal-border text-terminal-text font-mono"
+                            className="w-14 h-6 text-[10px] bg-terminal-dark border-terminal-border text-terminal-text font-mono p-1"
                           />
                         ) : hasOpportunity && potential.opportunity?.offerPrice && totalCost > 0 ? (
-                          <div className="text-sm font-medium">
+                          <div className="font-medium">
                             {(((potential.opportunity.offerPrice - totalCost) / totalCost) * 100).toFixed(1)}%
                           </div>
                         ) : (
-                          <span className="text-sm text-terminal-muted">-</span>
+                          <span className="text-terminal-muted">-</span>
                         )}
                       </TableCell>
 
-                      <TableCell className="font-mono text-terminal-text">
+                      <TableCell className="font-mono text-terminal-text p-2 text-xs">
                         {potential.status === 'complete' && !hasOpportunity ? (
                           <Input
                             type="text"
@@ -825,49 +992,49 @@ export default function TradePotentialTableMode({
                             value={pricing.offerPrice.toFixed(2)}
                             onChange={(e) => updateOfferPrice(potential.id, totalCost, parseFloat(e.target.value) || 0)}
                             onFocus={(e) => e.target.select()}
-                            className="w-24 h-8 text-sm bg-terminal-dark border-terminal-border text-terminal-text font-mono"
+                            className="w-16 h-6 text-[10px] bg-terminal-dark border-terminal-border text-terminal-text font-mono p-1"
                           />
                         ) : hasOpportunity && potential.opportunity?.offerPrice ? (
-                          <div className="font-medium text-terminal-success">
+                          <div className="font-medium text-terminal-success whitespace-nowrap">
                             {formatCurrency(potential.opportunity.offerPrice)}
                           </div>
                         ) : (
-                          <span className="text-sm text-terminal-muted">-</span>
+                          <span className="text-terminal-muted">-</span>
                         )}
                       </TableCell>
 
-                      <TableCell className="font-mono text-terminal-text">
+                      <TableCell className="font-mono text-terminal-text p-2 text-xs">
                         {potential.status === 'complete' ? (
                           hasOpportunity && potential.opportunity?.offerPrice ? (
                             <div className={cn(
-                              "font-medium",
+                              "font-medium whitespace-nowrap",
                               (potential.opportunity.offerPrice - totalCost) > 0 ? "text-terminal-success" : "text-red-400"
                             )}>
                               {formatCurrency(potential.opportunity.offerPrice - totalCost)}
                             </div>
                           ) : (
                             <div className={cn(
-                              "font-medium",
+                              "font-medium whitespace-nowrap",
                               profit > 0 ? "text-terminal-success" : "text-red-400"
                             )}>
                               {formatCurrency(profit)}
                             </div>
                           )
                         ) : (
-                          <span className="text-sm text-terminal-muted">-</span>
+                          <span className="text-terminal-muted">-</span>
                         )}
                       </TableCell>
 
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <TableCell className="text-right p-2">
+                        <div className="flex items-center justify-end gap-1">
                           {hasOpportunity ? (
                             <>
-                              <Badge variant="secondary" className="text-xs font-mono bg-terminal-dark border-terminal-border text-terminal-text">
+                              <Badge variant="secondary" className="text-[10px] font-mono bg-terminal-dark border-terminal-border text-terminal-text px-1">
                                 {potential.opportunity?.status}
                               </Badge>
-                              <Button size="sm" asChild className="bg-blue-600 text-white hover:bg-blue-700 font-mono">
+                              <Button size="sm" asChild className="bg-blue-600 text-white hover:bg-blue-700 font-mono h-6 w-6 p-0">
                                 <Link href={`/trade/opportunities/${potential.opportunity?.id}`}>
-                                  <Eye className="h-4 w-4" />
+                                  <Eye className="h-3 w-3" />
                                 </Link>
                               </Button>
                             </>
@@ -877,18 +1044,18 @@ export default function TradePotentialTableMode({
                                 size="sm"
                                 onClick={() => handleQuickCreate(potential)}
                                 disabled={createOpportunityMutation.isPending}
-                                className="bg-terminal-success text-white hover:bg-green-600 font-mono"
+                                className="bg-terminal-success text-white hover:bg-green-600 font-mono h-6 px-2 text-[10px]"
                               >
-                                <Check className="h-4 w-4 mr-1" />
+                                <Check className="h-3 w-3 mr-0.5" />
                                 Create
                               </Button>
                               <Button
                                 size="sm"
                                 onClick={() => handleExcludePotential(potential)}
                                 disabled={excludePotentialMutation.isPending}
-                                className="bg-red-600 text-white hover:bg-red-700 font-mono"
+                                className="bg-red-600 text-white hover:bg-red-700 font-mono h-6 w-6 p-0"
                               >
-                                <X className="h-4 w-4" />
+                                <X className="h-3 w-3" />
                               </Button>
                             </>
                           ) : (
@@ -896,9 +1063,9 @@ export default function TradePotentialTableMode({
                               size="sm"
                               onClick={() => handleExcludePotential(potential)}
                               disabled={excludePotentialMutation.isPending}
-                              className="bg-red-600 text-white hover:bg-red-700 font-mono"
+                              className="bg-red-600 text-white hover:bg-red-700 font-mono h-6 w-6 p-0"
                             >
-                              <X className="h-4 w-4" />
+                              <X className="h-3 w-3" />
                             </Button>
                           )}
                         </div>

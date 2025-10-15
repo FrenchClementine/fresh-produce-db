@@ -4,6 +4,27 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { TradePotential, TradePotentialSummary, NewSupplierPrice, PotentialStatus } from '@/types/trade-potential'
 
+// Helper function to convert transport route data to standard format
+function convertTransportRoute(route: any, unitsPerPallet: number) {
+  const pricePerPallet = route.transporter_route_price_bands?.[0]?.price_per_pallet || 0
+  const pricePerUnit = unitsPerPallet > 0 ? pricePerPallet / unitsPerPallet : 0
+  const transporterName = route.transporters?.name || 'Third-party Transport'
+
+  return {
+    id: route.id,
+    transporterId: route.transporter_id,
+    originHubId: route.origin_hub_id,
+    destinationHubId: route.destination_hub_id,
+    transporterName: transporterName,
+    durationDays: route.transport_duration_days,
+    pricePerPallet: pricePerPallet,
+    pricePerUnit: pricePerUnit,
+    unitsPerPallet: unitsPerPallet,
+    customsCostPerShipment: route.customs_cost_per_shipment || 0,
+    availableBands: route.transporter_route_price_bands || []
+  }
+}
+
 // Get all possible customer-supplier-product combinations
 async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
   console.log('🔍 Generating trade potential matrix...')
@@ -30,6 +51,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
         boxes_per_pallet,
         weight_per_pallet,
         weight_unit,
+        pallet_id,
         products!inner(
           id,
           name,
@@ -42,6 +64,11 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
         ),
         size_options!inner(
           name
+        ),
+        pallets(
+          id,
+          label,
+          dimensions_cm
         )
       )
     `)
@@ -82,6 +109,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
       origin_hub_id,
       destination_hub_id,
       transport_duration_days,
+      customs_cost_per_shipment,
       is_active,
       transporters!inner(
         id,
@@ -232,6 +260,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
     const product = (customerSpec as any).products?.[0] || (customerSpec as any).products
     const packaging = (customerSpec as any).packaging_options?.[0] || (customerSpec as any).packaging_options
     const size = (customerSpec as any).size_options?.[0] || (customerSpec as any).size_options
+    const pallet = (customerSpec as any).pallets?.[0] || (customerSpec as any).pallets
 
     // Calculate units per pallet based on sold_by for transport cost calculations
     let unitsPerPallet = 0
@@ -294,6 +323,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
       let hasTransport = false
       let logisticsSolution = null
       let transportRoute = null
+      let availableTransportRoutes: any[] = []
 
       // Get customer delivery hubs for transport checking
       const customerDeliveryHubs = customerLogisticsCaps
@@ -364,6 +394,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
           pricePerPallet: 0,
           pricePerUnit: 0,
           unitsPerPallet: unitsPerPallet,
+          customsCostPerShipment: 0,
           availableBands: []
         }
       } else if (supplierPrice?.hub_id) {
@@ -392,6 +423,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
             pricePerPallet: 0,
             pricePerUnit: 0,
             unitsPerPallet: unitsPerPallet,
+            customsCostPerShipment: 0,
             availableBands: []
           }
         } else if (supplierPrice.delivery_mode === 'DELIVERY' && customerDeliveryHubs.includes(supplierHub)) {
@@ -408,6 +440,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
             pricePerPallet: 0,
             pricePerUnit: 0,
             unitsPerPallet: unitsPerPallet,
+            customsCostPerShipment: 0,
             availableBands: []
           }
         } else if (supplierPrice.delivery_mode === 'Ex Works' && customerCanPickupAtSupplierHub) {
@@ -424,33 +457,25 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
             pricePerPallet: 0,
             pricePerUnit: 0,
             unitsPerPallet: unitsPerPallet,
+            customsCostPerShipment: 0,
             availableBands: []
           }
         } else {
-          // 4. Check if third-party transport exists
-          const availableRoute = transportRoutes?.find(route =>
+          // 4. Check if third-party transport exists - find ALL matching routes
+          const availableRoutes = transportRoutes?.filter(route =>
             route.origin_hub_id === supplierHub &&
             customerDeliveryHubs.includes(route.destination_hub_id)
-          )
+          ) || []
 
-          if (availableRoute) {
+          if (availableRoutes.length > 0) {
             hasTransport = true
             logisticsSolution = 'THIRD_PARTY_TRANSPORT'
-            const pricePerPallet = availableRoute.transporter_route_price_bands?.[0]?.price_per_pallet || 0
-            const pricePerUnit = unitsPerPallet > 0 ? pricePerPallet / unitsPerPallet : 0
 
-            transportRoute = {
-              id: availableRoute.id,
-              transporterId: availableRoute.transporter_id,
-              originHubId: availableRoute.origin_hub_id,
-              destinationHubId: availableRoute.destination_hub_id,
-              transporterName: (availableRoute.transporters as any)?.name || 'Third-party Transport',
-              durationDays: availableRoute.transport_duration_days,
-              pricePerPallet: pricePerPallet,
-              pricePerUnit: pricePerUnit,
-              unitsPerPallet: unitsPerPallet,
-              availableBands: availableRoute.transporter_route_price_bands || []
-            }
+            // Convert all routes to standard format
+            availableTransportRoutes = availableRoutes.map(route => convertTransportRoute(route, unitsPerPallet))
+
+            // Use first route as default
+            transportRoute = availableTransportRoutes[0]
           }
         }
       } else {
@@ -482,6 +507,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
             pricePerPallet: 0,
             pricePerUnit: 0,
             unitsPerPallet: unitsPerPallet,
+            customsCostPerShipment: 0,
             availableBands: []
           }
         } else if (customerDeliveryHubs.length > 0 && transportRoutes && transportRoutes.length > 0) {
@@ -491,33 +517,24 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
           console.log(`🔍 ${supplier.name} has hubs: ${supplierHubIds.join(', ')}`)
 
           if (supplierHubIds.length > 0) {
-            // Find transport routes that originate from supplier's actual hubs and reach customer delivery hubs
-            const availableRoute = transportRoutes?.find(route =>
+            // Find ALL transport routes that originate from supplier's actual hubs and reach customer delivery hubs
+            const availableRoutes = transportRoutes?.filter(route =>
               supplierHubIds.includes(route.origin_hub_id) &&
               customerDeliveryHubs.includes(route.destination_hub_id)
-            )
+            ) || []
 
-            if (availableRoute) {
+            if (availableRoutes.length > 0) {
               hasTransport = true
               logisticsSolution = 'THIRD_PARTY_TRANSPORT'
-              const pricePerPallet = availableRoute.transporter_route_price_bands?.[0]?.price_per_pallet || 0
-              const pricePerUnit = unitsPerPallet > 0 ? pricePerPallet / unitsPerPallet : 0
-              const transporterName = (availableRoute.transporters as any)?.name || 'Third-party Transport'
 
-              console.log(`✅ Found realistic transport: ${transporterName} from hub ${availableRoute.origin_hub_id} → ${availableRoute.destination_hub_id}`)
+              // Convert all routes to standard format
+              availableTransportRoutes = availableRoutes.map(route => convertTransportRoute(route, unitsPerPallet))
 
-              transportRoute = {
-                id: availableRoute.id,
-                transporterId: availableRoute.transporter_id,
-                originHubId: availableRoute.origin_hub_id,
-                destinationHubId: availableRoute.destination_hub_id,
-                transporterName: transporterName,
-                durationDays: availableRoute.transport_duration_days,
-                pricePerPallet: pricePerPallet,
-                pricePerUnit: pricePerUnit,
-                unitsPerPallet: unitsPerPallet,
-                availableBands: availableRoute.transporter_route_price_bands || []
-              }
+              // Use first route as default
+              transportRoute = availableTransportRoutes[0]
+
+              const transporterName = transportRoute.transporterName
+              console.log(`✅ Found ${availableRoutes.length} realistic transport option(s): ${transporterName} from hub ${transportRoute.originHubId} → ${transportRoute.destinationHubId}`)
             } else {
               console.log(`❌ No realistic transport found for ${supplier.name} - no routes from their hubs (${supplierHubIds.join(', ')}) to customer hubs`)
             }
@@ -587,7 +604,8 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
           packagingLabel: packaging.label,
           sizeName: size.name,
           soldBy: product.sold_by,
-          specId: (customerSpec as any)?.id
+          specId: (customerSpec as any)?.id,
+          palletDimensions: pallet?.dimensions_cm || null
         },
         status,
         hasSupplierPrice: hasPrice,
@@ -611,8 +629,10 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
           pricePerPallet: transportRoute.pricePerPallet,
           pricePerUnit: (transportRoute as any).pricePerUnit || 0,
           unitsPerPallet: (transportRoute as any).unitsPerPallet || 0,
+          customsCostPerShipment: (transportRoute as any).customsCostPerShipment || 0,
           availableBands: (transportRoute as any).availableBands || []
         } : undefined,
+        availableTransportRoutes: availableTransportRoutes.length > 0 ? availableTransportRoutes : undefined,
         priceGap: !hasPrice,
         transportGap: !hasTransport,
         canAddPrice: !hasPrice,

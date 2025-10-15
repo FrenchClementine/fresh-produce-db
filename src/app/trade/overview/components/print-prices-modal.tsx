@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ interface PrintPricesModalProps {
 }
 
 export function PrintPricesModal({ open, onOpenChange }: PrintPricesModalProps) {
+  const router = useRouter()
   const [selectedAgent, setSelectedAgent] = useState<string>('')
   const { activeStaff } = useActiveStaff()
   const { data: opportunities } = useOpportunities('all', 'all', true)
@@ -74,148 +76,9 @@ export function PrintPricesModal({ open, onOpenChange }: PrintPricesModalProps) 
   }, [groupedOpportunities])
 
   const handlePrint = () => {
-    if (!selectedAgent) {
-      toast.error('Please select an agent')
-      return
-    }
-
-    if (groupedOpportunities.length === 0) {
-      toast.error('No active opportunities found for this agent')
-      return
-    }
-
-    const agent = activeStaff?.find(s => s.id === selectedAgent)
-
-    // Create print content grouped by customer
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Price List - ${agent?.name}</title>
-          <style>
-            body {
-              font-family: 'Courier New', monospace;
-              padding: 40px;
-              color: #333;
-            }
-            h1 {
-              border-bottom: 3px solid #000;
-              padding-bottom: 10px;
-              margin-bottom: 30px;
-            }
-            h2 {
-              margin-top: 40px;
-              margin-bottom: 15px;
-              color: #059669;
-              font-size: 18px;
-            }
-            .header-info {
-              margin-bottom: 30px;
-              line-height: 1.8;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-bottom: 30px;
-            }
-            th, td {
-              border: 1px solid #ddd;
-              padding: 12px;
-              text-align: left;
-            }
-            th {
-              background-color: #f5f5f5;
-              font-weight: bold;
-            }
-            .price {
-              font-weight: bold;
-              color: #059669;
-            }
-            .delivery {
-              font-size: 11px;
-              color: #666;
-            }
-            .customer-header {
-              background-color: #f0f9ff;
-              padding: 15px;
-              margin-top: 30px;
-              margin-bottom: 15px;
-              border-left: 4px solid #059669;
-            }
-            @media print {
-              body { padding: 20px; }
-              .customer-header {
-                page-break-before: auto;
-                page-break-inside: avoid;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <h1>AGENT PRICE LIST</h1>
-          <div class="header-info">
-            <strong>Agent:</strong> ${agent?.name}<br>
-            <strong>Date:</strong> ${new Date().toLocaleDateString()}<br>
-            <strong>Total Customers:</strong> ${groupedOpportunities.length}<br>
-            <strong>Total Opportunities:</strong> ${totalOpportunities}
-          </div>
-
-          ${groupedOpportunities.map(({ customer, opportunities }) => `
-            <div class="customer-header">
-              <h2>${customer?.name || 'Unknown Customer'}</h2>
-              <div style="font-size: 12px; color: #666;">
-                ${customer?.city ? `${customer.city}, ${customer.country}` : ''} •
-                ${opportunities.length} ${opportunities.length === 1 ? 'opportunity' : 'opportunities'}
-              </div>
-            </div>
-
-            <table>
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Supplier</th>
-                  <th>Delivery Location</th>
-                  <th>Sales Price</th>
-                  <th>Terms</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${opportunities.map((opp) => `
-                  <tr>
-                    <td>${opp.product_packaging_specs?.products?.name || 'N/A'}</td>
-                    <td>
-                      ${opp.supplier?.name || 'N/A'}
-                      <div class="delivery">${opp.supplier?.city ? `${opp.supplier.city}, ${opp.supplier.country}` : ''}</div>
-                    </td>
-                    <td>
-                      ${opp.delivery_hub?.name || opp.supplier_price?.hub_name || 'N/A'}
-                      <div class="delivery">${opp.delivery_hub?.city ? `${opp.delivery_hub.city}, ${opp.delivery_hub.country}` : ''}</div>
-                    </td>
-                    <td class="price">€${opp.offer_price_per_unit?.toFixed(2)}/${opp.product_packaging_specs?.products?.sold_by || 'unit'}</td>
-                    <td>${opp.supplier_price?.delivery_mode === 'DELIVERY' ? 'DDP' : 'EXW'}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          `).join('')}
-        </body>
-      </html>
-    `
-
-    // Open print window
-    const printWindow = window.open('', '_blank')
-    if (printWindow) {
-      printWindow.document.write(printContent)
-      printWindow.document.close()
-      printWindow.focus()
-      setTimeout(() => {
-        printWindow.print()
-      }, 250)
-      toast.success('Opening print dialog...')
-      onOpenChange(false)
-    } else {
-      toast.error('Failed to open print window. Please check your popup blocker.')
-    }
+    // Navigate to the print report page (no agent parameter needed - shows all agents)
+    router.push(`/trade/overview/print-report`)
+    onOpenChange(false)
   }
 
   return (
@@ -297,11 +160,10 @@ export function PrintPricesModal({ open, onOpenChange }: PrintPricesModalProps) 
           </Button>
           <Button
             onClick={handlePrint}
-            disabled={!selectedAgent || groupedOpportunities.length === 0}
             className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono"
           >
             <Printer className="h-4 w-4 mr-2" />
-            Print
+            Open Print Report
           </Button>
         </div>
       </DialogContent>

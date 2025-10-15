@@ -41,6 +41,7 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
   const [currentPage, setCurrentPage] = useState(0)
   const [fadeIn, setFadeIn] = useState(true)
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set())
+  const [isHovering, setIsHovering] = useState(false)
 
   // Track which opportunities have changed
   const flashingIds = useFlashOnChangeById(
@@ -123,9 +124,24 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
     })
   }
 
-  // Auto-rotate pages with fade effect for opportunities
+  // Calculate age of opportunity
+  const getOpportunityAge = (createdAt: string) => {
+    const now = new Date()
+    const created = new Date(createdAt)
+    const diffMs = now.getTime() - created.getTime()
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffHours < 24) {
+      return `${diffHours}h`
+    } else {
+      return `${diffDays}d`
+    }
+  }
+
+  // Auto-rotate pages with fade effect for opportunities (pause when hovering)
   useEffect(() => {
-    if (!shouldPaginateOpps) return
+    if (!shouldPaginateOpps || isHovering) return
 
     const interval = setInterval(() => {
       setFadeIn(false)
@@ -136,7 +152,7 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
     }, 5000)
 
     return () => clearInterval(interval)
-  }, [shouldPaginateOpps, totalOppPages])
+  }, [shouldPaginateOpps, totalOppPages, isHovering])
 
   const openRequests = requests?.slice(0, 15) || []
 
@@ -214,6 +230,61 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
     }
   }
 
+  // Bulk actions for customer groups
+  const handleBulkMarkQuoted = async (opportunities: any[], e: React.MouseEvent) => {
+    e.stopPropagation()
+
+    try {
+      await Promise.all(
+        opportunities.map(opp =>
+          updateOpportunity.mutateAsync({
+            id: opp.id,
+            data: { status: 'offered' }
+          })
+        )
+      )
+
+      toast.success(`Marked ${opportunities.length} opportunities as quoted`)
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] })
+    } catch (error: any) {
+      console.error('Error updating opportunities:', error)
+      toast.error(error.message || 'Failed to update opportunities')
+    }
+  }
+
+  const handleBulkAddFeedback = async (opportunities: any[], feedback: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+
+    try {
+      // Determine status based on feedback
+      let newStatus: 'draft' | 'active' | 'negotiating' | 'offered' | 'confirmed' | 'cancelled' | 'completed' | 'feedback_received' = 'negotiating'
+      if (feedback === 'accepted') {
+        newStatus = 'confirmed'
+      } else if (feedback === 'not_interested') {
+        newStatus = 'cancelled'
+      }
+
+      await Promise.all(
+        opportunities.map(opp =>
+          updateOpportunity.mutateAsync({
+            id: opp.id,
+            data: {
+              customer_feedback: feedback,
+              feedback_date: new Date().toISOString(),
+              status: newStatus,
+            }
+          })
+        )
+      )
+
+      toast.success(`Marked ${opportunities.length} opportunities as ${feedback}`)
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] })
+    } catch (error: any) {
+      console.error('Error updating opportunities:', error)
+      toast.error(error.message || 'Failed to update opportunities')
+    }
+  }
+
   const handleCopyCustomerOpportunities = async (customerOpportunities: any[], e: React.MouseEvent) => {
     e.stopPropagation() // Prevent expanding/collapsing
 
@@ -230,7 +301,7 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
       const originHub = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || opp.supplier?.city || '-'
       const destinationHub = opp.delivery_hub?.name || opp.customer?.city || '-'
       const deliveryMode = (opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY') ? 'DDP' : 'EXW'
-      const routeText = deliveryMode === 'DDP' ? `${originHub} → ${destinationHub}` : `${originHub} (pickup)`
+      const routeText = deliveryMode === 'DDP' ? `${originHub} → ${destinationHub}` : originHub
       const transportPrice = opp.selected_transport_band?.price_per_pallet || null
 
       const groupKey = `${routeText}|${transportPrice}`
@@ -240,28 +311,35 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
           routeText,
           deliveryMode,
           transportPrice,
+          destinationHub,
           products: []
         })
       }
 
       groupedForCopy.get(groupKey).products.push({
         name: opp.product_packaging_specs?.products?.name || '-',
-        size: `${opp.product_packaging_specs?.packaging_options?.label || ''} ${opp.product_packaging_specs?.size_options?.name || '-'}`.trim(),
+        packaging: opp.product_packaging_specs?.packaging_options?.label || '-',
+        sizeName: opp.product_packaging_specs?.size_options?.name || '-',
         price: opp.offer_price_per_unit,
         unit: opp.product_packaging_specs?.products?.sold_by || 'unit'
       })
     })
 
     groupedForCopy.forEach((group) => {
-      text += `${group.deliveryMode === 'DDP' ? 'Route' : 'Pickup location'}: ${group.routeText}\n`
+      // Format location header
+      const locationHeader = group.deliveryMode === 'DDP'
+        ? `Price delivered to: ${group.destinationHub}`
+        : `${group.routeText} Pick up:`
+
+      text += `${locationHeader}\n`
 
       if (group.transportPrice) {
         text += `Transport: €${group.transportPrice.toFixed(2)}/pallet\n`
       }
 
-      group.products.forEach((product) => {
-        text += `Product: ${product.name} - Size: ${product.size}\n`
-        text += `Price: €${product.price?.toFixed(2)}/${product.unit}\n`
+      group.products.forEach((product: { name: string; packaging: string; sizeName: string; price: number; unit: string }) => {
+        // Format:     Product SizeName - Packaging - Price/unit
+        text += `    ${product.name} ${product.sizeName} - ${product.packaging} - ${product.price?.toFixed(2)}/${product.unit}\n`
       })
 
       text += `\n`
@@ -291,7 +369,7 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
       const originHub = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || opp.supplier?.city || '-'
       const destinationHub = opp.delivery_hub?.name || opp.customer?.city || '-'
       const deliveryMode = (opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY') ? 'DDP' : 'EXW'
-      const routeText = deliveryMode === 'DDP' ? `${originHub} → ${destinationHub}` : `${originHub} (pickup)`
+      const routeText = deliveryMode === 'DDP' ? `${originHub} → ${destinationHub}` : originHub
       const transportPrice = opp.selected_transport_band?.price_per_pallet || null
 
       // Create a unique key for grouping (customer + route + transport)
@@ -303,13 +381,15 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
           routeText,
           deliveryMode,
           transportPrice,
+          destinationHub,
           products: []
         })
       }
 
       groupedForCopy.get(groupKey).products.push({
         name: opp.product_packaging_specs?.products?.name || '-',
-        size: `${opp.product_packaging_specs?.packaging_options?.label || ''} ${opp.product_packaging_specs?.size_options?.name || '-'}`.trim(),
+        packaging: opp.product_packaging_specs?.packaging_options?.label || '-',
+        sizeName: opp.product_packaging_specs?.size_options?.name || '-',
         price: opp.offer_price_per_unit,
         unit: opp.product_packaging_specs?.products?.sold_by || 'unit'
       })
@@ -318,15 +398,21 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
     let groupIndex = 1
     groupedForCopy.forEach((group) => {
       text += `${groupIndex}. ${group.customerName}\n`
-      text += `   ${group.deliveryMode === 'DDP' ? 'Route' : 'Pickup location'}: ${group.routeText}\n`
+
+      // Format location header
+      const locationHeader = group.deliveryMode === 'DDP'
+        ? `   Price delivered to: ${group.destinationHub}`
+        : `   ${group.routeText} Pick up:`
+
+      text += `${locationHeader}\n`
 
       if (group.transportPrice) {
         text += `   Transport: €${group.transportPrice.toFixed(2)}/pallet\n`
       }
 
-      group.products.forEach((product) => {
-        text += `   Product: ${product.name} - Size: ${product.size}\n`
-        text += `   Price: €${product.price?.toFixed(2)}/${product.unit}\n`
+      group.products.forEach((product: { name: string; packaging: string; sizeName: string; price: number; unit: string }) => {
+        // Format:       Product SizeName - Packaging - Price/unit
+        text += `       ${product.name} ${product.sizeName} - ${product.packaging} - ${product.price?.toFixed(2)}/${product.unit}\n`
       })
 
       text += `\n`
@@ -486,16 +572,28 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
               </div>
             </div>
 
-            <div className="overflow-hidden">
+            <div
+              className="overflow-hidden"
+              onMouseEnter={() => setIsHovering(true)}
+              onMouseLeave={() => setIsHovering(false)}
+            >
               <div
                 className="divide-y divide-terminal-border transition-opacity duration-300"
-                style={{ opacity: fadeIn ? 1 : 0 }}
+                style={{ opacity: (fadeIn || isHovering) ? 1 : 0 }}
               >
                 {visibleCustomerGroups.map((group) => {
                   const isExpanded = expandedCustomers.has(group.customerId)
-                  const totalValue = group.opportunities.reduce((sum, opp) => sum + (opp.offer_price_per_unit || 0), 0)
-                  const uniqueSuppliers = Array.from(new Set(group.opportunities.map(opp => opp.supplier?.name).filter(Boolean)))
-                  const hasFlashingItems = group.opportunities.some(opp => flashingIds.has(opp.id))
+                  const totalValue = group.opportunities.reduce((sum: number, opp: any) => sum + (opp.offer_price_per_unit || 0), 0)
+                  const uniqueSuppliers = Array.from(new Set(group.opportunities.map((opp: any) => opp.supplier?.name).filter(Boolean)))
+                  const hasFlashingItems = group.opportunities.some((opp: any) => flashingIds.has(opp.id))
+                  // Get the oldest opportunity to show age
+                  const oldestOpportunity = group.opportunities.reduce((oldest: any, opp: any) => {
+                    return new Date(opp.created_at) < new Date(oldest.created_at) ? opp : oldest
+                  }, group.opportunities[0])
+
+                  // Check if all opportunities are quoted or have feedback
+                  const allQuoted = group.opportunities.every((opp: any) => opp.status === 'offered' || opp.status === 'confirmed')
+                  const allHaveFeedback = group.opportunities.every((opp: any) => opp.customer_feedback && opp.customer_feedback.trim() !== '')
 
                   return (
                     <div
@@ -507,26 +605,20 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
                       }`}
                     >
                       {/* Collapsed Customer Header */}
-                      <div
-                        className="p-3 hover:bg-terminal-dark cursor-pointer"
-                        onClick={() => toggleCustomerExpansion(group.customerId)}
-                      >
+                      <div className="p-3 hover:bg-terminal-dark">
                         <div className="flex items-start justify-between">
-                          <div className="flex-1">
+                          <div
+                            className="flex-1 cursor-pointer"
+                            onClick={() => toggleCustomerExpansion(group.customerId)}
+                          >
                             <div className="flex items-center gap-2 mb-1">
                               <Users className="h-4 w-4 text-terminal-accent" />
                               <span className="text-terminal-text text-sm font-mono font-semibold">
                                 {group.customerName}
                               </span>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={(e) => handleCopyCustomerOpportunities(group.opportunities, e)}
-                                className="h-5 w-5 p-0 hover:bg-terminal-accent/20 text-terminal-muted hover:text-terminal-accent"
-                                title="Copy this customer's opportunities"
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
+                              <Badge variant="outline" className="text-xs font-mono border-terminal-accent/50 text-terminal-text bg-terminal-accent/10 px-1.5 py-0.5">
+                                {getOpportunityAge(oldestOpportunity.created_at)}
+                              </Badge>
                               {isExpanded ? (
                                 <ChevronUp className="h-4 w-4 text-terminal-muted" />
                               ) : (
@@ -550,13 +642,95 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
                               </div>
                             )}
                           </div>
+
+                          {/* Bulk Action Buttons */}
+                          <div className="flex items-center gap-1 ml-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => handleCopyCustomerOpportunities(group.opportunities, e)}
+                              className="h-6 w-6 p-0 hover:bg-terminal-accent/20 text-terminal-muted hover:text-terminal-accent"
+                              title="Copy this customer's opportunities"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={(e) => handleBulkMarkQuoted(group.opportunities, e)}
+                              className={`h-6 px-2 font-mono text-[10px] ${
+                                allQuoted
+                                  ? 'bg-terminal-success/20 border border-terminal-success text-terminal-success hover:bg-terminal-success/30'
+                                  : 'bg-terminal-warning hover:bg-yellow-600 text-terminal-dark'
+                              }`}
+                              title={allQuoted ? "All opportunities quoted" : "Mark all as quoted"}
+                            >
+                              <Check className="h-3 w-3 mr-1" />
+                              {allQuoted ? '✓ All Quoted' : 'All Quoted'}
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  className={`h-6 px-2 font-mono text-[10px] ${
+                                    allHaveFeedback
+                                      ? 'bg-terminal-success/20 border border-terminal-success text-terminal-success hover:bg-terminal-success/30'
+                                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                  }`}
+                                  title={allHaveFeedback ? "All have feedback" : "Add feedback to all"}
+                                >
+                                  <MessageSquare className="h-3 w-3 mr-1" />
+                                  {allHaveFeedback ? '✓ All Feedback' : 'All Feedback'}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                className="bg-terminal-panel border-terminal-border"
+                              >
+                                <DropdownMenuItem
+                                  onClick={(e) => handleBulkAddFeedback(group.opportunities, 'interested', e)}
+                                  className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
+                                >
+                                  <MessageSquare className="h-3 w-3 mr-2 text-green-500" />
+                                  Interested
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => handleBulkAddFeedback(group.opportunities, 'negotiating', e)}
+                                  className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
+                                >
+                                  <MessageSquare className="h-3 w-3 mr-2 text-yellow-500" />
+                                  Negotiating
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => handleBulkAddFeedback(group.opportunities, 'too_expensive', e)}
+                                  className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
+                                >
+                                  <MessageSquare className="h-3 w-3 mr-2 text-orange-500" />
+                                  Too Expensive
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => handleBulkAddFeedback(group.opportunities, 'not_interested', e)}
+                                  className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
+                                >
+                                  <MessageSquare className="h-3 w-3 mr-2 text-red-500" />
+                                  Not Interested
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => handleBulkAddFeedback(group.opportunities, 'accepted', e)}
+                                  className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
+                                >
+                                  <MessageSquare className="h-3 w-3 mr-2 text-green-600" />
+                                  Accepted
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
                       </div>
 
                       {/* Expanded Opportunities List */}
                       {isExpanded && (
                         <div className="border-t border-terminal-border/50">
-                          {group.opportunities.map((opp, index) => {
+                          {group.opportunities.map((opp: any, index: number) => {
                             const statusColors = {
                               draft: 'text-terminal-muted',
                               active: 'text-terminal-accent',
@@ -587,15 +761,20 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
                                     className="flex-1 cursor-pointer"
                                     onClick={() => opp.supplier?.id && onSupplierSelect(opp.supplier.id)}
                                   >
-                                    <div className="text-terminal-text text-sm font-mono font-semibold">
-                                      {opp.product_packaging_specs?.products.name}
+                                    <div className="flex items-center gap-2">
+                                      <div className="text-terminal-text text-sm font-mono font-semibold">
+                                        {opp.product_packaging_specs?.products.name}
+                                      </div>
+                                      <Badge variant="outline" className="text-xs font-mono border-terminal-accent/50 text-terminal-text bg-terminal-accent/10 px-1.5 py-0.5">
+                                        {getOpportunityAge(opp.created_at)}
+                                      </Badge>
                                     </div>
                                     <div className="text-terminal-muted text-xs font-mono">
                                       {opp.supplier?.name}
                                     </div>
                                   </div>
 
-                                  <Badge className={`${statusColors[opp.status]} bg-transparent border-0 font-mono text-xs`}>
+                                  <Badge className={`${statusColors[opp.status as keyof typeof statusColors] || 'text-terminal-muted'} bg-transparent border-0 font-mono text-xs`}>
                                     {opp.status.toUpperCase()}
                                   </Badge>
                                 </div>

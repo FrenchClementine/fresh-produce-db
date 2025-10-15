@@ -13,6 +13,9 @@ import TradePotentialTableMode from './components/table-mode'
 export default function TradePotentialPage() {
   const [statusFilter, setStatusFilter] = useState<PotentialStatus>('all')
   const [showOpportunityFilter, setShowOpportunityFilter] = useState(false)
+  const [customerFilter, setCustomerFilter] = useState<string>('all')
+  const [supplierFilter, setSupplierFilter] = useState<string>('all')
+  const [agentFilter, setAgentFilter] = useState<string>('all')
 
   const { data, isLoading, error, refetch } = useTradePotential(statusFilter)
 
@@ -77,6 +80,12 @@ export default function TradePotentialPage() {
         setStatusFilter={setStatusFilter}
         showOpportunityFilter={showOpportunityFilter}
         setShowOpportunityFilter={setShowOpportunityFilter}
+        customerFilter={customerFilter}
+        setCustomerFilter={setCustomerFilter}
+        supplierFilter={supplierFilter}
+        setSupplierFilter={setSupplierFilter}
+        agentFilter={agentFilter}
+        setAgentFilter={setAgentFilter}
         onRefresh={refetch}
       />
     </div>

@@ -212,7 +212,7 @@ function NavItemComponent({ item, collapsed, level = 0 }: { item: NavItem; colla
 export function AppSidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <div className={cn(
-      'flex flex-col h-screen bg-terminal-panel border-r border-terminal-border transition-all duration-300',
+      'flex flex-col h-screen bg-terminal-panel border-r border-terminal-border transition-all duration-300 print:hidden',
       collapsed ? 'w-16' : 'w-64'
     )}>
       {/* Header */}

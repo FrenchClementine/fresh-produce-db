@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -75,6 +75,25 @@ export function BuildOpportunityModal({ open, onClose, potential }: BuildOpportu
 
   const needsPrice = potential?.status === 'missing_price' || potential?.status === 'missing_both'
   const needsTransport = potential?.status === 'missing_transport' || potential?.status === 'missing_both'
+
+  // Filter price bands to match product's pallet dimensions
+  const filteredRoutePriceBands = useMemo(() => {
+    if (!routePriceBands || !potential?.product.palletDimensions) {
+      return routePriceBands || []
+    }
+
+    // Extract dimensions from the pallet (e.g., "120x80" or "120x100")
+    const productPalletDimensions = potential.product.palletDimensions
+
+    // Filter bands that match the product's pallet dimensions
+    return routePriceBands.filter(band => {
+      // If band has no pallet_dimensions, include it (backwards compatibility)
+      if (!band.pallet_dimensions) return true
+
+      // Match the pallet dimensions
+      return band.pallet_dimensions === productPalletDimensions
+    })
+  }, [routePriceBands, potential?.product.palletDimensions])
 
   // Initialize form values based on existing data
   useEffect(() => {
@@ -651,11 +670,11 @@ export function BuildOpportunityModal({ open, onClose, potential }: BuildOpportu
                         </span>
                       </div>
                     )}
-                    {potential.transportRoute.availableBands && potential.transportRoute.availableBands.length > 0 && (
+                    {filteredRoutePriceBands && filteredRoutePriceBands.length > 0 && (
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Price Bands:</span>
                         <span className="font-medium">
-                          {potential.transportRoute.availableBands.length} available
+                          {filteredRoutePriceBands.length} available
                         </span>
                       </div>
                     )}
@@ -666,7 +685,7 @@ export function BuildOpportunityModal({ open, onClose, potential }: BuildOpportu
                     )}
 
                       {/* Price Band Selection */}
-                      {routePriceBands && routePriceBands.length > 0 && (
+                      {filteredRoutePriceBands && filteredRoutePriceBands.length > 0 && (
                         <div className="pt-2 border-t">
                           <Label htmlFor="priceBand" className="text-sm">Select Price Band</Label>
                           <Select value={selectedPriceBand} onValueChange={setSelectedPriceBand}>
@@ -674,7 +693,7 @@ export function BuildOpportunityModal({ open, onClose, potential }: BuildOpportu
                               <SelectValue placeholder="Choose price band..." />
                             </SelectTrigger>
                             <SelectContent>
-                              {routePriceBands.map((band) => (
+                              {filteredRoutePriceBands.map((band) => (
                                 <SelectItem key={band.id} value={band.id}>
                                   {band.pallet_dimensions} | {band.min_pallets}
                                   {band.max_pallets ? `-${band.max_pallets}` : '+'} pallets |

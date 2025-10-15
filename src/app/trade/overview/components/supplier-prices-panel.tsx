@@ -296,8 +296,8 @@ export function SupplierPricesPanel() {
           ) : (
             groupedPrices.map((group) => {
               const isExpanded = expandedSuppliers.has(group.supplierId)
-              const uniqueProducts = Array.from(new Set(group.prices.map(p => p.product_name)))
-              const hasFlashingItems = group.prices.some(p => flashingIds.has(p.id))
+              const uniqueProducts = Array.from(new Set(group.prices.map((p: any) => p.product_name)))
+              const hasFlashingItems = group.prices.some((p: any) => flashingIds.has(p.id))
 
               return (
                 <div
@@ -344,7 +344,7 @@ export function SupplierPricesPanel() {
                   {/* Expanded Prices List */}
                   {isExpanded && (
                     <div className="border-t border-terminal-border/50">
-                      {group.prices.map((price, index) => {
+                      {group.prices.map((price: any, index: number) => {
                         const isEditing = editingId === price.id
                         const isExpired = price.valid_until && new Date(price.valid_until) < new Date()
                         const isFlashing = flashingIds.has(price.id)

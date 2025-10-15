@@ -25,7 +25,7 @@ export default function PrintReportPage() {
     // Group by agent - show ALL active opportunities (matching the overview page)
     const byAgent = opportunities.reduce((acc, opp) => {
       const agentId = opp.customer?.agent?.id
-      if (!agentId) return acc
+      if (!agentId || !opp.customer?.agent) return acc
 
       if (!acc[agentId]) {
         acc[agentId] = {

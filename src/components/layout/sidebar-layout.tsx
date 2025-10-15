@@ -21,8 +21,8 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
-      <main className="flex-1 overflow-auto relative bg-terminal-dark">
-        <div className="container mx-auto py-6 px-6">
+      <main className="flex-1 overflow-auto relative bg-terminal-dark print:w-full">
+        <div className="container mx-auto py-6 px-6 print:py-0 print:px-0">
           {children}
         </div>
       </main>

@@ -144,7 +144,7 @@ export async function GET(
     // For historical data, we'll use the first few days of forecast as "recent"
     // (Real historical requires paid API tier)
     const historical = forecast.slice(0, 7).reverse()
-    const futureForecast = forecast.slice(0, 14)
+    const futureForecast = forecast
 
     const weatherData = {
       location: {

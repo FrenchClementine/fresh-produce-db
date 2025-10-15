@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TransporterListTerminal } from '@/components/transporters/transporter-list-terminal'
+import { BulkRouteEntryTable } from '@/components/transporters/bulk-route-entry-table'
 import { TransporterRoutesList } from '@/components/transporters/transporter-routes-list'
 import { RoutePriceBandsList } from '@/components/transporters/route-price-bands-list'
 import { Truck } from 'lucide-react'
@@ -35,6 +36,12 @@ export default function TransportersPage() {
             TRANSPORTERS
           </TabsTrigger>
           <TabsTrigger
+            value="bulk-entry"
+            className="font-mono text-xs data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark data-[state=active]:font-bold"
+          >
+            BULK ENTRY
+          </TabsTrigger>
+          <TabsTrigger
             value="routes"
             className="font-mono text-xs data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark data-[state=active]:font-bold"
           >
@@ -50,6 +57,10 @@ export default function TransportersPage() {
 
         <TabsContent value="transporters">
           <TransporterListTerminal />
+        </TabsContent>
+
+        <TabsContent value="bulk-entry">
+          <BulkRouteEntryTable />
         </TabsContent>
 
         <TabsContent value="routes">

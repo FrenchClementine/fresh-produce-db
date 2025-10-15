@@ -517,7 +517,7 @@ export function ManagePricesMode({ onAddNew }: ManagePricesModeProps) {
                           onClick={() => {
                             const price = prices?.find(p => p.id === uploadingImageFor)
                             if (price) {
-                              handleImageDelete(price.id, imageUrl, price.image_urls)
+                              handleImageDelete(price.id, imageUrl, price.image_urls || [])
                             }
                           }}
                           disabled={deleteImage.isPending}

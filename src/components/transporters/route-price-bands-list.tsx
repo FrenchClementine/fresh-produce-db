@@ -91,58 +91,63 @@ export function RoutePriceBandsList() {
     return diffDays
   }
 
-  const getPriceAgeVariant = (daysOld: number) => {
-    if (daysOld <= 7) return 'default'
-    if (daysOld <= 30) return 'secondary'
-    return 'destructive'
+  const getPriceAgeColor = (daysOld: number) => {
+    if (daysOld <= 7) return 'text-terminal-success'
+    if (daysOld <= 30) return 'text-terminal-warning'
+    return 'text-terminal-alert'
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
+      <Card className="bg-terminal-panel border-terminal-border">
+        <CardContent className="pt-6">
+          <div className="text-center py-8 text-terminal-muted font-mono">Loading price bands...</div>
+        </CardContent>
+      </Card>
     )
   }
 
   if (error) {
     return (
-      <Card>
+      <Card className="bg-terminal-panel border-terminal-border">
         <CardContent className="p-6">
-          <p className="text-red-600">Error loading price bands. Please try again.</p>
+          <p className="text-terminal-alert font-mono">Error loading price bands. Please try again.</p>
         </CardContent>
       </Card>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="bg-terminal-panel border-terminal-border">
+      <CardHeader className="border-b border-terminal-border">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <Euro className="h-6 w-6 text-amber-600" />
-              Route Price Bands
+            <CardTitle className="flex items-center gap-2 font-mono text-sm text-terminal-text">
+              <Euro className="h-4 w-4 text-terminal-accent" />
+              ROUTE PRICE BANDS
+              <Badge variant="secondary" className="bg-terminal-success/20 text-terminal-success border-terminal-success font-mono">
+                {filteredBands.length}
+              </Badge>
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-terminal-muted font-mono text-xs mt-1">
               Manage tiered pricing for different pallet quantities and dimensions
             </CardDescription>
           </div>
           <div className="flex gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
+                <Button className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono h-7 text-xs">
+                  <Plus className="h-3 w-3 mr-1" />
                   Add Price Bands
-                  <ChevronDown className="h-4 w-4 ml-2" />
+                  <ChevronDown className="h-3 w-3 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setShowForm(true)}>
+              <DropdownMenuContent align="end" className="bg-terminal-dark border-terminal-border">
+                <DropdownMenuItem onClick={() => setShowForm(true)} className="font-mono text-terminal-text hover:bg-terminal-panel">
                   <Plus className="h-4 w-4 mr-2" />
                   Single Price Band
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowBulkForm(true)}>
+                <DropdownMenuItem onClick={() => setShowBulkForm(true)} className="font-mono text-terminal-text hover:bg-terminal-panel">
                   <Package className="h-4 w-4 mr-2" />
                   Multiple Price Bands
                 </DropdownMenuItem>
@@ -152,10 +157,10 @@ export function RoutePriceBandsList() {
 
           {/* Single Price Band Dialog */}
           <Dialog open={showForm} onOpenChange={setShowForm}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-terminal-dark border-terminal-border">
               <DialogHeader>
-                <DialogTitle>Add New Price Band</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-terminal-text font-mono">Add New Price Band</DialogTitle>
+                <DialogDescription className="text-terminal-muted font-mono">
                   Create a new pricing tier for a route
                 </DialogDescription>
               </DialogHeader>
@@ -171,10 +176,10 @@ export function RoutePriceBandsList() {
 
           {/* Bulk Price Bands Dialog */}
           <Dialog open={showBulkForm} onOpenChange={setShowBulkForm}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-terminal-dark border-terminal-border">
               <DialogHeader>
-                <DialogTitle>Add Multiple Price Bands</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-terminal-text font-mono">Add Multiple Price Bands</DialogTitle>
+                <DialogDescription className="text-terminal-muted font-mono">
                   Create multiple pricing tiers for a route at once
                 </DialogDescription>
               </DialogHeader>
@@ -189,154 +194,149 @@ export function RoutePriceBandsList() {
           </Dialog>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {/* Filters */}
-          <div className="flex gap-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search price bands..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <Select value={selectedRoute} onValueChange={setSelectedRoute}>
-              <SelectTrigger className="w-[280px]">
-                <SelectValue placeholder="Filter by route" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Routes</SelectItem>
-                {routes?.map((route) => (
-                  <SelectItem key={route.id} value={route.id}>
-                    {route.transporters.name}: {route.origin_hub.name} → {route.destination_hub.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <CardContent className="p-4 space-y-4">
+        {/* Filters */}
+        <div className="flex gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-terminal-muted" />
+            <Input
+              placeholder="Search price bands..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-terminal-dark border-terminal-border text-terminal-text font-mono text-xs placeholder:text-terminal-muted h-9"
+            />
           </div>
 
-          {/* Price Bands Table */}
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Route</TableHead>
-                  <TableHead>Pallet Size</TableHead>
-                  <TableHead>Quantity Range</TableHead>
-                  <TableHead>Price per Pallet</TableHead>
-                  <TableHead>Valid Until</TableHead>
-                  <TableHead>Price Age</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredBands.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      {searchTerm || selectedRoute !== 'all' ? 'No price bands found matching your filters.' : 'No price bands added yet.'}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredBands.map((band) => {
-                    const daysOld = getDaysOld(band.last_updated_at)
-                    return (
-                      <TableRow key={band.id}>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="font-medium text-sm">
-                              {band.transporter_routes.transporters.name}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {band.transporter_routes.origin_hub.name} → {band.transporter_routes.destination_hub.name}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {band.transporter_routes.origin_hub.country_code} → {band.transporter_routes.destination_hub.country_code}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="text-xs">
-                            {band.pallet_dimensions}cm
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Package className="h-3 w-3" />
-                            <span className="text-sm">
-                              {formatPalletRange(band.min_pallets, band.max_pallets)}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">
-                            €{band.price_per_pallet.toFixed(2)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {band.valid_till ? (
-                            <div className="text-sm">
-                              {new Date(band.valid_till).toLocaleDateString('en-GB')}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">No expiry</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getPriceAgeVariant(daysOld)} className="text-xs">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {daysOld} day{daysOld !== 1 ? 's' : ''}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => setEditingBand(band.id)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => handleDelete(band.id)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {filteredBands.length > 0 && (
-            <div className="text-sm text-muted-foreground">
-              Showing {filteredBands.length} of {priceBands?.length} price bands
-              {selectedRoute !== 'all' && ` (filtered by route)`}
-            </div>
-          )}
+          <Select value={selectedRoute} onValueChange={setSelectedRoute}>
+            <SelectTrigger className="w-[280px] bg-terminal-dark border-terminal-border text-terminal-text font-mono text-xs h-9">
+              <SelectValue placeholder="Filter by route" />
+            </SelectTrigger>
+            <SelectContent className="bg-terminal-dark border-terminal-border">
+              <SelectItem value="all" className="font-mono text-terminal-text">All Routes</SelectItem>
+              {routes?.map((route) => (
+                <SelectItem key={route.id} value={route.id} className="font-mono text-terminal-text text-xs">
+                  {route.transporters.name}: {route.origin_hub.name} → {route.destination_hub.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+
+        {/* Price Bands Table */}
+        <div className="rounded-md border border-terminal-border">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-terminal-border hover:bg-terminal-dark">
+                <TableHead className="font-mono text-terminal-muted text-xs">ROUTE</TableHead>
+                <TableHead className="font-mono text-terminal-muted text-xs">PALLET SIZE</TableHead>
+                <TableHead className="font-mono text-terminal-muted text-xs">QTY RANGE</TableHead>
+                <TableHead className="font-mono text-terminal-muted text-xs">PRICE/PALLET</TableHead>
+                <TableHead className="font-mono text-terminal-muted text-xs">VALID UNTIL</TableHead>
+                <TableHead className="font-mono text-terminal-muted text-xs">AGE</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredBands.length === 0 ? (
+                <TableRow className="border-terminal-border hover:bg-terminal-dark/50">
+                  <TableCell colSpan={7} className="text-center py-8 text-terminal-muted font-mono text-xs">
+                    {searchTerm || selectedRoute !== 'all' ? 'No price bands found matching your filters.' : 'No price bands added yet.'}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredBands.map((band) => {
+                  const daysOld = getDaysOld(band.last_updated_at)
+                  return (
+                    <TableRow key={band.id} className="border-terminal-border hover:bg-terminal-dark/50">
+                      <TableCell className="font-mono text-terminal-text text-xs">
+                        <div className="space-y-1">
+                          <div className="font-semibold">
+                            {band.transporter_routes.transporters.name}
+                          </div>
+                          <div className="text-xs text-terminal-muted">
+                            {band.transporter_routes.origin_hub.name} → {band.transporter_routes.destination_hub.name}
+                          </div>
+                          <div className="text-xs text-terminal-muted">
+                            {band.transporter_routes.origin_hub.country_code} → {band.transporter_routes.destination_hub.country_code}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs font-mono border-terminal-border text-terminal-text">
+                          {band.pallet_dimensions}cm
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-terminal-text text-xs">
+                        <div className="flex items-center gap-1">
+                          <Package className="h-3 w-3 text-terminal-accent" />
+                          <span>
+                            {formatPalletRange(band.min_pallets, band.max_pallets)}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-terminal-text text-xs font-semibold">
+                        €{band.price_per_pallet.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="font-mono text-terminal-text text-xs">
+                        {band.valid_till ? (
+                          <div>
+                            {new Date(band.valid_till).toLocaleDateString('en-GB')}
+                          </div>
+                        ) : (
+                          <span className="text-terminal-muted">No expiry</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`font-mono text-xs ${getPriceAgeColor(daysOld)}`}>
+                          {daysOld}d
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0 text-terminal-text hover:bg-terminal-dark">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-terminal-dark border-terminal-border">
+                            <DropdownMenuLabel className="font-mono text-terminal-text">Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => setEditingBand(band.id)} className="font-mono text-terminal-text hover:bg-terminal-panel">
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-terminal-border" />
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(band.id)}
+                              className="text-terminal-alert font-mono hover:bg-terminal-panel"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {filteredBands.length > 0 && (
+          <div className="text-xs text-terminal-muted font-mono">
+            Showing {filteredBands.length} of {priceBands?.length} price bands
+            {selectedRoute !== 'all' && ` (filtered by route)`}
+          </div>
+        )}
       </CardContent>
 
       {/* Edit Dialog */}
       <Dialog open={!!editingBand} onOpenChange={() => setEditingBand(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-terminal-dark border-terminal-border">
           <DialogHeader>
-            <DialogTitle>Edit Price Band</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-terminal-text font-mono">Edit Price Band</DialogTitle>
+            <DialogDescription className="text-terminal-muted font-mono">
               Update price band information
             </DialogDescription>
           </DialogHeader>
