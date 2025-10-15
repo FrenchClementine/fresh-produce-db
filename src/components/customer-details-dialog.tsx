@@ -1,6 +1,6 @@
 'use client'
 
-import { Users, User, Phone, Mail, MapPin, Package, Shield, Truck, Eye } from 'lucide-react'
+import { Users, User, Phone, Mail, MapPin, Package, Shield, Truck, Eye, ExternalLink } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -21,11 +21,13 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useCustomer, useCustomerProductSpecs, useCustomerCertifications, useCustomerLogistics } from '@/hooks/use-customers'
 import { CustomerProductSpecsTable } from '@/components/customer-product-specs-table'
 import { CustomerCertificationsTable } from '@/components/customer-certifications-table'
 import { CustomerLogisticsTable } from '@/components/customer-logistics-table'
+import { useRouter } from 'next/navigation'
 
 interface CustomerDetailsDialogProps {
   customerId: string | null
@@ -34,10 +36,18 @@ interface CustomerDetailsDialogProps {
 }
 
 export function CustomerDetailsDialog({ customerId, open, onOpenChange }: CustomerDetailsDialogProps) {
+  const router = useRouter()
   const { customer, isLoading: customerLoading, error: customerError } = useCustomer(customerId || '')
   const { customerProductSpecs, isLoading: specsLoading } = useCustomerProductSpecs(customerId || '')
   const { customerCertifications, isLoading: certificationsLoading } = useCustomerCertifications(customerId || '')
   const { customerLogistics, isLoading: logisticsLoading } = useCustomerLogistics(customerId || '')
+
+  const handleGoToFullPage = () => {
+    if (customerId) {
+      onOpenChange(false)
+      router.push(`/customers/${customerId}`)
+    }
+  }
 
   if (!customerId) return null
 
@@ -68,16 +78,25 @@ export function CustomerDetailsDialog({ customerId, open, onOpenChange }: Custom
                         </p>
                       </div>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={`font-mono ${
-                        customer.is_active
-                          ? 'border-terminal-success text-terminal-success'
-                          : 'border-terminal-muted text-terminal-muted'
-                      }`}
-                    >
-                      {customer.is_active ? "Active" : "Inactive"}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className={`font-mono ${
+                          customer.is_active
+                            ? 'border-terminal-success text-terminal-success'
+                            : 'border-terminal-muted text-terminal-muted'
+                        }`}
+                      >
+                        {customer.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                      <Button
+                        onClick={handleGoToFullPage}
+                        className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono text-xs h-8"
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Manage Customer
+                      </Button>
+                    </div>
                   </div>
                 </DialogHeader>
 

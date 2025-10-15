@@ -1,6 +1,6 @@
 'use client'
 
-import { Building, Truck, Package, Award, MapPin, Phone, Mail, Edit, Trash2, Plus } from 'lucide-react'
+import { Building, Truck, Package, Award, MapPin, Phone, Mail, Edit, Trash2, Plus, ExternalLink } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useSuppliers, useSupplierProducts, useSupplierLogistics, useSupplierCertifications } from '@/hooks/use-products'
+import { useRouter } from 'next/navigation'
 
 interface SupplierDetailsDialogProps {
   supplierId: string | null
@@ -33,12 +34,20 @@ interface SupplierDetailsDialogProps {
 }
 
 export function SupplierDetailsDialog({ supplierId, open, onOpenChange }: SupplierDetailsDialogProps) {
+  const router = useRouter()
   const { suppliers } = useSuppliers()
   const { supplierProducts, isLoading, error } = useSupplierProducts(supplierId || '')
   const { supplierLogistics, isLoading: isLoadingLogistics, error: logisticsError } = useSupplierLogistics(supplierId || '')
   const { supplierCertifications, isLoading: isLoadingCertifications, error: certificationsError } = useSupplierCertifications(supplierId || '')
 
   const supplier = suppliers?.find(s => s.id === supplierId)
+
+  const handleGoToFullPage = () => {
+    if (supplierId) {
+      onOpenChange(false)
+      router.push(`/suppliers/${supplierId}`)
+    }
+  }
 
   if (!supplierId) return null
 
@@ -65,15 +74,24 @@ export function SupplierDetailsDialog({ supplierId, open, onOpenChange }: Suppli
                         </p>
                       </div>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={supplier.is_active
-                        ? "border-terminal-success text-terminal-success font-mono"
-                        : "border-terminal-muted text-terminal-muted font-mono"
-                      }
-                    >
-                      {supplier.is_active ? "Active" : "Inactive"}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className={supplier.is_active
+                          ? "border-terminal-success text-terminal-success font-mono"
+                          : "border-terminal-muted text-terminal-muted font-mono"
+                        }
+                      >
+                        {supplier.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                      <Button
+                        onClick={handleGoToFullPage}
+                        className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono text-xs h-8"
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Manage Supplier
+                      </Button>
+                    </div>
                   </div>
                 </DialogHeader>
 
@@ -152,10 +170,20 @@ export function SupplierDetailsDialog({ supplierId, open, onOpenChange }: Suppli
                 {/* Logistics Capabilities */}
                 <Card className="bg-terminal-dark border-terminal-border">
                   <CardHeader className="border-b border-terminal-border">
-                    <CardTitle className="flex items-center gap-2 font-mono text-sm text-terminal-text">
-                      <Truck className="h-4 w-4 text-terminal-accent" />
-                      Logistics Capabilities
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 font-mono text-sm text-terminal-text">
+                        <Truck className="h-4 w-4 text-terminal-accent" />
+                        Logistics Capabilities
+                      </CardTitle>
+                      <Button
+                        size="sm"
+                        onClick={handleGoToFullPage}
+                        className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono text-xs h-6"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add Route
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="pt-4">
                     {logisticsError && (
@@ -223,10 +251,20 @@ export function SupplierDetailsDialog({ supplierId, open, onOpenChange }: Suppli
                 {/* Product Offerings */}
                 <Card className="bg-terminal-dark border-terminal-border">
                   <CardHeader className="border-b border-terminal-border">
-                    <CardTitle className="flex items-center gap-2 font-mono text-sm text-terminal-text">
-                      <Package className="h-4 w-4 text-terminal-accent" />
-                      Product Offerings
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 font-mono text-sm text-terminal-text">
+                        <Package className="h-4 w-4 text-terminal-accent" />
+                        Product Offerings
+                      </CardTitle>
+                      <Button
+                        size="sm"
+                        onClick={handleGoToFullPage}
+                        className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono text-xs h-6"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Link Product
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="pt-4">
                     {error && (
@@ -303,10 +341,20 @@ export function SupplierDetailsDialog({ supplierId, open, onOpenChange }: Suppli
                 {/* Certifications */}
                 <Card className="bg-terminal-dark border-terminal-border">
                   <CardHeader className="border-b border-terminal-border">
-                    <CardTitle className="flex items-center gap-2 font-mono text-sm text-terminal-text">
-                      <Award className="h-4 w-4 text-terminal-accent" />
-                      Certifications
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 font-mono text-sm text-terminal-text">
+                        <Award className="h-4 w-4 text-terminal-accent" />
+                        Certifications
+                      </CardTitle>
+                      <Button
+                        size="sm"
+                        onClick={handleGoToFullPage}
+                        className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono text-xs h-6"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add Certification
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="pt-4">
                     {certificationsError && (
