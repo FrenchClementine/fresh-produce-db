@@ -9,7 +9,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { CheckCircle, AlertCircle, XCircle, MinusCircle, Check, X, Eye, CheckSquare, Square } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command'
+import { CheckCircle, AlertCircle, XCircle, MinusCircle, Check, X, Eye, CheckSquare, Square, ChevronsUpDown } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useExcludePotential, extractExclusionData } from '@/hooks/use-excluded-potentials'
 import { useSuppliers } from '@/hooks/use-suppliers'
@@ -58,6 +60,25 @@ interface PricingState {
   }
 }
 
+interface GroupedPotential {
+  groupKey: string
+  customer: TradePotential['customer']
+  product: TradePotential['product']
+  hubId: string
+  hubName: string
+  potentials: TradePotential[]
+  selectedSupplierId: string
+  selectedPackagingSpecId: string
+  cheapestPotential: TradePotential
+}
+
+interface GroupSelectionState {
+  [groupKey: string]: {
+    selectedSupplierId: string
+    selectedPackagingSpecId: string
+  }
+}
+
 export default function TradePotentialTableMode({
   potentials: data,
   statusFilter,
@@ -76,6 +97,12 @@ export default function TradePotentialTableMode({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkMargin, setBulkMargin] = useState<number>(10)
   const [autoSelectEnabled, setAutoSelectEnabled] = useState<boolean>(true)
+  const [showAllRows, setShowAllRows] = useState<boolean>(false)
+  const [groupSelectionState, setGroupSelectionState] = useState<GroupSelectionState>({})
+  const [customerSearchOpen, setCustomerSearchOpen] = useState(false)
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('')
+  const [supplierSearchOpen, setSupplierSearchOpen] = useState(false)
+  const [supplierSearchQuery, setSupplierSearchQuery] = useState('')
 
   const { customers } = useCustomers()
   const { data: suppliers } = useSuppliers()
@@ -92,6 +119,32 @@ export default function TradePotentialTableMode({
     // Filter customers that have the selected agent
     return customers.filter(customer => customer.agent_id === agentFilter)
   }, [customers, agentFilter])
+
+  // Filter customers for search
+  const filteredCustomersForSearch = React.useMemo(() => {
+    if (!filteredCustomers) return []
+    if (!customerSearchQuery) return filteredCustomers
+
+    const searchTerm = customerSearchQuery.toLowerCase()
+    return filteredCustomers.filter(customer =>
+      customer.name.toLowerCase().includes(searchTerm) ||
+      customer.city?.toLowerCase().includes(searchTerm) ||
+      customer.country?.toLowerCase().includes(searchTerm)
+    )
+  }, [filteredCustomers, customerSearchQuery])
+
+  // Filter suppliers for search
+  const filteredSuppliersForSearch = React.useMemo(() => {
+    if (!suppliers) return []
+    if (!supplierSearchQuery) return suppliers
+
+    const searchTerm = supplierSearchQuery.toLowerCase()
+    return suppliers.filter(supplier =>
+      supplier.name.toLowerCase().includes(searchTerm) ||
+      supplier.city?.toLowerCase().includes(searchTerm) ||
+      supplier.country?.toLowerCase().includes(searchTerm)
+    )
+  }, [suppliers, supplierSearchQuery])
 
   // Filter transport bands to match product's pallet dimensions
   const getFilteredBands = (potential: TradePotential) => {
@@ -480,6 +533,147 @@ export default function TradePotentialTableMode({
     return true
   })
 
+  // Group complete potentials by customer + product + hub
+  const groupedPotentials = React.useMemo(() => {
+    // Only group complete potentials without existing opportunities
+    const completePotentials = filteredPotentials.filter(
+      p => p.status === 'complete' && !p.hasOpportunity
+    )
+
+    const groups: Record<string, GroupedPotential> = {}
+
+    completePotentials.forEach(potential => {
+      const groupKey = `${potential.customer.id}-${potential.product.id}-${potential.supplierPrice?.hubId || 'no-hub'}`
+
+      if (!groups[groupKey]) {
+        // Find cheapest option in this group by calculating total cost
+        const potentialsInGroup = completePotentials.filter(p =>
+          `${p.customer.id}-${p.product.id}-${p.supplierPrice?.hubId || 'no-hub'}` === groupKey
+        )
+
+        const cheapest = potentialsInGroup.reduce((best, current) => {
+          const currentCost = (current.supplierPrice?.pricePerUnit || 0) +
+            getTransportCostPerUnit(current, 0, 0)
+          const bestCost = (best.supplierPrice?.pricePerUnit || 0) +
+            getTransportCostPerUnit(best, 0, 0)
+          return currentCost < bestCost ? current : best
+        })
+
+        // Get saved selection or use cheapest
+        const savedSelection = groupSelectionState[groupKey]
+        const selectedSupplierId = savedSelection?.selectedSupplierId || cheapest.supplier.id
+        const selectedPackagingSpecId = savedSelection?.selectedPackagingSpecId || cheapest.product.specId
+
+        groups[groupKey] = {
+          groupKey,
+          customer: potential.customer,
+          product: potential.product,
+          hubId: potential.supplierPrice?.hubId || '',
+          hubName: potential.supplierPrice?.hubName || '',
+          potentials: potentialsInGroup,
+          selectedSupplierId,
+          selectedPackagingSpecId,
+          cheapestPotential: cheapest
+        }
+      }
+    })
+
+    return Object.values(groups)
+  }, [filteredPotentials, groupSelectionState])
+
+  // Get the currently selected potential from a group
+  const getSelectedPotentialFromGroup = (group: GroupedPotential): TradePotential | undefined => {
+    return group.potentials.find(
+      p => p.supplier.id === group.selectedSupplierId &&
+           p.product.specId === group.selectedPackagingSpecId
+    )
+  }
+
+  // Update group selection (supplier or packaging)
+  const updateGroupSelection = (
+    groupKey: string,
+    supplierId: string,
+    packagingSpecId: string
+  ) => {
+    setGroupSelectionState(prev => ({
+      ...prev,
+      [groupKey]: {
+        selectedSupplierId: supplierId,
+        selectedPackagingSpecId: packagingSpecId
+      }
+    }))
+  }
+
+  // Get potentials to display based on showAllRows toggle
+  const potentialsToDisplay = React.useMemo(() => {
+    if (showAllRows) {
+      // Show all individual rows
+      return filteredPotentials
+    } else {
+      // Show grouped rows for complete items, individual rows for incomplete
+      const incompletePotentials = filteredPotentials.filter(
+        p => p.status !== 'complete' || p.hasOpportunity
+      )
+
+      // Return a list with grouped potentials represented by their selected potential
+      const groupedAsIndividual = groupedPotentials.map(group =>
+        getSelectedPotentialFromGroup(group) || group.cheapestPotential
+      )
+
+      return [...groupedAsIndividual, ...incompletePotentials]
+    }
+  }, [showAllRows, filteredPotentials, groupedPotentials])
+
+  // Get the group for a potential (if it's part of a group)
+  const getGroupForPotential = (potential: TradePotential): GroupedPotential | undefined => {
+    if (showAllRows) return undefined
+    const groupKey = `${potential.customer.id}-${potential.product.id}-${potential.supplierPrice?.hubId || 'no-hub'}`
+    return groupedPotentials.find(g => g.groupKey === groupKey)
+  }
+
+  // Get available suppliers for a group
+  const getAvailableSuppliersForGroup = (group: GroupedPotential) => {
+    const uniqueSuppliers = Array.from(
+      new Map(
+        group.potentials.map(p => [p.supplier.id, p.supplier])
+      ).values()
+    )
+    return uniqueSuppliers
+  }
+
+  // Get available packaging options for a group, filtered by selected supplier
+  const getAvailablePackagingForGroup = (group: GroupedPotential, supplierId: string) => {
+    const potentialsForSupplier = group.potentials.filter(p => p.supplier.id === supplierId)
+    const uniquePackaging = Array.from(
+      new Map(
+        potentialsForSupplier.map(p => [
+          p.product.specId,
+          {
+            specId: p.product.specId,
+            packagingLabel: p.product.packagingLabel,
+            sizeName: p.product.sizeName,
+            potential: p
+          }
+        ])
+      ).values()
+    )
+    return uniquePackaging
+  }
+
+  // Handle supplier change in grouped row
+  const handleSupplierChange = (group: GroupedPotential, newSupplierId: string) => {
+    // Find first available packaging for the new supplier
+    const availablePackaging = getAvailablePackagingForGroup(group, newSupplierId)
+    const firstPackagingSpecId = availablePackaging[0]?.specId || group.selectedPackagingSpecId
+
+    updateGroupSelection(group.groupKey, newSupplierId, firstPackagingSpecId)
+  }
+
+  // Handle packaging change in grouped row
+  const handlePackagingChange = (group: GroupedPotential, newPackagingSpecId: string) => {
+    updateGroupSelection(group.groupKey, group.selectedSupplierId, newPackagingSpecId)
+  }
+
   const statusConfig = {
     complete: { icon: CheckCircle, color: 'text-green-600', bg: 'bg-terminal-success text-white border-terminal-success', label: 'Complete' },
     missing_price: { icon: AlertCircle, color: 'text-yellow-600', bg: 'bg-yellow-600 text-white border-yellow-600', label: 'Missing Price' },
@@ -614,36 +808,146 @@ export default function TradePotentialTableMode({
 
           <div>
             <Label htmlFor="customer-filter" className="font-mono text-terminal-muted text-xs uppercase">Customer</Label>
-            <Select value={customerFilter} onValueChange={(value) => handleFilterChange('customer', value)}>
-              <SelectTrigger id="customer-filter" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-terminal-panel border-terminal-border">
-                <SelectItem value="all" className="font-mono text-terminal-text">All Customers</SelectItem>
-                {filteredCustomers?.map((customer) => (
-                  <SelectItem key={customer.id} value={customer.id} className="font-mono text-terminal-text">
-                    {customer.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={customerSearchOpen} onOpenChange={(open) => {
+              setCustomerSearchOpen(open)
+              if (!open) setCustomerSearchQuery('')
+            }}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={customerSearchOpen}
+                  className="w-full justify-between bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono text-xs h-10"
+                >
+                  {customerFilter === 'all'
+                    ? 'All Customers'
+                    : filteredCustomers?.find(c => c.id === customerFilter)?.name || 'All Customers'}
+                  <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] h-[300px] p-0 bg-terminal-panel border-terminal-border">
+                <Command className="bg-terminal-panel h-full flex flex-col">
+                  <CommandInput
+                    placeholder="Search customers..."
+                    value={customerSearchQuery}
+                    onValueChange={setCustomerSearchQuery}
+                    className="font-mono text-terminal-text text-xs shrink-0"
+                  />
+                  <CommandEmpty className="text-terminal-muted font-mono p-4 text-xs">
+                    No customers found.
+                  </CommandEmpty>
+                  <CommandGroup className="overflow-y-auto overflow-x-hidden flex-1">
+                    <CommandItem
+                      value="all"
+                      onSelect={() => {
+                        handleFilterChange('customer', 'all')
+                        setCustomerSearchOpen(false)
+                      }}
+                      className="font-mono text-xs text-terminal-text hover:bg-terminal-dark"
+                    >
+                      <Check
+                        className={cn(
+                          'mr-2 h-3 w-3 text-terminal-accent',
+                          customerFilter === 'all' ? 'opacity-100' : 'opacity-0'
+                        )}
+                      />
+                      All Customers
+                    </CommandItem>
+                    {filteredCustomersForSearch.map((customer) => (
+                      <CommandItem
+                        key={customer.id}
+                        value={customer.name}
+                        onSelect={() => {
+                          handleFilterChange('customer', customer.id)
+                          setCustomerSearchOpen(false)
+                        }}
+                        className="font-mono text-xs text-terminal-text hover:bg-terminal-dark"
+                      >
+                        <Check
+                          className={cn(
+                            'mr-2 h-3 w-3 text-terminal-accent',
+                            customerFilter === customer.id ? 'opacity-100' : 'opacity-0'
+                          )}
+                        />
+                        {customer.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
             <Label htmlFor="supplier-filter" className="font-mono text-terminal-muted text-xs uppercase">Supplier</Label>
-            <Select value={supplierFilter} onValueChange={(value) => handleFilterChange('supplier', value)}>
-              <SelectTrigger id="supplier-filter" className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-terminal-panel border-terminal-border">
-                <SelectItem value="all" className="font-mono text-terminal-text">All Suppliers</SelectItem>
-                {suppliers?.map((supplier) => (
-                  <SelectItem key={supplier.id} value={supplier.id} className="font-mono text-terminal-text">
-                    {supplier.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={supplierSearchOpen} onOpenChange={(open) => {
+              setSupplierSearchOpen(open)
+              if (!open) setSupplierSearchQuery('')
+            }}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={supplierSearchOpen}
+                  className="w-full justify-between bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono text-xs h-10"
+                >
+                  {supplierFilter === 'all'
+                    ? 'All Suppliers'
+                    : suppliers?.find(s => s.id === supplierFilter)?.name || 'All Suppliers'}
+                  <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] h-[300px] p-0 bg-terminal-panel border-terminal-border">
+                <Command className="bg-terminal-panel h-full flex flex-col">
+                  <CommandInput
+                    placeholder="Search suppliers..."
+                    value={supplierSearchQuery}
+                    onValueChange={setSupplierSearchQuery}
+                    className="font-mono text-terminal-text text-xs shrink-0"
+                  />
+                  <CommandEmpty className="text-terminal-muted font-mono p-4 text-xs">
+                    No suppliers found.
+                  </CommandEmpty>
+                  <CommandGroup className="overflow-y-auto overflow-x-hidden flex-1">
+                    <CommandItem
+                      value="all"
+                      onSelect={() => {
+                        handleFilterChange('supplier', 'all')
+                        setSupplierSearchOpen(false)
+                      }}
+                      className="font-mono text-xs text-terminal-text hover:bg-terminal-dark"
+                    >
+                      <Check
+                        className={cn(
+                          'mr-2 h-3 w-3 text-terminal-accent',
+                          supplierFilter === 'all' ? 'opacity-100' : 'opacity-0'
+                        )}
+                      />
+                      All Suppliers
+                    </CommandItem>
+                    {filteredSuppliersForSearch.map((supplier) => (
+                      <CommandItem
+                        key={supplier.id}
+                        value={supplier.name}
+                        onSelect={() => {
+                          handleFilterChange('supplier', supplier.id)
+                          setSupplierSearchOpen(false)
+                        }}
+                        className="font-mono text-xs text-terminal-text hover:bg-terminal-dark"
+                      >
+                        <Check
+                          className={cn(
+                            'mr-2 h-3 w-3 text-terminal-accent',
+                            supplierFilter === supplier.id ? 'opacity-100' : 'opacity-0'
+                          )}
+                        />
+                        {supplier.name}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
@@ -663,13 +967,23 @@ export default function TradePotentialTableMode({
             </Select>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="opportunity-filter"
-              checked={showOpportunityFilter}
-              onCheckedChange={handleOpportunityFilterChange}
-            />
-            <Label htmlFor="opportunity-filter" className="font-mono text-terminal-muted text-sm">Hide converted</Label>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="opportunity-filter"
+                checked={showOpportunityFilter}
+                onCheckedChange={handleOpportunityFilterChange}
+              />
+              <Label htmlFor="opportunity-filter" className="font-mono text-terminal-muted text-sm">Hide converted</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="show-all-rows"
+                checked={showAllRows}
+                onCheckedChange={setShowAllRows}
+              />
+              <Label htmlFor="show-all-rows" className="font-mono text-terminal-muted text-sm">Show all rows</Label>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -783,7 +1097,8 @@ export default function TradePotentialTableMode({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPotentials.map((potential) => {
+                {potentialsToDisplay.map((potential) => {
+                  const group = getGroupForPotential(potential)
                   const StatusIcon = statusConfig[potential.status]?.icon || MinusCircle
                   const statusColor = statusConfig[potential.status]?.color || 'text-gray-600'
                   const pricing = getPricingState(potential)
@@ -833,22 +1148,69 @@ export default function TradePotentialTableMode({
                       </TableCell>
 
                       <TableCell className="font-mono text-terminal-text p-2 text-xs">
-                        <div>
-                          <div className="font-medium whitespace-nowrap">{potential.supplier.name}</div>
-                          <div className="text-[10px] text-terminal-muted whitespace-nowrap">
-                            {potential.supplier.city}
+                        {group && group.potentials.length > 1 ? (
+                          <div>
+                            <Select
+                              value={group.selectedSupplierId}
+                              onValueChange={(value) => handleSupplierChange(group, value)}
+                            >
+                              <SelectTrigger className="h-6 text-[10px] w-full bg-terminal-dark border-terminal-border text-terminal-text font-mono">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-terminal-panel border-terminal-border">
+                                {getAvailableSuppliersForGroup(group).map((supplier) => (
+                                  <SelectItem key={supplier.id} value={supplier.id} className="font-mono text-terminal-text text-xs">
+                                    {supplier.name} - {supplier.city}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Badge variant="outline" className="text-[10px] font-mono border-terminal-accent text-terminal-accent mt-1">
+                              {getAvailableSuppliersForGroup(group).length} suppliers
+                            </Badge>
                           </div>
-                        </div>
+                        ) : (
+                          <div>
+                            <div className="font-medium whitespace-nowrap">{potential.supplier.name}</div>
+                            <div className="text-[10px] text-terminal-muted whitespace-nowrap">
+                              {potential.supplier.city}
+                            </div>
+                          </div>
+                        )}
                       </TableCell>
 
                       <TableCell className="font-mono text-terminal-text p-2 text-xs">
-                        <div>
-                          <div className="font-medium">{potential.product.name}</div>
-                          <div className="flex gap-1 flex-wrap">
-                            <Badge variant="outline" className="text-[10px] font-mono border-terminal-border text-terminal-muted">{potential.product.packagingLabel}</Badge>
-                            <Badge variant="outline" className="text-[10px] font-mono border-terminal-border text-terminal-muted">{potential.product.sizeName}</Badge>
+                        {group && group.potentials.length > 1 ? (
+                          <div>
+                            <div className="font-medium mb-1">{potential.product.name}</div>
+                            <Select
+                              value={group.selectedPackagingSpecId}
+                              onValueChange={(value) => handlePackagingChange(group, value)}
+                            >
+                              <SelectTrigger className="h-6 text-[10px] w-full bg-terminal-dark border-terminal-border text-terminal-text font-mono">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-terminal-panel border-terminal-border">
+                                {getAvailablePackagingForGroup(group, group.selectedSupplierId).map((pkg) => (
+                                  <SelectItem key={pkg.specId} value={pkg.specId} className="font-mono text-terminal-text text-xs">
+                                    {pkg.packagingLabel} • {pkg.sizeName}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Badge variant="outline" className="text-[10px] font-mono border-terminal-accent text-terminal-accent mt-1">
+                              {group.potentials.length} variants
+                            </Badge>
                           </div>
-                        </div>
+                        ) : (
+                          <div>
+                            <div className="font-medium">{potential.product.name}</div>
+                            <div className="flex gap-1 flex-wrap">
+                              <Badge variant="outline" className="text-[10px] font-mono border-terminal-border text-terminal-muted">{potential.product.packagingLabel}</Badge>
+                              <Badge variant="outline" className="text-[10px] font-mono border-terminal-border text-terminal-muted">{potential.product.sizeName}</Badge>
+                            </div>
+                          </div>
+                        )}
                       </TableCell>
 
                       <TableCell className="p-2">

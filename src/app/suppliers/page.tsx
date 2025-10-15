@@ -36,6 +36,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
 import { AddSupplierForm } from '@/components/forms/add-supplier-form'
 import { EditSupplierForm } from '@/components/forms/edit-supplier-form'
+import { SupplierDetailsDialog } from '@/components/supplier-details-dialog'
 
 export default function SuppliersPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -43,6 +44,7 @@ export default function SuppliersPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [supplierToEdit, setSupplierToEdit] = useState<any>(null)
   const [supplierToDelete, setSupplierToDelete] = useState<any>(null)
+  const [supplierToView, setSupplierToView] = useState<string | null>(null)
   
   const { suppliers, isLoading, error } = useSuppliers()
   const { toast } = useToast()
@@ -85,7 +87,7 @@ export default function SuppliersPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-terminal-dark p-4 space-y-4">
+      <div className="min-h-screen bg-terminal-dark px-2 py-4 space-y-4">
         <div className="flex items-center justify-between border-b border-terminal-border pb-4">
           <h1 className="text-2xl font-mono font-bold text-terminal-text tracking-wider">SUPPLIERS</h1>
         </div>
@@ -96,7 +98,7 @@ export default function SuppliersPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-terminal-dark p-4 space-y-4">
+      <div className="min-h-screen bg-terminal-dark px-2 py-4 space-y-4">
         <div className="flex items-center justify-between border-b border-terminal-border pb-4">
           <h1 className="text-2xl font-mono font-bold text-terminal-text tracking-wider">SUPPLIERS</h1>
         </div>
@@ -108,7 +110,7 @@ export default function SuppliersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-terminal-dark p-4 space-y-4">
+    <div className="min-h-screen bg-terminal-dark px-2 py-4 space-y-4">
       {/* Terminal Header */}
       <div className="flex items-center justify-between border-b border-terminal-border pb-4">
         <div className="flex items-center gap-4">
@@ -223,6 +225,16 @@ export default function SuppliersPage() {
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSupplierToView(supplier.id)
+                          }}
+                          className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono h-6 w-6 p-0"
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        <Button
                           variant="ghost"
                           size="sm"
                           onClick={(e) => {
@@ -267,6 +279,14 @@ export default function SuppliersPage() {
           if (!open) setSupplierToEdit(null)
         }}
         supplier={supplierToEdit}
+      />
+
+      <SupplierDetailsDialog
+        supplierId={supplierToView}
+        open={!!supplierToView}
+        onOpenChange={(open) => {
+          if (!open) setSupplierToView(null)
+        }}
       />
 
       <AlertDialog open={!!supplierToDelete} onOpenChange={() => setSupplierToDelete(null)}>

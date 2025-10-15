@@ -184,7 +184,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-terminal-dark p-4 space-y-6">
+    <div className="min-h-screen bg-terminal-dark px-2 py-4 space-y-6">
       <div className="flex items-center justify-between border-b border-terminal-border pb-4">
         <div>
           <h1 className="text-2xl font-mono font-bold text-terminal-text tracking-wider">PRODUCTS</h1>

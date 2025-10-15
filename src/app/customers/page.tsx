@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Users, Plus, Search, Edit, Trash2, MapPin, Phone, Mail, User } from 'lucide-react'
+import { Users, Plus, Search, Edit, Trash2, MapPin, Phone, Mail, User, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -43,6 +43,7 @@ import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { AddCustomerForm } from '@/components/forms/add-customer-form'
 import { EditCustomerForm } from '@/components/forms/edit-customer-form'
+import { CustomerDetailsDialog } from '@/components/customer-details-dialog'
 
 export default function CustomersPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -51,6 +52,7 @@ export default function CustomersPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [customerToEdit, setCustomerToEdit] = useState<any>(null)
   const [customerToDelete, setCustomerToDelete] = useState<any>(null)
+  const [customerToView, setCustomerToView] = useState<string | null>(null)
 
   const { customers, isLoading, error } = useCustomers()
   const queryClient = useQueryClient()
@@ -102,7 +104,7 @@ export default function CustomersPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-terminal-dark p-4">
+      <div className="min-h-screen bg-terminal-dark px-2 py-4">
         <div className="flex items-center justify-between border-b border-terminal-border pb-4">
           <h1 className="text-2xl font-mono font-bold text-terminal-text tracking-wider">CUSTOMERS</h1>
         </div>
@@ -113,7 +115,7 @@ export default function CustomersPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-terminal-dark p-4">
+      <div className="min-h-screen bg-terminal-dark px-2 py-4">
         <div className="flex items-center justify-between border-b border-terminal-border pb-4">
           <h1 className="text-2xl font-mono font-bold text-terminal-text tracking-wider">CUSTOMERS</h1>
         </div>
@@ -125,7 +127,7 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-terminal-dark p-4 space-y-4">
+    <div className="min-h-screen bg-terminal-dark px-2 py-4 space-y-4">
       {/* Terminal Header */}
       <div className="flex items-center justify-between border-b border-terminal-border pb-4">
         <div className="flex items-center gap-4">
@@ -306,6 +308,16 @@ export default function CustomersPage() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation()
+                              setCustomerToView(customer.id)
+                            }}
+                            className="bg-terminal-accent hover:bg-cyan-600 text-terminal-dark font-mono"
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
                               setCustomerToEdit(customer)
                               setIsEditDialogOpen(true)
                             }}
@@ -346,6 +358,14 @@ export default function CustomersPage() {
           if (!open) setCustomerToEdit(null)
         }}
         customer={customerToEdit}
+      />
+
+      <CustomerDetailsDialog
+        customerId={customerToView}
+        open={!!customerToView}
+        onOpenChange={(open) => {
+          if (!open) setCustomerToView(null)
+        }}
       />
 
       <AlertDialog open={!!customerToDelete} onOpenChange={() => setCustomerToDelete(null)}>

@@ -11,7 +11,7 @@ import { Truck } from 'lucide-react'
 
 export default function TransportersPage() {
   return (
-    <div className="min-h-screen bg-terminal-dark p-4 space-y-4">
+    <div className="min-h-screen bg-terminal-dark px-2 py-4 space-y-4">
       {/* Header */}
       <div className="border-b border-terminal-border pb-4">
         <h1 className="text-2xl font-mono font-bold text-terminal-text tracking-wider flex items-center gap-3">

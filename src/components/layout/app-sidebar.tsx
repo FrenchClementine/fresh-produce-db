@@ -76,11 +76,6 @@ const navigationItems: NavItem[] = [
     icon: TrendingUp,
     children: [
       {
-        href: '/trade',
-        label: 'Trade Overview',
-        icon: TrendingUp,
-      },
-      {
         href: '/trade/prices',
         label: 'Input Prices',
         icon: Euro,

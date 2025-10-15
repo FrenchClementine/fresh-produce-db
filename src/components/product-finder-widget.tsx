@@ -155,21 +155,23 @@ export function ProductFinderWidget() {
   const selectedHubName = hubs?.find(h => h.id === selectedDeliveryHub)?.name
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Search className="h-6 w-6 text-green-600" />
-          Product Finder
-        </CardTitle>
-        <CardDescription>
-          Find growers and suppliers for your fresh produce with delivery options
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <div className="space-y-6">
+      {/* Search Card */}
+      <Card className="w-full bg-terminal-panel shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-terminal-text">
+            <Search className="h-5 w-5 text-green-600" />
+            Product Finder
+          </CardTitle>
+          <CardDescription className="text-terminal-muted">
+            Find growers and suppliers for your fresh produce with delivery options
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
         {/* Search Form */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Customer</label>
+            <label className="text-sm font-medium text-terminal-text">Customer</label>
             <SearchableSelect
               value={selectedCustomer}
               onValueChange={(value) => {
@@ -186,7 +188,7 @@ export function ProductFinderWidget() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Product *</label>
+            <label className="text-sm font-medium text-terminal-text">Product *</label>
             <SearchableSelect
               value={selectedProduct}
               onValueChange={(value) => {
@@ -211,7 +213,7 @@ export function ProductFinderWidget() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Size</label>
+            <label className="text-sm font-medium text-terminal-text">Size</label>
             <SearchableSelect
               value={selectedSizeOption}
               onValueChange={(value) => {
@@ -226,7 +228,7 @@ export function ProductFinderWidget() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Delivery Mode *</label>
+            <label className="text-sm font-medium text-terminal-text">Delivery Mode *</label>
             <Tabs value={deliveryMode} onValueChange={(value) => setDeliveryMode(value as 'delivery' | 'ex_works')}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="delivery" className="flex items-center gap-2">
@@ -243,7 +245,7 @@ export function ProductFinderWidget() {
 
           {deliveryMode === 'delivery' && (
             <div className="space-y-2">
-              <label className="text-sm font-medium">Delivery Location *</label>
+              <label className="text-sm font-medium text-terminal-text">Delivery Location *</label>
               <SearchableSelect
                 value={selectedDeliveryHub}
                 onValueChange={setSelectedDeliveryHub}
@@ -308,20 +310,20 @@ export function ProductFinderWidget() {
 
         {/* Search Summary */}
         {selectedProductName && (
-          <div className="p-4 bg-muted/50 rounded-lg">
-            <h4 className="text-sm font-medium mb-2">Search Criteria:</h4>
+          <div className="p-4 bg-terminal-dark rounded-lg border border-terminal-border">
+            <h4 className="text-sm font-medium text-terminal-text mb-2">Search Criteria:</h4>
             <div className="flex flex-wrap gap-2">
               {selectedCustomerName && (
-                <Badge variant="secondary">
+                <Badge variant="secondary" className="bg-terminal-dark text-terminal-text border-terminal-border">
                   <Building2 className="h-3 w-3 mr-1" />
                   {selectedCustomerName}
                 </Badge>
               )}
-              <Badge variant="secondary">
+              <Badge variant="secondary" className="bg-terminal-dark text-terminal-text border-terminal-border">
                 <Package className="h-3 w-3 mr-1" />
                 {selectedProductName}
               </Badge>
-              <Badge variant="secondary">
+              <Badge variant="secondary" className="bg-terminal-dark text-terminal-text border-terminal-border">
                 {deliveryMode === 'delivery' ? (
                   <><Truck className="h-3 w-3 mr-1" />Delivery</>
                 ) : (
@@ -329,13 +331,13 @@ export function ProductFinderWidget() {
                 )}
               </Badge>
               {deliveryMode === 'delivery' && selectedHubName && (
-                <Badge variant="secondary">
+                <Badge variant="secondary" className="bg-terminal-dark text-terminal-text border-terminal-border">
                   <MapPin className="h-3 w-3 mr-1" />
                   To: {selectedHubName}
                 </Badge>
               )}
               {deliveryMode === 'ex_works' && (
-                <Badge variant="secondary">
+                <Badge variant="secondary" className="bg-terminal-dark text-terminal-text border-terminal-border">
                   <MapPin className="h-3 w-3 mr-1" />
                   Pickup Locations
                 </Badge>
@@ -343,15 +345,17 @@ export function ProductFinderWidget() {
             </div>
           </div>
         )}
+        </CardContent>
+      </Card>
 
         {/* Error State */}
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="p-6 bg-red-50 border border-red-200 rounded-lg shadow">
             <div className="flex items-center gap-2 text-red-700">
-              <AlertCircle className="h-4 w-4" />
-              <span className="font-medium">Search Error</span>
+              <AlertCircle className="h-5 w-5" />
+              <span className="font-semibold">Search Error</span>
             </div>
-            <p className="text-sm text-red-600 mt-1">
+            <p className="text-sm text-red-600 mt-2">
               {error.message || 'An error occurred while searching for suppliers'}
             </p>
           </div>
@@ -359,9 +363,9 @@ export function ProductFinderWidget() {
 
         {/* Loading State */}
         {isSearching && canSearch && (
-          <div className="text-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">Searching for suppliers...</p>
+          <div className="text-center py-12 bg-terminal-panel rounded-lg shadow">
+            <Loader2 className="h-10 w-10 animate-spin mx-auto mb-4 text-green-600" />
+            <p className="text-terminal-text font-medium">Searching for suppliers...</p>
           </div>
         )}
 
@@ -369,10 +373,10 @@ export function ProductFinderWidget() {
         {results.length > 0 && !isSearching && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">
+              <h3 className="text-lg font-medium text-terminal-text">
                 Found {results.length} supplier{results.length !== 1 ? 's' : ''}
               </h3>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="border-terminal-border text-terminal-text">
                 <Filter className="h-4 w-4 mr-2" />
                 Filter Results
               </Button>
@@ -380,44 +384,39 @@ export function ProductFinderWidget() {
 
             <div className="space-y-3">
               {results.map((supplier) => (
-                <Card key={supplier.id} className={`border-l-4 ${
+                <Card key={supplier.id} className={`bg-terminal-panel shadow border-l-4 ${
                   supplier.is_currently_available ? 'border-l-green-500' : 'border-l-red-500'
                 }`}>
-                  <CardContent className="p-4">
-                    <div className="space-y-3">
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
                       {/* Header Row */}
                       <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
                             <div>
-                              <h4 className="font-semibold text-base">{supplier.name}</h4>
+                              <h4 className="font-bold text-lg text-terminal-text">{supplier.name}</h4>
                               {supplier.agent && (
-                                <div className="text-sm text-blue-600 font-medium">
+                                <div className="text-sm text-blue-600 font-medium hover:underline cursor-pointer mt-1">
                                   Agent: {supplier.agent.name} {supplier.agent.role && `(${supplier.agent.role})`}
                                 </div>
                               )}
                             </div>
-                            {supplier.is_currently_available ? (
-                              <Badge variant="default" className="bg-green-500 text-xs">
+                            {supplier.is_currently_available && (
+                              <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">
                                 <CheckCircle2 className="h-3 w-3 mr-1" />
                                 Available
                               </Badge>
-                            ) : (
-                              <Badge variant="destructive" className="bg-red-500 text-xs">
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                Not Available
-                              </Badge>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                          <p className="text-sm text-terminal-muted flex items-center gap-1 mt-2">
                             <MapPin className="h-3 w-3" />
                             {supplier.location}
                           </p>
                         </div>
                         {supplier.certifications.length > 0 && (
-                          <div className="flex flex-wrap gap-1 max-w-xs">
+                          <div className="flex flex-wrap gap-2 justify-end max-w-xs">
                             {supplier.certifications.map(cert => (
-                              <Badge key={cert} variant="outline" className="text-xs">
+                              <Badge key={cert} variant="outline" className="text-xs border-terminal-border text-terminal-text bg-terminal-panel">
                                 {cert}
                               </Badge>
                             ))}
@@ -426,37 +425,37 @@ export function ProductFinderWidget() {
                       </div>
 
                       {/* Key Information Grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {/* Product Specs */}
                         {supplier.product_specs.length > 0 && supplier.product_specs[0] && (
-                          <div className="bg-muted/30 p-2 rounded">
-                            <div className="text-xs font-medium mb-1">Product Specs</div>
-                            <div className="text-xs space-y-0.5">
+                          <div className="space-y-1">
+                            <div className="text-xs font-semibold text-terminal-text">Product Specs</div>
+                            <div className="text-sm space-y-1 text-terminal-text">
                               <div>{supplier.product_specs[0].packaging_type} - {supplier.product_specs[0].size_option}</div>
                               <div className="font-medium">{supplier.product_specs[0].boxes_per_pallet} boxes/pallet</div>
                               {supplier.product_specs[0].pieces_per_box > 0 && (
-                                <div>{supplier.product_specs[0].pieces_per_box} pieces/box</div>
+                                <div className="text-terminal-muted">{supplier.product_specs[0].pieces_per_box} pieces/box</div>
                               )}
-                              <div className="font-medium text-green-700">{supplier.product_specs[0].weight_per_pallet}kg/pallet</div>
+                              <div className="font-semibold text-green-700">{supplier.product_specs[0].weight_per_pallet}kg/pallet</div>
                             </div>
                           </div>
                         )}
 
                         {/* Origin Hub */}
-                        <div className="bg-muted/30 p-2 rounded">
-                          <div className="text-xs font-medium mb-1">Origin Hub</div>
-                          <div className="text-xs">
+                        <div className="space-y-1">
+                          <div className="text-xs font-semibold text-terminal-text">Origin Hub</div>
+                          <div className="text-sm text-terminal-text">
                             <div className="font-medium">{supplier.available_from_hub.name}</div>
-                            <div className="text-muted-foreground">
+                            <div className="text-terminal-muted">
                               {supplier.available_from_hub.city}, {supplier.available_from_hub.country_code}
                             </div>
                           </div>
                         </div>
 
                         {/* Delivery Modes */}
-                        <div className="bg-muted/30 p-2 rounded">
-                          <div className="text-xs font-medium mb-1">Delivery Modes</div>
-                          <div className="text-xs space-y-0.5">
+                        <div className="space-y-1">
+                          <div className="text-xs font-semibold text-terminal-text">Delivery Modes</div>
+                          <div className="text-sm space-y-1 text-terminal-text">
                             {supplier.delivery_modes.map(mode => (
                               <div key={mode} className="flex items-center gap-1">
                                 {getDeliveryModeIcon(mode)}
@@ -467,10 +466,10 @@ export function ProductFinderWidget() {
                         </div>
 
                         {/* Seasonal Availability */}
-                        <div className="bg-muted/30 p-2 rounded">
-                          <div className="text-xs font-medium mb-1">Seasonal Availability</div>
-                          <div className="text-xs">
-                            {supplier.seasonal_availability.map(s => 
+                        <div className="space-y-1">
+                          <div className="text-xs font-semibold text-terminal-text">Seasonal Availability</div>
+                          <div className="text-sm text-terminal-text">
+                            {supplier.seasonal_availability.map(s =>
                               s.charAt(0).toUpperCase() + s.slice(1).replace('_', ' ')
                             ).join(', ')}
                           </div>
@@ -479,36 +478,36 @@ export function ProductFinderWidget() {
 
                       {/* Delivery Details */}
                       {supplier.delivery_to_hub && (
-                        <div className="border-t pt-2">
+                        <div className="border-t border-terminal-border pt-4 mt-4">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Truck className="h-4 w-4 text-green-600" />
+                            <div className="flex items-center gap-3">
+                              <Truck className="h-5 w-5 text-green-600" />
                               <div>
-                                <div className="text-xs font-medium text-green-700">
-                                  {supplier.delivery_to_hub.is_supplier_transport 
-                                    ? 'Direct Delivery Available' 
+                                <div className="text-sm font-medium text-terminal-text">
+                                  {supplier.delivery_to_hub.is_supplier_transport
+                                    ? 'Delivery via NapoliTrans'
                                     : `Delivery via ${supplier.delivery_to_hub.transporter_name || 'Third-party Transport'}`}
                                 </div>
-                                <div className="text-xs text-muted-foreground">
+                                <div className="text-sm text-terminal-muted">
                                   To: {supplier.delivery_to_hub.name}, {supplier.delivery_to_hub.city} • {supplier.delivery_to_hub.transport_days} days transit
                                 </div>
                               </div>
                             </div>
                             <div className="text-right">
                               {supplier.delivery_to_hub.pricing_bands && supplier.delivery_to_hub.pricing_bands.length > 0 ? (
-                                <div className="space-y-1">
-                                  <div className="text-xs font-medium text-muted-foreground">Transport Rates</div>
+                                <div className="space-y-2">
+                                  <div className="text-xs font-semibold text-terminal-text">Transport Rates</div>
                                   {supplier.delivery_to_hub.pricing_bands.map((band, index) => (
-                                    <div key={index} className="text-xs bg-muted/50 px-2 py-1 rounded">
-                                      <div className="font-medium">€{band.price_per_pallet}/pallet</div>
-                                      <div className="text-muted-foreground">
+                                    <div key={index} className="text-sm text-terminal-text">
+                                      <div className="font-bold">€{band.price_per_pallet}/pallet</div>
+                                      <div className="text-xs text-terminal-muted">
                                         {band.min_pallets}{band.max_pallets ? `-${band.max_pallets}` : '+'} pallets ({band.pallet_dimensions}cm)
                                       </div>
                                     </div>
                                   ))}
                                 </div>
                               ) : supplier.delivery_to_hub.cost_estimate ? (
-                                <div className="text-sm font-medium">€{supplier.delivery_to_hub.cost_estimate}/pallet</div>
+                                <div className="text-sm font-bold text-terminal-text">€{supplier.delivery_to_hub.cost_estimate}/pallet</div>
                               ) : null}
                             </div>
                           </div>
@@ -530,7 +529,7 @@ export function ProductFinderWidget() {
                                     1
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <span className="font-medium text-gray-900 text-xs">
+                                    <span className="font-medium text-terminal-text text-xs">
                                       {supplier.delivery_to_hub.multi_hop_route.first_leg.from_hub}
                                     </span>
                                     <span className="mx-1">→</span>
@@ -570,7 +569,7 @@ export function ProductFinderWidget() {
                                       {supplier.delivery_to_hub.multi_hop_route.second_leg.from_hub}
                                     </span>
                                     <span className="mx-1">→</span>
-                                    <span className="font-medium text-gray-900 text-xs">
+                                    <span className="font-medium text-terminal-text text-xs">
                                       {supplier.delivery_to_hub.multi_hop_route.second_leg.to_hub}
                                     </span>
                                     <div className="text-xs text-gray-500 mt-1">
@@ -602,18 +601,18 @@ export function ProductFinderWidget() {
 
         {/* Empty State */}
         {results.length === 0 && canSearch && !isSearching && !error && (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-12 text-gray-500 bg-terminal-panel rounded-lg shadow">
             <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No suppliers found for the selected criteria</p>
+            <p className="font-medium">No suppliers found for the selected criteria</p>
             <p className="text-sm mt-1">Try adjusting your search parameters or check back later</p>
           </div>
         )}
 
         {/* Initial State */}
         {!canSearch && !isSearching && (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-12 text-gray-500 bg-terminal-panel rounded-lg shadow">
             <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>
+            <p className="font-medium">
               {selectedCustomer
                 ? "Select a product to find suppliers"
                 : "Select a customer or product to begin"
@@ -621,7 +620,6 @@ export function ProductFinderWidget() {
             </p>
           </div>
         )}
-      </CardContent>
-    </Card>
+    </div>
   )
 }

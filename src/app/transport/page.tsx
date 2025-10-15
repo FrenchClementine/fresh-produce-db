@@ -38,7 +38,7 @@ const TransportMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full flex items-center justify-center bg-gray-50">
+      <div className="w-full h-full flex items-center justify-center bg-terminal-dark">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     )
@@ -696,15 +696,15 @@ export default function TransportPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="px-2 py-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Transport Planning</h1>
-        <p className="text-gray-600">
+        <p className="text-terminal-muted">
           Search for transport routes between locations and find the best logistics options
         </p>
       </div>
 
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="space-y-6">
         {/* Search Section */}
         <div>
           {/* Search Card */}
@@ -778,7 +778,7 @@ export default function TransportPage() {
         {routeInfo && (
           <div className="space-y-6">
             {/* Compact Route Summary */}
-            <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 border space-y-4">
+            <div className="bg-terminal-dark rounded-lg p-4 border space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
@@ -797,12 +797,12 @@ export default function TransportPage() {
                   {routeInfo.distance} km
                 </Badge>
               </div>
-              <div className="grid gap-4 md:grid-cols-2 text-sm text-gray-600">
+              <div className="grid gap-4 md:grid-cols-2 text-sm text-terminal-muted">
                 {typeof routeInfo.originOffsetKm === 'number' && routeInfo.fromLocation && (
                   <div className="flex items-start gap-3">
                     <MapPin className="h-4 w-4 text-green-600 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-700">Nearest origin hub</p>
+                      <p className="font-medium text-terminal-text">Nearest origin hub</p>
                       <p>
                         {routeInfo.fromHub?.name} is about {routeInfo.originOffsetKm} km from
                         {' '}<span className="font-medium text-gray-800">{routeInfo.fromLocation}</span>.
@@ -814,7 +814,7 @@ export default function TransportPage() {
                   <div className="flex items-start gap-3">
                     <MapPin className="h-4 w-4 text-red-600 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-700">Nearest destination hub</p>
+                      <p className="font-medium text-terminal-text">Nearest destination hub</p>
                       <p>
                         {routeInfo.toHub?.name} is about {routeInfo.destinationOffsetKm} km from
                         {' '}<span className="font-medium text-gray-800">{routeInfo.toLocation}</span>.
@@ -826,7 +826,7 @@ export default function TransportPage() {
                   <div className="flex items-start gap-3 md:col-span-2">
                     <Truck className="h-4 w-4 text-blue-600 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-700">Suggested transporter contact</p>
+                      <p className="font-medium text-terminal-text">Suggested transporter contact</p>
                       <p>
                         {routeInfo.suggestedTransporter.name}
                         {routeInfo.suggestedTransporter.agentName ? (
@@ -900,7 +900,7 @@ export default function TransportPage() {
                       <div
                         key={match.id}
                         className={`p-6 border rounded-lg hover:shadow-md transition-all duration-200 ${
-                          match.isAlternative ? 'border-orange-200 bg-orange-50' : 'border-gray-200 bg-white hover:border-blue-200'
+                          match.isAlternative ? 'border-orange-200 bg-orange-50' : 'border-terminal-border bg-terminal-panel hover:border-blue-200'
                         }`}
                       >
                         {/* Header */}
@@ -917,7 +917,7 @@ export default function TransportPage() {
 
                               {/* Show hub details for alternatives */}
                               {match.isAlternative && match.originHub && match.destinationHub && (
-                                <div className="text-xs text-gray-600 mt-1 space-y-1">
+                                <div className="text-xs text-terminal-muted mt-1 space-y-1">
                                   <div className="flex items-center gap-1">
                                     <Route className="h-3 w-3" />
                                     <span>
@@ -940,14 +940,14 @@ export default function TransportPage() {
 
                         {/* Key Details Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3 p-3 bg-terminal-dark rounded-lg">
                             <Clock className="h-5 w-5 text-blue-600" />
                             <div>
                               <p className="text-sm text-gray-500">Transit Time</p>
                               <p className="font-medium">{match.transit_days} days</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3 p-3 bg-terminal-dark rounded-lg">
                             <Euro className="h-5 w-5 text-green-600" />
                             <div>
                               <p className="text-sm text-gray-500">Price Range</p>
@@ -959,7 +959,7 @@ export default function TransportPage() {
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3 p-3 bg-terminal-dark rounded-lg">
                             <Truck className="h-5 w-5 text-purple-600" />
                             <div>
                               <p className="text-sm text-gray-500">Frequency</p>
@@ -975,7 +975,7 @@ export default function TransportPage() {
                             <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                               <User className="h-5 w-5 text-blue-600" />
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-900">{match.agent_name}</p>
+                                <p className="text-sm font-medium text-terminal-text">{match.agent_name}</p>
                                 <div className="flex items-center gap-2">
                                   {match.agent_role && (
                                     <Badge variant="outline" className="text-xs">
@@ -983,7 +983,7 @@ export default function TransportPage() {
                                     </Badge>
                                   )}
                                   {match.agent_email && (
-                                    <div className="flex items-center gap-1 text-xs text-gray-600">
+                                    <div className="flex items-center gap-1 text-xs text-terminal-muted">
                                       <Mail className="h-3 w-3" />
                                       <span>Contact available</span>
                                     </div>
@@ -1002,24 +1002,24 @@ export default function TransportPage() {
                               >
                                 <div className="flex items-center gap-2">
                                   <Tag className="h-4 w-4 text-green-600" />
-                                  <span className="font-medium text-gray-900">
+                                  <span className="font-medium text-terminal-text">
                                     View Price Bands ({match.price_bands.length})
                                   </span>
                                 </div>
                                 {expandedPriceBands.has(match.id) ? (
-                                  <ChevronUp className="h-4 w-4 text-gray-600" />
+                                  <ChevronUp className="h-4 w-4 text-terminal-muted" />
                                 ) : (
-                                  <ChevronDown className="h-4 w-4 text-gray-600" />
+                                  <ChevronDown className="h-4 w-4 text-terminal-muted" />
                                 )}
                               </button>
 
                               {expandedPriceBands.has(match.id) && (
                                 <div className="grid gap-2 mt-2">
                                   {match.price_bands.map((band, index) => (
-                                    <div key={band.id} className="flex items-center justify-between p-3 bg-gray-50 rounded border">
+                                    <div key={band.id} className="flex items-center justify-between p-3 bg-terminal-dark rounded border">
                                       <div>
-                                        <p className="font-medium text-gray-900">{band.pallet_dimensions}cm pallets</p>
-                                        <p className="text-sm text-gray-600">
+                                        <p className="font-medium text-terminal-text">{band.pallet_dimensions}cm pallets</p>
+                                        <p className="text-sm text-terminal-muted">
                                           {band.min_pallets}{band.max_pallets ? `-${band.max_pallets}` : '+'} pallets
                                         </p>
                                       </div>
@@ -1047,8 +1047,8 @@ export default function TransportPage() {
 
                           {/* Show route distance comparison for alternatives */}
                           {match.isAlternative && (
-                            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                              <h5 className="font-medium text-gray-900 mb-2">Route Comparison</h5>
+                            <div className="p-3 bg-terminal-dark rounded-lg border border-terminal-border">
+                              <h5 className="font-medium text-terminal-text mb-2">Route Comparison</h5>
                               <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
                                   <p className="text-gray-500">Route Distance</p>

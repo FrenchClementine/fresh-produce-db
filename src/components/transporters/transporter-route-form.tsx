@@ -155,11 +155,16 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
   }
 
   const isLoading = routeLoading || transportersLoading || hubsLoading
+  const isEditMode = !!routeId
+  const isEditDataReady = !isEditMode || (isEditMode && route)
 
-  if (isLoading) {
+  if (isLoading || !isEditDataReady) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <span className="ml-2 text-terminal-muted font-mono text-sm">
+          {isEditMode ? 'Loading route data...' : 'Loading...'}
+        </span>
       </div>
     )
   }
@@ -174,16 +179,16 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
             name="transporter_id"
             render={({ field }) => (
               <FormItem className="col-span-2">
-                <FormLabel>Transporter *</FormLabel>
+                <FormLabel className="text-terminal-text font-mono">Transporter *</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-terminal-dark border-terminal-border text-terminal-text font-mono">
                       <SelectValue placeholder="Select a transporter" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent className="bg-terminal-panel border-terminal-border">
                     {transporters?.filter(t => t.is_active).map((transporter) => (
-                      <SelectItem key={transporter.id} value={transporter.id}>
+                      <SelectItem key={transporter.id} value={transporter.id} className="font-mono text-terminal-text">
                         {transporter.name}
                       </SelectItem>
                     ))}
@@ -199,7 +204,7 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
             name="origin_hub_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Origin Hub *</FormLabel>
+                <FormLabel className="text-terminal-text font-mono">Origin Hub *</FormLabel>
                 <FormControl>
                   <LocationHubSelectorOptimized
                     value={field.value}
@@ -227,7 +232,7 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
             name="destination_hub_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Destination Hub *</FormLabel>
+                <FormLabel className="text-terminal-text font-mono">Destination Hub *</FormLabel>
                 <FormControl>
                   <LocationHubSelectorOptimized
                     value={field.value}
@@ -255,9 +260,9 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
             name="transport_duration_days"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Transit Days *</FormLabel>
+                <FormLabel className="text-terminal-text font-mono">Transit Days *</FormLabel>
                 <FormControl>
-                  <Input 
+                  <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" 
                     type="number" 
                     min="1"
                     placeholder="2"
@@ -269,7 +274,7 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
                     onFocus={(e) => e.target.select()}
                   />
                 </FormControl>
-                <FormDescription>
+                <FormDescription className="text-terminal-muted font-mono text-xs">
                   Number of days for transportation
                 </FormDescription>
                 <FormMessage />
@@ -282,9 +287,9 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
             name="customs_cost_per_shipment"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Customs Cost (€)</FormLabel>
+                <FormLabel className="text-terminal-text font-mono">Customs Cost (€)</FormLabel>
                 <FormControl>
-                  <Input 
+                  <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" 
                     type="number" 
                     step="0.01"
                     min="0"
@@ -297,7 +302,7 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
                     onFocus={(e) => e.target.select()}
                   />
                 </FormControl>
-                <FormDescription>
+                <FormDescription className="text-terminal-muted font-mono text-xs">
                   Fixed cost per shipment for customs
                 </FormDescription>
                 <FormMessage />
@@ -310,14 +315,14 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
             name="customs_description"
             render={({ field }) => (
               <FormItem className="col-span-2">
-                <FormLabel>Customs Description</FormLabel>
+                <FormLabel className="text-terminal-text font-mono">Customs Description</FormLabel>
                 <FormControl>
-                  <Input 
+                  <Input className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" 
                     {...field} 
                     placeholder="EU customs clearance required"
                   />
                 </FormControl>
-                <FormDescription>
+                <FormDescription className="text-terminal-muted font-mono text-xs">
                   Optional description of customs requirements
                 </FormDescription>
                 <FormMessage />
@@ -330,8 +335,8 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
             name="fixed_departure_days"
             render={({ field }) => (
               <FormItem className="col-span-2">
-                <FormLabel>Fixed Departure Days</FormLabel>
-                <FormDescription>
+                <FormLabel className="text-terminal-text font-mono">Fixed Departure Days</FormLabel>
+                <FormDescription className="text-terminal-muted font-mono text-xs">
                   Select the days of the week when this route operates
                 </FormDescription>
                 <div className="flex gap-2 mb-3">
@@ -343,6 +348,7 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
                       const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
                       field.onChange(weekdays)
                     }}
+                    className="border-terminal-border text-terminal-text hover:bg-terminal-panel font-mono"
                   >
                     Select All Weekdays
                   </Button>
@@ -351,6 +357,7 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
                     variant="outline"
                     size="sm"
                     onClick={() => field.onChange([])}
+                    className="border-terminal-border text-terminal-text hover:bg-terminal-panel font-mono"
                   >
                     Clear All
                   </Button>
@@ -397,9 +404,9 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
             name="notes"
             render={({ field }) => (
               <FormItem className="col-span-2">
-                <FormLabel>Notes</FormLabel>
+                <FormLabel className="text-terminal-text font-mono">Notes</FormLabel>
                 <FormControl>
-                  <Textarea 
+                  <Textarea className="bg-terminal-dark border-terminal-border text-terminal-text font-mono" 
                     {...field} 
                     placeholder="Additional information about this route..."
                     rows={3}
@@ -422,8 +429,8 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
-                  <FormLabel>Active</FormLabel>
-                  <FormDescription>
+                  <FormLabel className="text-terminal-text font-mono">Active</FormLabel>
+                  <FormDescription className="text-terminal-muted font-mono text-xs">
                     Inactive routes are hidden from route planning
                   </FormDescription>
                 </div>
@@ -433,14 +440,20 @@ export function TransporterRouteForm({ routeId, onSuccess, onCancel }: Transport
         </div>
 
         <div className="flex justify-end space-x-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            className="border-terminal-border text-terminal-text hover:bg-terminal-panel font-mono"
+          >
             Cancel
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={createRoute.isPending || updateRoute.isPending}
+            className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono"
           >
-            {createRoute.isPending || updateRoute.isPending ? 'Saving...' : 
+            {createRoute.isPending || updateRoute.isPending ? 'Saving...' :
              routeId ? 'Update Route' : 'Create Route'}
           </Button>
         </div>

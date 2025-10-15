@@ -96,23 +96,23 @@ export function PriceTrendsWidget() {
     'current_avg_price'
   )
 
-  // Auto-scroll functionality
+  // Auto-scroll functionality with infinite loop
   useEffect(() => {
     if (!scrollContainerRef.current || isHovering || !trends || trends.length === 0) return
 
     const container = scrollContainerRef.current
-    let scrollAmount = 0
     const scrollSpeed = 0.5 // pixels per interval
 
     const interval = setInterval(() => {
-      if (container.scrollTop + container.clientHeight >= container.scrollHeight) {
-        // Reset to top when reaching bottom
-        container.scrollTop = 0
-        scrollAmount = 0
-      } else {
-        scrollAmount += scrollSpeed
-        container.scrollTop = scrollAmount
+      const halfwayPoint = container.scrollHeight / 2
+
+      // Check if we need to reset before scrolling
+      if (container.scrollTop >= halfwayPoint) {
+        container.scrollTop = container.scrollTop - halfwayPoint
       }
+
+      // Smoothly scroll down
+      container.scrollTop += scrollSpeed
     }, 30) // Update every 30ms for smooth scrolling
 
     return () => clearInterval(interval)
@@ -158,10 +158,11 @@ export function PriceTrendsWidget() {
       {/* Table */}
       <div
         ref={scrollContainerRef}
-        className="space-y-0.5 max-h-[600px] overflow-y-auto scroll-smooth"
+        className="space-y-0.5 max-h-[600px] overflow-y-auto"
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
+        {/* Original content */}
         {trends.map((trend) => {
           const emoji = categoryEmojis[trend.product_category.toLowerCase()] || '📦'
           const isFlashing = flashingIds.has(trend.product_id)
@@ -169,6 +170,55 @@ export function PriceTrendsWidget() {
           return (
             <div
               key={trend.product_id}
+              className={`grid grid-cols-4 gap-2 items-center py-1.5 px-2 hover:bg-terminal-dark/50 rounded border transition-all duration-500 ${
+                isFlashing
+                  ? 'border-terminal-accent bg-terminal-accent/10 shadow-lg shadow-terminal-accent/20'
+                  : 'border-transparent hover:border-terminal-border'
+              }`}
+            >
+              {/* Product Name */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-base">{emoji}</span>
+                <div>
+                  <div className="font-mono text-terminal-text text-xs font-medium">
+                    {trend.product_name}
+                  </div>
+                  <div className="text-[10px] text-terminal-muted font-mono capitalize">
+                    {trend.product_category}
+                  </div>
+                </div>
+              </div>
+
+              {/* Current Price */}
+              <div className="text-right">
+                <div className="font-mono text-terminal-text font-semibold text-xs">
+                  {formatCurrency(trend.current_avg_price, trend.currency)}
+                </div>
+                <div className="text-[10px] text-terminal-muted font-mono">
+                  per {trend.sold_by}
+                </div>
+              </div>
+
+              {/* Trend */}
+              <div className="flex justify-center">
+                <TrendBadge trend={trend} />
+              </div>
+
+              {/* Sparkline */}
+              <div className="flex justify-end">
+                <Sparkline data={trend.price_history} />
+              </div>
+            </div>
+          )
+        })}
+        {/* Duplicate content for seamless loop */}
+        {trends.map((trend) => {
+          const emoji = categoryEmojis[trend.product_category.toLowerCase()] || '📦'
+          const isFlashing = flashingIds.has(trend.product_id)
+
+          return (
+            <div
+              key={`${trend.product_id}-duplicate`}
               className={`grid grid-cols-4 gap-2 items-center py-1.5 px-2 hover:bg-terminal-dark/50 rounded border transition-all duration-500 ${
                 isFlashing
                   ? 'border-terminal-accent bg-terminal-accent/10 shadow-lg shadow-terminal-accent/20'

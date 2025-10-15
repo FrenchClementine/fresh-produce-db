@@ -81,7 +81,7 @@ export default function TradeOverviewTerminal() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-terminal-dark p-4 space-y-4">
+    <div className="min-h-screen bg-terminal-dark px-2 py-4 space-y-4">
       {/* Growing Regions Weather Ticker */}
       <div className="bg-terminal-panel border border-terminal-border rounded overflow-hidden">
         <div className="flex items-center gap-2 px-4 py-2">

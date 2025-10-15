@@ -53,9 +53,9 @@ export default function TradePotentialPage() {
   }
 
   return (
-    <div className="min-h-screen bg-terminal-dark p-4 space-y-4">
+    <div className="min-h-screen bg-terminal-dark px-2 py-4 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-terminal-border pb-4">
+      <div className="flex items-center justify-between border-b border-terminal-border pb-4 px-2">
         <div className="flex items-center gap-4">
           <TrendingUp className="h-8 w-8 text-terminal-accent" />
           <div>

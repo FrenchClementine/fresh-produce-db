@@ -70,7 +70,7 @@ export default function CustomerRequestsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-terminal-dark p-6 space-y-6">
+    <div className="min-h-screen bg-terminal-dark px-2 py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-terminal-border pb-4">
         <div>
