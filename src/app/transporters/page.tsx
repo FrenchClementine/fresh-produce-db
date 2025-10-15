@@ -1,37 +1,62 @@
 'use client'
 
 import { useState } from 'react'
+import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { TransporterList } from '@/components/transporters/transporter-list'
+import { TransporterListTerminal } from '@/components/transporters/transporter-list-terminal'
 import { TransporterRoutesList } from '@/components/transporters/transporter-routes-list'
 import { RoutePriceBandsList } from '@/components/transporters/route-price-bands-list'
+import { Truck } from 'lucide-react'
 
 export default function TransportersPage() {
   return (
-    <div className="container mx-auto p-6 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Transporter System</h1>
-        <p className="text-muted-foreground mt-2">
+    <div className="min-h-screen bg-terminal-dark p-4 space-y-4">
+      {/* Header */}
+      <div className="border-b border-terminal-border pb-4">
+        <h1 className="text-2xl font-mono font-bold text-terminal-text tracking-wider flex items-center gap-3">
+          <Truck className="h-6 w-6 text-terminal-accent" />
+          TRANSPORTER SYSTEM
+          <Badge className="bg-terminal-success text-terminal-dark font-mono">
+            LIVE
+          </Badge>
+        </h1>
+        <p className="text-terminal-muted font-mono text-sm mt-2">
           Manage third-party logistics providers, their routes, and pricing for internal logistics planning.
         </p>
       </div>
 
-      <Tabs defaultValue="transporters" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="transporters">Transporters</TabsTrigger>
-          <TabsTrigger value="routes">Routes</TabsTrigger>
-          <TabsTrigger value="pricing">Price Bands</TabsTrigger>
+      {/* Tabs */}
+      <Tabs defaultValue="transporters" className="space-y-4">
+        <TabsList className="bg-terminal-panel border border-terminal-border">
+          <TabsTrigger
+            value="transporters"
+            className="font-mono text-xs data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark data-[state=active]:font-bold"
+          >
+            TRANSPORTERS
+          </TabsTrigger>
+          <TabsTrigger
+            value="routes"
+            className="font-mono text-xs data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark data-[state=active]:font-bold"
+          >
+            ROUTES
+          </TabsTrigger>
+          <TabsTrigger
+            value="pricing"
+            className="font-mono text-xs data-[state=active]:bg-terminal-accent data-[state=active]:text-terminal-dark data-[state=active]:font-bold"
+          >
+            PRICE BANDS
+          </TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="transporters" className="space-y-6">
-          <TransporterList />
+
+        <TabsContent value="transporters">
+          <TransporterListTerminal />
         </TabsContent>
-        
-        <TabsContent value="routes" className="space-y-6">
+
+        <TabsContent value="routes">
           <TransporterRoutesList />
         </TabsContent>
-        
-        <TabsContent value="pricing" className="space-y-6">
+
+        <TabsContent value="pricing">
           <RoutePriceBandsList />
         </TabsContent>
       </Tabs>

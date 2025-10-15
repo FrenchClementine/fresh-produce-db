@@ -181,7 +181,7 @@ export function BulkRoutePriceBandForm({ routeId, onSuccess, onCancel }: BulkRou
               name="transporter_route_id"
               render={({ field }) => (
                 <FormItem className="col-span-2">
-                  <FormLabel>Route *</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Route *</FormLabel>
                   <div className="flex gap-2">
                     <Select 
                       onValueChange={(value) => {
@@ -227,7 +227,7 @@ export function BulkRoutePriceBandForm({ routeId, onSuccess, onCancel }: BulkRou
               name="pallet_dimensions"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Pallet Dimensions *</FormLabel>
+                  <FormLabel className="text-terminal-text font-mono">Pallet Dimensions *</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -248,10 +248,10 @@ export function BulkRoutePriceBandForm({ routeId, onSuccess, onCancel }: BulkRou
               control={form.control}
               name="use_preset_tiers"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border border-terminal-border bg-terminal-dark/30 p-4">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base">Use Preset Tiers</FormLabel>
-                    <FormDescription>
+                    <FormLabel className="text-base text-terminal-text font-mono">Use Preset Tiers</FormLabel>
+                    <FormDescription className="text-terminal-muted font-mono text-xs">
                       Use standard pricing tiers (Groupage, Part Load, Full Truck)
                     </FormDescription>
                   </div>
@@ -279,9 +279,9 @@ export function BulkRoutePriceBandForm({ routeId, onSuccess, onCancel }: BulkRou
 
             <div className="space-y-3">
               {fields.map((field, index) => (
-                <div key={field.id} className="grid grid-cols-12 gap-3 items-end p-4 border rounded-lg">
+                <div key={field.id} className="grid grid-cols-12 gap-3 items-end p-4 border border-terminal-border rounded-lg bg-terminal-dark/30">
                   <div className="col-span-3">
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                    <label className="text-xs font-medium text-terminal-muted mb-1 block font-mono">
                       Min Pallets *
                     </label>
                     <Input
@@ -289,29 +289,29 @@ export function BulkRoutePriceBandForm({ routeId, onSuccess, onCancel }: BulkRou
                       min="1"
                       {...form.register(`price_bands.${index}.min_pallets`, { valueAsNumber: true })}
                       disabled={usePresetTiers}
-                      className={usePresetTiers ? 'bg-muted' : ''}
+                      className={usePresetTiers ? 'bg-terminal-dark border-terminal-border text-terminal-text font-mono' : 'bg-terminal-dark border-terminal-border text-terminal-text font-mono'}
                     />
                   </div>
-                  
+
                   <div className="col-span-3">
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                    <label className="text-xs font-medium text-terminal-muted mb-1 block font-mono">
                       Max Pallets
                     </label>
                     <Input
                       type="number"
                       min="1"
                       placeholder="Unlimited"
-                      {...form.register(`price_bands.${index}.max_pallets`, { 
+                      {...form.register(`price_bands.${index}.max_pallets`, {
                         valueAsNumber: true,
                         setValueAs: v => v === '' || v === undefined ? undefined : parseInt(v)
                       })}
                       disabled={usePresetTiers}
-                      className={usePresetTiers ? 'bg-muted' : ''}
+                      className={usePresetTiers ? 'bg-terminal-dark border-terminal-border text-terminal-text font-mono placeholder:text-terminal-muted' : 'bg-terminal-dark border-terminal-border text-terminal-text font-mono placeholder:text-terminal-muted'}
                     />
                   </div>
-                  
+
                   <div className="col-span-4">
-                    <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                    <label className="text-xs font-medium text-terminal-muted mb-1 block font-mono">
                       Price per Pallet (€) *
                     </label>
                     <Input
@@ -319,6 +319,7 @@ export function BulkRoutePriceBandForm({ routeId, onSuccess, onCancel }: BulkRou
                       step="0.01"
                       min="0.01"
                       {...form.register(`price_bands.${index}.price_per_pallet`, { valueAsNumber: true })}
+                      className="bg-terminal-dark border-terminal-border text-terminal-text font-mono"
                     />
                   </div>
                   
@@ -338,8 +339,8 @@ export function BulkRoutePriceBandForm({ routeId, onSuccess, onCancel }: BulkRou
 
                   {usePresetTiers && (
                     <div className="col-span-2">
-                      <span className="text-xs text-muted-foreground">
-                        {palletDimensions === '120x80' 
+                      <span className="text-xs text-terminal-muted font-mono">
+                        {palletDimensions === '120x80'
                           ? index === 0 ? 'Groupage' : index === 1 ? 'Part Load' : 'Full Truck'
                           : index === 0 ? 'Groupage' : index === 1 ? 'Part Load' : 'Full Truck'
                         }
@@ -351,11 +352,11 @@ export function BulkRoutePriceBandForm({ routeId, onSuccess, onCancel }: BulkRou
             </div>
           </div>
 
-          <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-            <h4 className="text-sm font-medium">Price Band Guidelines:</h4>
-            <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
+          <div className="space-y-3 p-4 bg-terminal-panel border border-terminal-border rounded-lg">
+            <h4 className="text-sm font-medium text-terminal-text font-mono">Price Band Guidelines:</h4>
+            <div className="grid grid-cols-2 gap-4 text-xs text-terminal-text font-mono">
               <div>
-                <strong>120x80cm (Euro Pallet):</strong>
+                <strong className="text-terminal-accent">120x80cm (Euro Pallet):</strong>
                 <div className="mt-1 space-y-1">
                   <div>• Groupage: 1-15 pallets</div>
                   <div>• Part Load: 16-32 pallets</div>
@@ -363,7 +364,7 @@ export function BulkRoutePriceBandForm({ routeId, onSuccess, onCancel }: BulkRou
                 </div>
               </div>
               <div>
-                <strong>120x100cm (UK Standard):</strong>
+                <strong className="text-terminal-accent">120x100cm (UK Standard):</strong>
                 <div className="mt-1 space-y-1">
                   <div>• Groupage: 1-12 pallets</div>
                   <div>• Part Load: 13-25 pallets</div>
