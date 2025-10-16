@@ -696,9 +696,9 @@ export default function TransportPage() {
   };
 
   return (
-    <div className="px-2 py-6">
+    <div className="px-2 py-6 bg-terminal-dark min-h-screen">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Transport Planning</h1>
+        <h1 className="text-3xl font-bold mb-2 text-terminal-text font-mono">Transport Planning</h1>
         <p className="text-terminal-muted">
           Search for transport routes between locations and find the best logistics options
         </p>
@@ -708,19 +708,19 @@ export default function TransportPage() {
         {/* Search Section */}
         <div>
           {/* Search Card */}
-          <Card>
+          <Card className="bg-terminal-panel border-terminal-border">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-terminal-text font-mono">
+                <Search className="h-5 w-5 text-terminal-accent" />
                 Route Search
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-terminal-muted">
                 Enter origin and destination locations
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="from">From Location</Label>
+                <Label htmlFor="from" className="text-terminal-text font-mono">From Location</Label>
                 <Input
                   id="from"
                   placeholder="e.g., Amsterdam, Netherlands"
@@ -732,11 +732,12 @@ export default function TransportPage() {
                     searchRoute();
                   }
                 }}
+                  className="bg-terminal-dark border-terminal-border text-terminal-text placeholder:text-terminal-muted"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="to">To Location</Label>
+                <Label htmlFor="to" className="text-terminal-text font-mono">To Location</Label>
                 <Input
                   id="to"
                   placeholder="e.g., Madrid, Spain"
@@ -748,11 +749,12 @@ export default function TransportPage() {
                     searchRoute();
                   }
                 }}
+                  className="bg-terminal-dark border-terminal-border text-terminal-text placeholder:text-terminal-muted"
                 />
               </div>
 
               <Button
-                className="w-full"
+                className="w-full bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono"
                 onClick={searchRoute}
                 disabled={isSearching || !fromLocation || !toLocation}
               >
@@ -778,22 +780,22 @@ export default function TransportPage() {
         {routeInfo && (
           <div className="space-y-6">
             {/* Compact Route Summary */}
-            <div className="bg-terminal-dark rounded-lg p-4 border space-y-4">
+            <div className="bg-terminal-panel rounded-lg p-4 border border-terminal-border space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-green-600" />
-                    <span className="font-medium">{routeInfo.fromHub?.name}</span>
-                    <span className="text-sm text-gray-500">({routeInfo.fromHub?.city_name})</span>
+                    <MapPin className="h-4 w-4 text-terminal-success" />
+                    <span className="font-medium text-terminal-text font-mono">{routeInfo.fromHub?.name}</span>
+                    <span className="text-sm text-terminal-muted">({routeInfo.fromHub?.city_name})</span>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-gray-400" />
+                  <ArrowRight className="h-4 w-4 text-terminal-muted" />
                   <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-red-600" />
-                    <span className="font-medium">{routeInfo.toHub?.name}</span>
-                    <span className="text-sm text-gray-500">({routeInfo.toHub?.city_name})</span>
+                    <MapPin className="h-4 w-4 text-terminal-alert" />
+                    <span className="font-medium text-terminal-text font-mono">{routeInfo.toHub?.name}</span>
+                    <span className="text-sm text-terminal-muted">({routeInfo.toHub?.city_name})</span>
                   </div>
                 </div>
-                <Badge variant="secondary" className="ml-auto">
+                <Badge variant="outline" className="ml-auto border-terminal-accent text-terminal-accent font-mono">
                   {routeInfo.distance} km
                 </Badge>
               </div>
@@ -850,13 +852,13 @@ export default function TransportPage() {
             </div>
 
             {/* Map Section */}
-            <Card className="h-[500px]">
+            <Card className="h-[500px] bg-terminal-panel border-terminal-border">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Navigation className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-terminal-text font-mono">
+                  <Navigation className="h-5 w-5 text-terminal-accent" />
                   Route Map
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-terminal-muted">
                   Visual representation of your transport route
                 </CardDescription>
               </CardHeader>
@@ -873,14 +875,14 @@ export default function TransportPage() {
             </Card>
 
             {/* Transport Options */}
-            <Card>
+            <Card className="bg-terminal-panel border-terminal-border">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Truck className="h-5 w-5" />
-                    <CardTitle>Available Transport Options</CardTitle>
+                    <Truck className="h-5 w-5 text-terminal-accent" />
+                    <CardTitle className="text-terminal-text font-mono">Available Transport Options</CardTitle>
                   </div>
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="border-terminal-accent text-terminal-accent font-mono">
                     {transportMatches.length} route{transportMatches.length !== 1 ? 's' : ''}
                   </Badge>
                 </div>
@@ -890,9 +892,9 @@ export default function TransportPage() {
                   {isLoadingTransport ? (
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
-                        <p className="text-gray-500">Searching for transport routes...</p>
-                        <p className="text-sm text-gray-400">This may take a few moments</p>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-terminal-accent mx-auto mb-3"></div>
+                        <p className="text-terminal-text font-mono">Searching for transport routes...</p>
+                        <p className="text-sm text-terminal-muted font-mono">This may take a few moments</p>
                       </div>
                     </div>
                   ) : transportMatches.length > 0 ? (
@@ -900,16 +902,16 @@ export default function TransportPage() {
                       <div
                         key={match.id}
                         className={`p-6 border rounded-lg hover:shadow-md transition-all duration-200 ${
-                          match.isAlternative ? 'border-orange-200 bg-orange-50' : 'border-terminal-border bg-terminal-panel hover:border-blue-200'
+                          match.isAlternative ? 'border-orange-500/50 bg-terminal-dark/50' : 'border-terminal-border bg-terminal-dark hover:border-terminal-accent'
                         }`}
                       >
                         {/* Header */}
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-lg font-semibold">{match.transporter_name}</h3>
+                              <h3 className="text-lg font-semibold text-terminal-text font-mono">{match.transporter_name}</h3>
                               {match.isAlternative && (
-                                <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700 border-orange-300">
+                                <Badge variant="outline" className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/50 font-mono">
                                   Alternative Route
                                 </Badge>
                               )}
@@ -917,7 +919,7 @@ export default function TransportPage() {
 
                               {/* Show hub details for alternatives */}
                               {match.isAlternative && match.originHub && match.destinationHub && (
-                                <div className="text-xs text-terminal-muted mt-1 space-y-1">
+                                <div className="text-xs text-terminal-muted mt-1 space-y-1 font-mono">
                                   <div className="flex items-center gap-1">
                                     <Route className="h-3 w-3" />
                                     <span>
@@ -925,7 +927,7 @@ export default function TransportPage() {
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    <AlertCircle className="h-3 w-3 text-orange-500" />
+                                    <AlertCircle className="h-3 w-3 text-orange-400" />
                                     <span>
                                       +{match.originDistance}km to origin, +{match.destinationDistance}km from destination
                                     </span>
@@ -933,37 +935,37 @@ export default function TransportPage() {
                                 </div>
                               )}
                           </div>
-                          <Badge variant="outline" className="ml-auto">
+                          <Badge variant="outline" className="ml-auto border-terminal-border text-terminal-muted font-mono">
                             {match.frequency}
                           </Badge>
                         </div>
 
                         {/* Key Details Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                          <div className="flex items-center gap-3 p-3 bg-terminal-dark rounded-lg">
-                            <Clock className="h-5 w-5 text-blue-600" />
+                          <div className="flex items-center gap-3 p-3 bg-terminal-panel border border-terminal-border rounded-lg">
+                            <Clock className="h-5 w-5 text-terminal-accent" />
                             <div>
-                              <p className="text-sm text-gray-500">Transit Time</p>
-                              <p className="font-medium">{match.transit_days} days</p>
+                              <p className="text-sm text-terminal-muted font-mono">Transit Time</p>
+                              <p className="font-medium text-terminal-text font-mono">{match.transit_days} days</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 p-3 bg-terminal-dark rounded-lg">
-                            <Euro className="h-5 w-5 text-green-600" />
+                          <div className="flex items-center gap-3 p-3 bg-terminal-panel border border-terminal-border rounded-lg">
+                            <Euro className="h-5 w-5 text-terminal-success" />
                             <div>
-                              <p className="text-sm text-gray-500">Price Range</p>
-                              <p className="font-medium">
+                              <p className="text-sm text-terminal-muted font-mono">Price Range</p>
+                              <p className="font-medium text-terminal-text font-mono">
                                 {match.base_rate_per_pallet > 0
-                                  ? `${match.price_range?.replace(/€/g, '') || ''}/pallet`
+                                  ? `${match.price_range?.replace(/€/g, '€') || ''}/pallet`
                                   : 'Price on request'
                                 }
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 p-3 bg-terminal-dark rounded-lg">
-                            <Truck className="h-5 w-5 text-purple-600" />
+                          <div className="flex items-center gap-3 p-3 bg-terminal-panel border border-terminal-border rounded-lg">
+                            <Truck className="h-5 w-5 text-terminal-accent" />
                             <div>
-                              <p className="text-sm text-gray-500">Frequency</p>
-                              <p className="font-medium">{match.frequency}</p>
+                              <p className="text-sm text-terminal-muted font-mono">Frequency</p>
+                              <p className="font-medium text-terminal-text font-mono">{match.frequency}</p>
                             </div>
                           </div>
                         </div>
@@ -972,18 +974,18 @@ export default function TransportPage() {
                         <div className="space-y-4">
                           {/* Agent Information */}
                           {match.agent_name && (
-                            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                              <User className="h-5 w-5 text-blue-600" />
+                            <div className="flex items-center gap-3 p-3 bg-terminal-panel rounded-lg border border-terminal-accent/50">
+                              <User className="h-5 w-5 text-terminal-accent" />
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-terminal-text">{match.agent_name}</p>
+                                <p className="text-sm font-medium text-terminal-text font-mono">{match.agent_name}</p>
                                 <div className="flex items-center gap-2">
                                   {match.agent_role && (
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge variant="outline" className="text-xs border-terminal-border text-terminal-muted font-mono">
                                       {match.agent_role}
                                     </Badge>
                                   )}
                                   {match.agent_email && (
-                                    <div className="flex items-center gap-1 text-xs text-terminal-muted">
+                                    <div className="flex items-center gap-1 text-xs text-terminal-muted font-mono">
                                       <Mail className="h-3 w-3" />
                                       <span>Contact available</span>
                                     </div>
@@ -998,11 +1000,11 @@ export default function TransportPage() {
                             <div className="space-y-2">
                               <button
                                 onClick={() => togglePriceBands(match.id)}
-                                className="flex items-center justify-between w-full p-3 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors"
+                                className="flex items-center justify-between w-full p-3 bg-terminal-panel rounded-lg border border-terminal-success/50 hover:bg-terminal-dark transition-colors"
                               >
                                 <div className="flex items-center gap-2">
-                                  <Tag className="h-4 w-4 text-green-600" />
-                                  <span className="font-medium text-terminal-text">
+                                  <Tag className="h-4 w-4 text-terminal-success" />
+                                  <span className="font-medium text-terminal-text font-mono">
                                     View Price Bands ({match.price_bands.length})
                                   </span>
                                 </div>
@@ -1016,16 +1018,16 @@ export default function TransportPage() {
                               {expandedPriceBands.has(match.id) && (
                                 <div className="grid gap-2 mt-2">
                                   {match.price_bands.map((band, index) => (
-                                    <div key={band.id} className="flex items-center justify-between p-3 bg-terminal-dark rounded border">
+                                    <div key={band.id} className="flex items-center justify-between p-3 bg-terminal-dark rounded border border-terminal-border">
                                       <div>
-                                        <p className="font-medium text-terminal-text">{band.pallet_dimensions}cm pallets</p>
-                                        <p className="text-sm text-terminal-muted">
+                                        <p className="font-medium text-terminal-text font-mono">{band.pallet_dimensions}cm pallets</p>
+                                        <p className="text-sm text-terminal-muted font-mono">
                                           {band.min_pallets}{band.max_pallets ? `-${band.max_pallets}` : '+'} pallets
                                         </p>
                                       </div>
                                       <div className="text-right">
-                                        <p className="font-bold text-green-700">€{band.price_per_pallet}</p>
-                                        <p className="text-xs text-gray-500">per pallet</p>
+                                        <p className="font-bold text-terminal-success font-mono">€{band.price_per_pallet}</p>
+                                        <p className="text-xs text-terminal-muted font-mono">per pallet</p>
                                       </div>
                                     </div>
                                   ))}
@@ -1036,27 +1038,27 @@ export default function TransportPage() {
 
                           {/* Diesel Surcharge Information */}
                           {match.diesel_surcharge_percentage && match.diesel_surcharge_percentage > 0 && (
-                            <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                            <div className="flex items-center gap-3 p-3 bg-yellow-500/20 rounded-lg border border-yellow-500/50">
                               <span className="text-lg">⛽</span>
                               <div>
-                                <p className="text-sm font-medium text-amber-800">Diesel Surcharge Included</p>
-                                <p className="text-xs text-amber-600">Prices include {match.diesel_surcharge_percentage}% diesel surcharge</p>
+                                <p className="text-sm font-medium text-yellow-400 font-mono">Diesel Surcharge Included</p>
+                                <p className="text-xs text-yellow-300/80 font-mono">Prices include {match.diesel_surcharge_percentage}% diesel surcharge</p>
                               </div>
                             </div>
                           )}
 
                           {/* Show route distance comparison for alternatives */}
                           {match.isAlternative && (
-                            <div className="p-3 bg-terminal-dark rounded-lg border border-terminal-border">
-                              <h5 className="font-medium text-terminal-text mb-2">Route Comparison</h5>
+                            <div className="p-3 bg-terminal-panel rounded-lg border border-terminal-border">
+                              <h5 className="font-medium text-terminal-text mb-2 font-mono">Route Comparison</h5>
                               <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
-                                  <p className="text-gray-500">Route Distance</p>
-                                  <p className="font-medium">{match.routeDistance}km</p>
+                                  <p className="text-terminal-muted font-mono">Route Distance</p>
+                                  <p className="font-medium text-terminal-text font-mono">{match.routeDistance}km</p>
                                 </div>
                                 <div>
-                                  <p className="text-gray-500">vs Requested</p>
-                                  <p className="font-medium">
+                                  <p className="text-terminal-muted font-mono">vs Requested</p>
+                                  <p className="font-medium text-terminal-text font-mono">
                                     {match.routeDistance && match.requestedDistance && match.routeDistance > match.requestedDistance
                                       ? `+${match.routeDistance - match.requestedDistance}km longer`
                                       : match.routeDistance && match.requestedDistance
@@ -1066,12 +1068,12 @@ export default function TransportPage() {
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-gray-500">Similarity</p>
-                                  <p className="font-medium">{match.similarity}%</p>
+                                  <p className="text-terminal-muted font-mono">Similarity</p>
+                                  <p className="font-medium text-terminal-text font-mono">{match.similarity}%</p>
                                 </div>
                                 <div>
-                                  <p className="text-gray-500">Total Deviation</p>
-                                  <p className="font-medium">{match.totalDeviation}km</p>
+                                  <p className="text-terminal-muted font-mono">Total Deviation</p>
+                                  <p className="font-medium text-terminal-text font-mono">{match.totalDeviation}km</p>
                                 </div>
                               </div>
                             </div>
@@ -1080,10 +1082,10 @@ export default function TransportPage() {
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <Truck className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                      <p>No direct transport routes available</p>
-                      <p className="text-sm mt-2">
+                    <div className="text-center py-8 text-terminal-muted">
+                      <Truck className="h-12 w-12 mx-auto mb-3 text-terminal-muted" />
+                      <p className="font-mono">No direct transport routes available</p>
+                      <p className="text-sm mt-2 font-mono">
                         Consider transshipment options or contact transporters
                       </p>
                     </div>

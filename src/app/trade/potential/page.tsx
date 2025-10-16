@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { useTradePotential } from '@/hooks/use-trade-potential'
 import { PotentialStatus } from '@/types/trade-potential'
-import { TrendingUp } from 'lucide-react'
+import { TrendingUp, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 
 // Import existing table mode content (we'll extract it to a component)
@@ -67,11 +67,22 @@ export default function TradePotentialPage() {
             </p>
           </div>
         </div>
-        <Button asChild className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono">
-          <Link href="/trade/opportunity">
-            View Opportunities
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => refetch()}
+            disabled={isLoading}
+            variant="outline"
+            className="bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? 'Calculating...' : 'Recalculate All'}
+          </Button>
+          <Button asChild className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono">
+            <Link href="/trade/opportunity">
+              View Opportunities
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <TradePotentialTableMode

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +17,7 @@ import {
 import { useOpportunities, useUpdateOpportunity, useDeleteOpportunity } from '@/hooks/use-opportunities'
 import { useCustomerRequests } from '@/hooks/use-customer-requests'
 import { useActiveStaff } from '@/hooks/use-staff'
-import { Activity, MoreVertical, Check, MessageSquare, Trash2, Package2, Filter, Printer, Copy, ChevronDown, ChevronUp, Users } from 'lucide-react'
+import { Activity, MoreVertical, Check, MessageSquare, Trash2, Package2, Filter, Printer, Copy, ChevronDown, ChevronUp, Users, Save, X } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
@@ -42,6 +43,8 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
   const [fadeIn, setFadeIn] = useState(true)
   const [expandedCustomers, setExpandedCustomers] = useState<Set<string>>(new Set())
   const [isHovering, setIsHovering] = useState(false)
+  const [editingFeedbackId, setEditingFeedbackId] = useState<string | null>(null)
+  const [feedbackText, setFeedbackText] = useState<Record<string, string>>({})
 
   // Track which opportunities have changed
   const flashingIds = useFlashOnChangeById(
@@ -176,6 +179,44 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
     } finally {
       setProcessingId(null)
     }
+  }
+
+  const handleStartEditFeedback = (oppId: string, currentFeedback: string | undefined, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setEditingFeedbackId(oppId)
+    setFeedbackText({ ...feedbackText, [oppId]: currentFeedback || '' })
+  }
+
+  const handleSaveFeedback = async (oppId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setProcessingId(oppId)
+
+    try {
+      const feedback = feedbackText[oppId] || ''
+
+      await updateOpportunity.mutateAsync({
+        id: oppId,
+        data: {
+          customer_feedback: feedback,
+          feedback_date: new Date().toISOString(),
+          feedback_status: feedback ? 'received' : 'none',
+        }
+      })
+
+      toast.success('Feedback saved')
+      setEditingFeedbackId(null)
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] })
+    } catch (error: any) {
+      console.error('Error updating opportunity:', error)
+      toast.error(error.message || 'Failed to save feedback')
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const handleCancelEditFeedback = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setEditingFeedbackId(null)
   }
 
   const handleAddFeedback = async (oppId: string, feedback: string, e: React.MouseEvent) => {
@@ -804,10 +845,63 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
                                       {opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY' ? 'DDP' : 'EXW'}
                                     </Badge>
                                   </div>
-                                  {opp.customer_feedback && (
-                                    <Badge variant="outline" className="text-xs font-mono border-terminal-muted text-terminal-muted">
-                                      {opp.customer_feedback}
-                                    </Badge>
+                                </div>
+
+                                {/* Feedback Section */}
+                                <div className="mb-2">
+                                  {editingFeedbackId === opp.id ? (
+                                    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                                      <Textarea
+                                        value={feedbackText[opp.id] || ''}
+                                        onChange={(e) => setFeedbackText({ ...feedbackText, [opp.id]: e.target.value })}
+                                        placeholder="Enter feedback notes..."
+                                        className="bg-terminal-dark border-terminal-border text-terminal-text font-mono text-xs min-h-[60px] resize-none"
+                                      />
+                                      <div className="flex gap-1">
+                                        <Button
+                                          size="sm"
+                                          onClick={(e) => handleSaveFeedback(opp.id, e)}
+                                          disabled={isProcessing}
+                                          className="flex-1 h-7 bg-terminal-success hover:bg-green-600 text-terminal-dark font-mono text-xs"
+                                        >
+                                          <Save className="h-3 w-3 mr-1" />
+                                          Save
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          onClick={(e) => handleCancelEditFeedback(e)}
+                                          disabled={isProcessing}
+                                          variant="outline"
+                                          className="flex-1 h-7 bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel font-mono text-xs"
+                                        >
+                                          <X className="h-3 w-3 mr-1" />
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div
+                                      className="cursor-pointer group"
+                                      onClick={(e) => handleStartEditFeedback(opp.id, opp.customer_feedback, e)}
+                                    >
+                                      {opp.customer_feedback ? (
+                                        <div className="bg-terminal-dark/50 border border-terminal-border rounded p-2 group-hover:border-terminal-accent transition-colors">
+                                          <div className="flex items-start justify-between gap-2">
+                                            <p className="text-xs font-mono text-terminal-text whitespace-pre-wrap flex-1">
+                                              {opp.customer_feedback}
+                                            </p>
+                                            <MessageSquare className="h-3 w-3 text-terminal-muted group-hover:text-terminal-accent flex-shrink-0" />
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="bg-terminal-dark/30 border border-dashed border-terminal-border rounded p-2 group-hover:border-terminal-accent transition-colors">
+                                          <p className="text-xs font-mono text-terminal-muted group-hover:text-terminal-accent flex items-center gap-1">
+                                            <MessageSquare className="h-3 w-3" />
+                                            Click to add feedback...
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
                                   )}
                                 </div>
 
@@ -822,58 +916,6 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
                                     <Check className="h-3 w-3 mr-1" />
                                     Quoted
                                   </Button>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        disabled={isProcessing}
-                                        className="flex-1 h-7 bg-blue-600 hover:bg-blue-700 text-white font-mono text-xs"
-                                      >
-                                        <MessageSquare className="h-3 w-3 mr-1" />
-                                        Feedback
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent
-                                      align="end"
-                                      className="bg-terminal-panel border-terminal-border"
-                                    >
-                                      <DropdownMenuItem
-                                        onClick={(e) => handleAddFeedback(opp.id, 'interested', e)}
-                                        className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
-                                      >
-                                        <MessageSquare className="h-3 w-3 mr-2 text-green-500" />
-                                        Interested
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={(e) => handleAddFeedback(opp.id, 'negotiating', e)}
-                                        className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
-                                      >
-                                        <MessageSquare className="h-3 w-3 mr-2 text-yellow-500" />
-                                        Negotiating
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={(e) => handleAddFeedback(opp.id, 'too_expensive', e)}
-                                        className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
-                                      >
-                                        <MessageSquare className="h-3 w-3 mr-2 text-orange-500" />
-                                        Too Expensive
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={(e) => handleAddFeedback(opp.id, 'not_interested', e)}
-                                        className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
-                                      >
-                                        <MessageSquare className="h-3 w-3 mr-2 text-red-500" />
-                                        Not Interested
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={(e) => handleAddFeedback(opp.id, 'accepted', e)}
-                                        className="text-terminal-text font-mono text-xs cursor-pointer hover:bg-terminal-dark"
-                                      >
-                                        <MessageSquare className="h-3 w-3 mr-2 text-green-600" />
-                                        Accepted
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
                                 </div>
                               </div>
                             )

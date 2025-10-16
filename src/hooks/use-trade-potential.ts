@@ -49,6 +49,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
       product_packaging_specs!inner(
         id,
         boxes_per_pallet,
+        pieces_per_box,
         weight_per_pallet,
         weight_unit,
         pallet_id,
@@ -270,10 +271,11 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
         unitsPerPallet = (spec as any)?.weight_per_pallet || 0
         break
       case 'piece':
+      case 'punnet':
+        // For piece/punnet: multiply pieces_per_box * boxes_per_pallet
         unitsPerPallet = (spec as any)?.pieces_per_box ? (spec as any).pieces_per_box * (spec as any).boxes_per_pallet : (spec as any)?.boxes_per_pallet || 0
         break
       case 'box':
-      case 'punnet':
       case 'bag':
         unitsPerPallet = (spec as any)?.boxes_per_pallet || 0
         break
@@ -302,11 +304,17 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
         return
       }
 
-      // Check if supplier has pricing for this product
-      const supplierPrice = existingPrices?.find(
+      // Find ALL supplier prices for this product at different hubs
+      const supplierPrices = existingPrices?.filter(
         price => price.supplier_id === supplier.id &&
                 price.product_packaging_spec_id === customerReq.product_packaging_spec_id
-      )
+      ) || []
+
+      // If supplier has no prices at all, create one potential without pricing
+      const pricesToProcess = supplierPrices.length > 0 ? supplierPrices : [null]
+
+      // Create a separate potential for EACH hub where supplier has a price
+      pricesToProcess.forEach(supplierPrice => {
 
       // Check certification compliance
       const customerCertReqs = customerCertRequirements?.filter(req => req.customer_id === (customer as any)?.id) || []
@@ -576,8 +584,13 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
       const hasOpportunity = !!existingOpportunity
       const isActiveOpportunity = existingOpportunity?.is_active ?? false
 
+      // Include hub_id in the potential ID to create unique potentials for each hub
+      const potentialId = supplierPrice?.hub_id
+        ? `${(customer as any)?.id}-${supplier.id}-${customerReq.product_packaging_spec_id}-${supplierPrice.hub_id}`
+        : `${(customer as any)?.id}-${supplier.id}-${customerReq.product_packaging_spec_id}`
+
       const potential: TradePotential = {
-        id: `${(customer as any)?.id}-${supplier.id}-${customerReq.product_packaging_spec_id}`,
+        id: potentialId,
         customer: {
           id: (customer as any)?.id,
           name: (customer as any)?.name,
@@ -659,8 +672,9 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
       }
 
       potentials.push(potential)
-    })
-  })
+      }) // End of forEach for each supplier price/hub
+    }) // End of forEach for each matching supplier
+  }) // End of forEach for each customer requirement
 
   console.log(`🎯 Generated ${potentials.length} trade potentials`)
   console.log(`✅ Complete: ${potentials.filter(p => p.status === 'complete').length}`)
@@ -699,7 +713,7 @@ export function useTradePotential(statusFilter: PotentialStatus = 'all') {
         summary
       }
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // Force immediate refresh
   })
 }
 
