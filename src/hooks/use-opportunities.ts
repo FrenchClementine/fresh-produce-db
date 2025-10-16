@@ -84,6 +84,10 @@ async function fetchOpportunities(
         hub_name,
         hub_code
       ),
+      delivery_hub:hubs!opportunities_delivery_hub_id_fkey(
+        id,
+        name
+      ),
       assigned_agent:staff!opportunities_assigned_to_fkey(
         id,
         name,
@@ -319,6 +323,10 @@ async function fetchOpportunity(id: string): Promise<Opportunity> {
         hub_id,
         hub_name,
         hub_code
+      ),
+      delivery_hub:hubs!opportunities_delivery_hub_id_fkey(
+        id,
+        name
       ),
       assigned_agent:staff!opportunities_assigned_to_fkey(
         id,

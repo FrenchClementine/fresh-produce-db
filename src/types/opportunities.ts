@@ -10,6 +10,26 @@ export interface Opportunity {
   selected_route_id?: string
   selected_transport_band_id?: string
 
+  // Multi-leg transport
+  transport_route_legs?: {
+    total_legs: number
+    total_cost_per_pallet: number
+    total_duration_days: number
+    legs: Array<{
+      leg: number
+      route_id: string
+      origin_hub_id: string
+      origin_hub_name: string
+      destination_hub_id: string
+      destination_hub_name: string
+      transporter_id: string
+      transporter_name: string
+      cost_per_pallet: number
+      duration_days: number
+    }>
+  }
+  total_transport_legs?: number
+
   // Pricing information
   supplier_price_id?: string
   supplier_price_per_unit?: number
@@ -116,8 +136,6 @@ export interface Opportunity {
   delivery_hub?: {
     id: string
     name: string
-    city: string
-    country: string
   }
 
   supplier_price?: {
@@ -160,6 +178,25 @@ export interface CreateOpportunityData {
   selected_transporter_id?: string
   selected_route_id?: string
   selected_transport_band_id?: string
+  delivery_hub_id?: string
+  transport_route_legs?: {
+    total_legs: number
+    total_cost_per_pallet: number
+    total_duration_days: number
+    legs: Array<{
+      leg: number
+      route_id: string
+      origin_hub_id: string
+      origin_hub_name: string
+      destination_hub_id: string
+      destination_hub_name: string
+      transporter_id: string
+      transporter_name: string
+      cost_per_pallet: number
+      duration_days: number
+    }>
+  }
+  total_transport_legs?: number
   supplier_price_id?: string
   supplier_price_per_unit?: number
   transport_cost_per_pallet?: number

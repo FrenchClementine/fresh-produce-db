@@ -456,30 +456,69 @@ export default function TradePotentialTableMode({
       const filteredBands = getFilteredBands(potential)
       const selectedBand = filteredBands[pricing.selectedBandIndex]
 
-      // Get the selected transporter
+      // Get the selected transport route (could be direct or multi-leg)
+      let selectedRoute = potential.transportRoute
       let selectedTransporterId: string | undefined = undefined
+
       if (potential.availableTransportRoutes && potential.availableTransportRoutes.length > 0) {
-        const selectedRoute = potential.availableTransportRoutes[pricing.selectedTransporterIndex]
+        selectedRoute = potential.availableTransportRoutes[pricing.selectedTransporterIndex]
         selectedTransporterId = selectedRoute?.transporterId || undefined
       } else if (potential.transportRoute?.transporterId) {
         selectedTransporterId = potential.transportRoute.transporterId
       }
 
+      // Get delivery hub ID from the selected route
+      let deliveryHubId: string | undefined = undefined
+      if (selectedRoute) {
+        if (selectedRoute.legs && selectedRoute.legs.length > 0) {
+          // Multi-leg: use the final destination hub
+          deliveryHubId = selectedRoute.legs[selectedRoute.legs.length - 1].destinationHubId
+        } else if (selectedRoute.destinationHubId) {
+          // Single-leg: use the destination hub
+          deliveryHubId = selectedRoute.destinationHubId
+        }
+      }
+
+      // Build opportunity data
+      const opportunityData: any = {
+        customer_id: potential.customer.id,
+        supplier_id: potential.supplier.id,
+        product_packaging_spec_id: potential.product.specId,
+        offer_price_per_unit: pricing.offerPrice,
+        offer_currency: potential.supplierPrice?.currency || 'EUR',
+        status: 'draft',
+        priority: 'medium',
+        supplier_price_id: potential.supplierPrice?.id,
+        assigned_to: potential.customer.agent?.id,
+        selected_transporter_id: selectedTransporterId,
+        selected_transport_band_id: selectedBand?.id || undefined,
+        delivery_hub_id: deliveryHubId
+      }
+
+      // Add multi-leg transport data if the selected route is multi-leg
+      if (selectedRoute?.legs && selectedRoute.legs.length > 1) {
+        opportunityData.transport_route_legs = {
+          total_legs: selectedRoute.totalLegs || selectedRoute.legs.length,
+          total_cost_per_pallet: selectedRoute.totalCostPerPallet || selectedRoute.pricePerPallet || 0,
+          total_duration_days: selectedRoute.totalDurationDays || selectedRoute.durationDays || 0,
+          legs: selectedRoute.legs.map((leg: any) => ({
+            leg: leg.leg,
+            route_id: leg.routeId,
+            origin_hub_id: leg.originHubId,
+            origin_hub_name: leg.originHubName,
+            destination_hub_id: leg.destinationHubId,
+            destination_hub_name: leg.destinationHubName,
+            transporter_id: leg.transporterId,
+            transporter_name: leg.transporterName,
+            cost_per_pallet: leg.costPerPallet,
+            duration_days: leg.durationDays
+          }))
+        }
+        opportunityData.total_transport_legs = selectedRoute.totalLegs || selectedRoute.legs.length
+      }
+
       try {
-        await createOpportunityMutation.mutateAsync({
-          customer_id: potential.customer.id,
-          supplier_id: potential.supplier.id,
-          product_packaging_spec_id: potential.product.specId,
-          offer_price_per_unit: pricing.offerPrice,
-          offer_currency: potential.supplierPrice?.currency || 'EUR',
-          status: 'draft',
-          priority: 'medium',
-          supplier_price_id: potential.supplierPrice?.id,
-          assigned_to: potential.customer.agent?.id,
-          // Add transport information - use selected transporterId
-          selected_transporter_id: selectedTransporterId,
-          selected_transport_band_id: selectedBand?.id || undefined
-        })
+        await createOpportunityMutation.mutateAsync(opportunityData)
         successCount++
       } catch (error: any) {
         // Check if it's a duplicate error (409 conflict)
@@ -693,30 +732,69 @@ export default function TradePotentialTableMode({
     const filteredBands = getFilteredBands(potential)
     const selectedBand = filteredBands[pricing.selectedBandIndex]
 
-    // Get the selected transporter
+    // Get the selected transport route (could be direct or multi-leg)
+    let selectedRoute = potential.transportRoute
     let selectedTransporterId: string | undefined = undefined
+
     if (potential.availableTransportRoutes && potential.availableTransportRoutes.length > 0) {
-      const selectedRoute = potential.availableTransportRoutes[pricing.selectedTransporterIndex]
+      selectedRoute = potential.availableTransportRoutes[pricing.selectedTransporterIndex]
       selectedTransporterId = selectedRoute?.transporterId || undefined
     } else if (potential.transportRoute?.transporterId) {
       selectedTransporterId = potential.transportRoute.transporterId
     }
 
+    // Get delivery hub ID from the selected route
+    let deliveryHubId: string | undefined = undefined
+    if (selectedRoute) {
+      if (selectedRoute.legs && selectedRoute.legs.length > 0) {
+        // Multi-leg: use the final destination hub
+        deliveryHubId = selectedRoute.legs[selectedRoute.legs.length - 1].destinationHubId
+      } else if (selectedRoute.destinationHubId) {
+        // Single-leg: use the destination hub
+        deliveryHubId = selectedRoute.destinationHubId
+      }
+    }
+
+    // Build opportunity data
+    const opportunityData: any = {
+      customer_id: potential.customer.id,
+      supplier_id: potential.supplier.id,
+      product_packaging_spec_id: potential.product.specId,
+      offer_price_per_unit: pricing.offerPrice,
+      offer_currency: potential.supplierPrice?.currency || 'EUR',
+      status: 'draft',
+      priority: 'medium',
+      supplier_price_id: potential.supplierPrice?.id,
+      assigned_to: potential.customer.agent?.id,
+      selected_transporter_id: selectedTransporterId,
+      selected_transport_band_id: selectedBand?.id || undefined,
+      delivery_hub_id: deliveryHubId
+    }
+
+    // Add multi-leg transport data if the selected route is multi-leg
+    if (selectedRoute?.legs && selectedRoute.legs.length > 1) {
+      opportunityData.transport_route_legs = {
+        total_legs: selectedRoute.totalLegs || selectedRoute.legs.length,
+        total_cost_per_pallet: selectedRoute.totalCostPerPallet || selectedRoute.pricePerPallet || 0,
+        total_duration_days: selectedRoute.totalDurationDays || selectedRoute.durationDays || 0,
+        legs: selectedRoute.legs.map((leg: any) => ({
+          leg: leg.leg,
+          route_id: leg.routeId,
+          origin_hub_id: leg.originHubId,
+          origin_hub_name: leg.originHubName,
+          destination_hub_id: leg.destinationHubId,
+          destination_hub_name: leg.destinationHubName,
+          transporter_id: leg.transporterId,
+          transporter_name: leg.transporterName,
+          cost_per_pallet: leg.costPerPallet,
+          duration_days: leg.durationDays
+        }))
+      }
+      opportunityData.total_transport_legs = selectedRoute.totalLegs || selectedRoute.legs.length
+    }
+
     try {
-      await createOpportunityMutation.mutateAsync({
-        customer_id: potential.customer.id,
-        supplier_id: potential.supplier.id,
-        product_packaging_spec_id: potential.product.specId,
-        offer_price_per_unit: pricing.offerPrice,
-        offer_currency: potential.supplierPrice?.currency || 'EUR',
-        status: 'draft',
-        priority: 'medium',
-        supplier_price_id: potential.supplierPrice?.id,
-        assigned_to: potential.customer.agent?.id,
-        // Add transport information - use selected transporterId
-        selected_transporter_id: selectedTransporterId,
-        selected_transport_band_id: selectedBand?.id || undefined
-      })
+      await createOpportunityMutation.mutateAsync(opportunityData)
 
       toast.success('Opportunity created!')
       // Invalidate queries to refresh data without full page reload
@@ -1232,34 +1310,57 @@ export default function TradePotentialTableMode({
                       <TableCell className="font-mono text-terminal-text p-2 text-xs">
                         {potential.transportRoute ? (
                           <div>
-                            {/* Transporter Selector */}
-                            {hasMultipleTransporters && potential.status === 'complete' && !hasOpportunity ? (
-                              <Select
-                                value={pricing.selectedTransporterIndex.toString()}
-                                onValueChange={(value) => updateSelectedTransporter(potential, parseInt(value))}
-                              >
-                                <SelectTrigger className="h-6 text-[10px] w-full bg-terminal-dark border-terminal-border text-blue-400 font-mono">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="bg-terminal-panel border-terminal-border">
-                                  {availableTransporters.map((transporter, index) => (
-                                    <SelectItem key={index} value={index.toString()} className="font-mono text-terminal-text text-xs">
-                                      {transporter.transporterName} - {formatCurrency(transporter.pricePerPallet)}/pallet
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                            {/* Check if multi-leg route */}
+                            {potential.transportRoute.legs && potential.transportRoute.legs.length > 1 ? (
+                              <>
+                                {/* Multi-leg route display */}
+                                <div className="font-medium text-blue-400 text-[10px] whitespace-nowrap mb-1">
+                                  {potential.transportRoute.legs[0].originHubName} → {' '}
+                                  {potential.transportRoute.intermediateHubs?.map(h => h.name).join(' → ')} → {' '}
+                                  {potential.transportRoute.legs[potential.transportRoute.legs.length - 1].destinationHubName}
+                                </div>
+                                <div className="text-[10px] text-terminal-accent">
+                                  {potential.transportRoute.totalLegs || potential.transportRoute.legs.length} legs • {potential.transportRoute.totalDurationDays || 0}d
+                                </div>
+                                {potential.transportRoute.legs.map((leg, idx) => (
+                                  <div key={idx} className="text-[9px] text-terminal-muted mt-0.5">
+                                    L{leg.leg}: {leg.transporterName}
+                                  </div>
+                                ))}
+                              </>
                             ) : (
-                              <div className="font-medium text-blue-400 whitespace-nowrap">
-                                {availableTransporters[pricing.selectedTransporterIndex]?.transporterName || potential.transportRoute.transporterName}
-                              </div>
-                            )}
+                              <>
+                                {/* Single-leg route display (existing) */}
+                                {/* Transporter Selector */}
+                                {hasMultipleTransporters && potential.status === 'complete' && !hasOpportunity ? (
+                                  <Select
+                                    value={pricing.selectedTransporterIndex.toString()}
+                                    onValueChange={(value) => updateSelectedTransporter(potential, parseInt(value))}
+                                  >
+                                    <SelectTrigger className="h-6 text-[10px] w-full bg-terminal-dark border-terminal-border text-blue-400 font-mono">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-terminal-panel border-terminal-border">
+                                      {availableTransporters.map((transporter, index) => (
+                                        <SelectItem key={index} value={index.toString()} className="font-mono text-terminal-text text-xs">
+                                          {transporter.transporterName} - {formatCurrency(transporter.pricePerPallet)}/pallet
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <div className="font-medium text-blue-400 whitespace-nowrap">
+                                    {availableTransporters[pricing.selectedTransporterIndex]?.transporterName || potential.transportRoute.transporterName}
+                                  </div>
+                                )}
 
-                            {/* Duration */}
-                            {(availableTransporters[pricing.selectedTransporterIndex]?.durationDays || potential.transportRoute.durationDays) > 0 && (
-                              <div className="text-[10px] text-terminal-muted">
-                                {availableTransporters[pricing.selectedTransporterIndex]?.durationDays || potential.transportRoute.durationDays}d
-                              </div>
+                                {/* Duration */}
+                                {(availableTransporters[pricing.selectedTransporterIndex]?.durationDays || potential.transportRoute.durationDays) > 0 && (
+                                  <div className="text-[10px] text-terminal-muted">
+                                    {availableTransporters[pricing.selectedTransporterIndex]?.durationDays || potential.transportRoute.durationDays}d
+                                  </div>
+                                )}
+                              </>
                             )}
 
                             {/* Price Band Selector */}

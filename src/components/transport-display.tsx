@@ -7,17 +7,76 @@ interface TransportDisplayProps {
 }
 
 export function TransportDisplay({ opportunity }: TransportDisplayProps) {
+  // Check for multi-leg transport first
+  const hasMultiLegTransport = opportunity.transport_route_legs?.legs && opportunity.transport_route_legs.legs.length > 1
+
+  // If multi-leg transport exists, display it
+  if (hasMultiLegTransport) {
+    const legs = opportunity.transport_route_legs!.legs
+    return (
+      <div className="space-y-2 text-xs font-mono">
+        {/* Multi-leg route header */}
+        <div className="flex items-center gap-2">
+          <Truck className="h-3 w-3 text-terminal-accent" />
+          <span className="font-medium text-terminal-text">Multi-leg Transport</span>
+          <Badge variant="outline" className="text-[10px] font-mono">
+            {opportunity.transport_route_legs!.total_legs} legs
+          </Badge>
+        </div>
+
+        {/* Route overview */}
+        <div className="text-terminal-text font-medium text-[10px]">
+          {legs[0].origin_hub_name} → {legs.slice(1, -1).map(leg => leg.origin_hub_name).join(' → ')}
+          {legs.length > 1 && ' → '}
+          {legs[legs.length - 1].destination_hub_name}
+        </div>
+
+        {/* Leg breakdown */}
+        <div className="space-y-1.5 bg-muted/30 p-2 rounded">
+          {legs.map((leg: any, idx: number) => (
+            <div key={idx} className="text-[10px] space-y-0.5">
+              <div className="font-medium text-terminal-text">
+                Leg {leg.leg}: {leg.origin_hub_name} → {leg.destination_hub_name}
+              </div>
+              <div className="grid grid-cols-2 gap-1 text-terminal-muted pl-2">
+                <span>{leg.transporter_name}</span>
+                <span>{leg.duration_days}d</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Total duration */}
+        <div className="flex items-center gap-1 text-terminal-muted">
+          <Clock className="h-3 w-3" />
+          <span>Total: {opportunity.transport_route_legs!.total_duration_days} days</span>
+        </div>
+
+        {/* DDP badge */}
+        <Badge variant="outline" className="text-xs border-terminal-success text-terminal-success font-mono">
+          DDP
+        </Badge>
+      </div>
+    )
+  }
+
+  // Original logic for single-leg transport
   const hasTransporter = opportunity.selected_transporter?.name
   const hasTransportBand = opportunity.selected_transport_band || opportunity.selected_transport_band_id
   const deliveryMode = opportunity.supplier_price?.delivery_mode
 
-  // Get hub information from supplier price
+  // Get hub information from supplier price (origin hub)
   const hubName = opportunity.supplier_price?.hub_name
   const hubCode = opportunity.supplier_price?.hub_code
 
+  // Get delivery hub information (destination hub for third-party transport)
+  const deliveryHubName = opportunity.delivery_hub?.name
+
   // Determine origin and destination
   const origin = opportunity.supplier?.city || opportunity.selected_supplier?.city
-  const destination = opportunity.customer?.city
+  // For third-party transport, use delivery_hub if available, otherwise customer city
+  // For supplier delivery to a hub, use the hub as destination
+  const destination = deliveryHubName || hubName || opportunity.customer?.city
 
   // Debug logging
   if (process.env.NODE_ENV === 'development') {
@@ -44,8 +103,16 @@ export function TransportDisplay({ opportunity }: TransportDisplayProps) {
   // Check if we have supplier transport info from delivery mode even without a transporter
   const hasSupplierTransport = isSupplierDelivery && hubName
 
+  // Check if this is actually a supplier delivery or same location scenario
+  const isActuallySupplierDelivery = isSupplierDelivery || isExWorks ||
+    (hubName && !hasTransporter && hasTransportBand)
+
   // If there's a transporter with route info OR transport band is selected (meaning DDP/Delivery)
-  if (hasTransporter || hasTransportBand) {
+  // BUT not if it's actually supplier delivery to a hub
+  if ((hasTransporter || hasTransportBand) && !isActuallySupplierDelivery) {
+    // Determine if destination is a delivery hub (indicating pickup) vs city (indicating direct delivery)
+    const isDeliveryHubDestination = deliveryHubName && destination === deliveryHubName
+
     return (
       <div className="space-y-1 text-xs font-mono">
         <div className="flex items-center gap-1">
@@ -58,6 +125,7 @@ export function TransportDisplay({ opportunity }: TransportDisplayProps) {
           <span>{origin}</span>
           <ArrowRight className="h-3 w-3" />
           <span>{destination}</span>
+          {isDeliveryHubDestination && <span className="text-terminal-accent">(Pickup)</span>}
         </div>
 
         {/* Transport Band - show pallet quantity only */}
@@ -100,15 +168,14 @@ export function TransportDisplay({ opportunity }: TransportDisplayProps) {
         <>
           <div className="flex items-center gap-1 text-terminal-accent">
             <Truck className="h-3 w-3" />
-            <span className="font-medium">Supplier Transport</span>
+            <span className="font-medium">Supplier Delivery</span>
           </div>
-          {hubName && (
+          {hubName ? (
             <div className="flex items-center gap-1 text-terminal-muted">
               <ArrowRight className="h-3 w-3" />
-              <span>{hubName}</span>
+              <span>Delivered to {hubName}</span>
             </div>
-          )}
-          {origin && destination && (
+          ) : origin && destination && (
             <div className="text-xs text-terminal-muted">
               {origin} → {destination}
             </div>
@@ -116,6 +183,9 @@ export function TransportDisplay({ opportunity }: TransportDisplayProps) {
           <div className="text-xs text-terminal-muted">
             1 days
           </div>
+          <Badge variant="outline" className="text-xs border-terminal-border text-terminal-text font-mono">
+            Supplier Transport
+          </Badge>
         </>
       )}
 
