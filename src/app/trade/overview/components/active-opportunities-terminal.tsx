@@ -339,13 +339,55 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
     const groupedForCopy = new Map()
 
     customerOpportunities.forEach((opp) => {
-      const originHub = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || opp.supplier?.city || '-'
-      const destinationHub = opp.delivery_hub?.name || opp.customer?.city || '-'
-      const deliveryMode = (opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY') ? 'DDP' : 'EXW'
-      const routeText = deliveryMode === 'DDP' ? `${originHub} → ${destinationHub}` : originHub
-      const transportPrice = opp.selected_transport_band?.price_per_pallet || null
+      let routeText: string
+      let deliveryMode: string
+      let transportPrice: number | null = null
+      let destinationHub: string
+      let isMultiLeg = false
 
-      const groupKey = `${routeText}|${transportPrice}`
+      // Check for multi-leg transport
+      if (opp.transport_route_legs?.legs && opp.transport_route_legs.legs.length > 1) {
+        // Multi-leg route
+        const legs = opp.transport_route_legs.legs
+        routeText = `${legs[0].origin_hub_name} → ${legs[legs.length - 1].destination_hub_name} (${legs.length} legs)`
+        destinationHub = legs[legs.length - 1].destination_hub_name
+        deliveryMode = 'DDP'
+        transportPrice = opp.transport_route_legs.total_cost_per_pallet || null
+        isMultiLeg = true
+      } else {
+        // Single-leg route
+        const originHub = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || opp.supplier?.city || '-'
+        const supplierDeliveryHub = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name
+
+        // Check if this is supplier delivery (delivery mode is DELIVERY but no third-party transporter)
+        const isSupplierDelivery = opp.supplier_price?.delivery_mode === 'DELIVERY' && !opp.selected_transporter && !opp.selected_transport_band
+
+        if (isSupplierDelivery && supplierDeliveryHub) {
+          // Supplier delivers to their hub - customer picks up from there
+          destinationHub = supplierDeliveryHub
+          deliveryMode = 'Supplier Delivery'
+          routeText = `${supplierDeliveryHub}`
+          transportPrice = null
+        } else {
+          // Third-party transport or Ex Works
+          const hubDestination = opp.delivery_hub?.name
+          destinationHub = hubDestination || opp.customer?.city || '-'
+
+          const hasThirdPartyTransport = opp.selected_transporter || opp.selected_transport_band
+
+          // If transport goes to a hub (not city), it's likely for pickup
+          if (hasThirdPartyTransport && hubDestination) {
+            deliveryMode = 'Transport to Hub (Pickup)'
+            routeText = `${originHub} → ${destinationHub}`
+          } else {
+            deliveryMode = hasThirdPartyTransport ? 'DDP' : 'EXW'
+            routeText = deliveryMode === 'DDP' ? `${originHub} → ${destinationHub}` : originHub
+          }
+          transportPrice = opp.selected_transport_band?.price_per_pallet || null
+        }
+      }
+
+      const groupKey = `${routeText}|${transportPrice}|${isMultiLeg}`
 
       if (!groupedForCopy.has(groupKey)) {
         groupedForCopy.set(groupKey, {
@@ -353,6 +395,8 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
           deliveryMode,
           transportPrice,
           destinationHub,
+          isMultiLeg,
+          multiLegDetails: isMultiLeg ? opp.transport_route_legs : null,
           products: []
         })
       }
@@ -368,11 +412,27 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
 
     groupedForCopy.forEach((group) => {
       // Format location header
-      const locationHeader = group.deliveryMode === 'DDP'
-        ? `Price delivered to: ${group.destinationHub}`
-        : `${group.routeText} Pick up:`
+      let locationHeader: string
+      if (group.deliveryMode === 'DDP') {
+        locationHeader = `Price delivered to: ${group.destinationHub}`
+      } else if (group.deliveryMode === 'Transport to Hub (Pickup)') {
+        locationHeader = `Price delivered to: ${group.destinationHub} (Customer Pickup)`
+      } else if (group.deliveryMode === 'Supplier Delivery') {
+        locationHeader = `Delivered to ${group.destinationHub} by Supplier:`
+      } else {
+        locationHeader = `${group.routeText} Pick up:`
+      }
 
       text += `${locationHeader}\n`
+
+      // Show multi-leg route details if applicable
+      if (group.isMultiLeg && group.multiLegDetails) {
+        text += `Route: ${group.routeText}\n`
+        group.multiLegDetails.legs.forEach((leg: any) => {
+          text += `  • Leg ${leg.leg}: ${leg.origin_hub_name} → ${leg.destination_hub_name} (${leg.transporter_name}, ${leg.duration_days}d)\n`
+        })
+        text += `Total Duration: ${group.multiLegDetails.total_duration_days}d\n`
+      }
 
       if (group.transportPrice) {
         text += `Transport: €${group.transportPrice.toFixed(2)}/pallet\n`
@@ -407,14 +467,56 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
 
     filteredOpportunities.forEach((opp) => {
       const customerId = opp.customer_id || 'unknown'
-      const originHub = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || opp.supplier?.city || '-'
-      const destinationHub = opp.delivery_hub?.name || opp.customer?.city || '-'
-      const deliveryMode = (opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY') ? 'DDP' : 'EXW'
-      const routeText = deliveryMode === 'DDP' ? `${originHub} → ${destinationHub}` : originHub
-      const transportPrice = opp.selected_transport_band?.price_per_pallet || null
+      let routeText: string
+      let deliveryMode: string
+      let transportPrice: number | null = null
+      let destinationHub: string
+      let isMultiLeg = false
+
+      // Check for multi-leg transport
+      if (opp.transport_route_legs?.legs && opp.transport_route_legs.legs.length > 1) {
+        // Multi-leg route
+        const legs = opp.transport_route_legs.legs
+        routeText = `${legs[0].origin_hub_name} → ${legs[legs.length - 1].destination_hub_name} (${legs.length} legs)`
+        destinationHub = legs[legs.length - 1].destination_hub_name
+        deliveryMode = 'DDP'
+        transportPrice = opp.transport_route_legs.total_cost_per_pallet || null
+        isMultiLeg = true
+      } else {
+        // Single-leg route
+        const originHub = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || opp.supplier?.city || '-'
+        const supplierDeliveryHub = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name
+
+        // Check if this is supplier delivery (delivery mode is DELIVERY but no third-party transporter)
+        const isSupplierDelivery = opp.supplier_price?.delivery_mode === 'DELIVERY' && !opp.selected_transporter && !opp.selected_transport_band
+
+        if (isSupplierDelivery && supplierDeliveryHub) {
+          // Supplier delivers to their hub - customer picks up from there
+          destinationHub = supplierDeliveryHub
+          deliveryMode = 'Supplier Delivery'
+          routeText = `${supplierDeliveryHub}`
+          transportPrice = null
+        } else {
+          // Third-party transport or Ex Works
+          const hubDestination = opp.delivery_hub?.name
+          destinationHub = hubDestination || opp.customer?.city || '-'
+
+          const hasThirdPartyTransport = opp.selected_transporter || opp.selected_transport_band
+
+          // If transport goes to a hub (not city), it's likely for pickup
+          if (hasThirdPartyTransport && hubDestination) {
+            deliveryMode = 'Transport to Hub (Pickup)'
+            routeText = `${originHub} → ${destinationHub}`
+          } else {
+            deliveryMode = hasThirdPartyTransport ? 'DDP' : 'EXW'
+            routeText = deliveryMode === 'DDP' ? `${originHub} → ${destinationHub}` : originHub
+          }
+          transportPrice = opp.selected_transport_band?.price_per_pallet || null
+        }
+      }
 
       // Create a unique key for grouping (customer + route + transport)
-      const groupKey = `${customerId}|${routeText}|${transportPrice}`
+      const groupKey = `${customerId}|${routeText}|${transportPrice}|${isMultiLeg}`
 
       if (!groupedForCopy.has(groupKey)) {
         groupedForCopy.set(groupKey, {
@@ -423,6 +525,8 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
           deliveryMode,
           transportPrice,
           destinationHub,
+          isMultiLeg,
+          multiLegDetails: isMultiLeg ? opp.transport_route_legs : null,
           products: []
         })
       }
@@ -441,11 +545,27 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
       text += `${groupIndex}. ${group.customerName}\n`
 
       // Format location header
-      const locationHeader = group.deliveryMode === 'DDP'
-        ? `   Price delivered to: ${group.destinationHub}`
-        : `   ${group.routeText} Pick up:`
+      let locationHeader: string
+      if (group.deliveryMode === 'DDP') {
+        locationHeader = `   Price delivered to: ${group.destinationHub}`
+      } else if (group.deliveryMode === 'Transport to Hub (Pickup)') {
+        locationHeader = `   Price delivered to: ${group.destinationHub} (Customer Pickup)`
+      } else if (group.deliveryMode === 'Supplier Delivery') {
+        locationHeader = `   Delivered to ${group.destinationHub} by Supplier:`
+      } else {
+        locationHeader = `   ${group.routeText} Pick up:`
+      }
 
       text += `${locationHeader}\n`
+
+      // Show multi-leg route details if applicable
+      if (group.isMultiLeg && group.multiLegDetails) {
+        text += `   Route: ${group.routeText}\n`
+        group.multiLegDetails.legs.forEach((leg: any) => {
+          text += `     • Leg ${leg.leg}: ${leg.origin_hub_name} → ${leg.destination_hub_name} (${leg.transporter_name}, ${leg.duration_days}d)\n`
+        })
+        text += `   Total Duration: ${group.multiLegDetails.total_duration_days}d\n`
+      }
 
       if (group.transportPrice) {
         text += `   Transport: €${group.transportPrice.toFixed(2)}/pallet\n`
@@ -507,12 +627,34 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
           </thead>
           <tbody>
             ${filteredOpportunities.map(opp => {
-              const originHub = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || opp.supplier?.city || '-'
-              const destinationHub = opp.delivery_hub?.name || opp.customer?.city || '-'
+              let routeText: string
+              let transportPrice: string
+
+              // Check for multi-leg transport
+              if (opp.transport_route_legs?.legs && opp.transport_route_legs.legs.length > 1) {
+                const legs = opp.transport_route_legs.legs
+                routeText = `${legs[0].origin_hub_name} → ${legs[legs.length - 1].destination_hub_name} (${legs.length} legs, ${opp.transport_route_legs.total_duration_days}d)`
+                transportPrice = opp.transport_route_legs.total_cost_per_pallet ? `€${opp.transport_route_legs.total_cost_per_pallet.toFixed(2)}` : '-'
+              } else {
+                const originHub = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name || opp.supplier?.city || '-'
+                const hubDestination = opp.delivery_hub?.name
+                const destinationHub = hubDestination || opp.customer?.city || '-'
+                const hasThirdPartyTransport = opp.selected_transporter || opp.selected_transport_band
+                const isSupplierDelivery = opp.supplier_price?.delivery_mode === 'DELIVERY' && !hasThirdPartyTransport
+
+                // If third-party transport to a hub (not city), it's for pickup
+                if (hasThirdPartyTransport && hubDestination) {
+                  routeText = `${originHub} → ${destinationHub} (Customer Pickup)`
+                } else if (hasThirdPartyTransport || isSupplierDelivery) {
+                  routeText = `${originHub} → ${destinationHub}`
+                } else {
+                  routeText = `${originHub} (pickup)`
+                }
+                transportPrice = opp.selected_transport_band?.price_per_pallet ? `€${opp.selected_transport_band.price_per_pallet.toFixed(2)}` : '-'
+              }
+
               const sizeName = opp.product_packaging_specs?.size_options?.name || '-'
               const packagingLabel = opp.product_packaging_specs?.packaging_options?.label || ''
-              const deliveryMode = (opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY') ? 'DDP' : 'EXW'
-              const routeText = deliveryMode === 'DDP' ? `${originHub} → ${destinationHub}` : `${originHub} (pickup)`
 
               return `
                 <tr>
@@ -521,7 +663,7 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
                   <td>${packagingLabel} ${sizeName}</td>
                   <td>${routeText}</td>
                   <td>€${opp.offer_price_per_unit?.toFixed(2)}/${opp.product_packaging_specs?.products?.sold_by || 'unit'}</td>
-                  <td>${opp.selected_transport_band?.price_per_pallet ? `€${opp.selected_transport_band.price_per_pallet.toFixed(2)}` : '-'}</td>
+                  <td>${transportPrice}</td>
                   <td class="status-${opp.status}">${opp.status?.toUpperCase() || '-'}</td>
                   <td>${opp.status === 'offered' || opp.status === 'confirmed' ? 'Yes' : 'No'}</td>
                 </tr>
@@ -820,13 +962,45 @@ export function ActiveOpportunitiesTerminal({ onSupplierSelect }: ActiveOpportun
                                   </Badge>
                                 </div>
 
-                                {/* Hub/Destination */}
+                                {/* Hub/Destination - Multi-leg aware */}
                                 <div className="text-terminal-muted text-xs font-mono mb-2">
-                                  {(opp.selected_transporter || opp.selected_transport_band || opp.supplier_price?.delivery_mode === 'DELIVERY') ? (
-                                    <>📍 {opp.supplier_price?.hub_name || opp.supplier?.city || '-'} → {opp.delivery_hub?.name || opp.customer?.city || '-'}</>
-                                  ) : (
-                                    <>📍 {opp.supplier_price?.hub_name || opp.supplier?.city || '-'} (pickup)</>
-                                  )}
+                                  {opp.transport_route_legs?.legs && opp.transport_route_legs.legs.length > 1 ? (
+                                    <>
+                                      {/* Multi-leg route */}
+                                      <div className="text-terminal-accent mb-1">
+                                        📍 {opp.transport_route_legs.legs[0].origin_hub_name} → {' '}
+                                        {opp.transport_route_legs.legs.map((leg: any, idx: number) => (
+                                          idx > 0 && idx < opp.transport_route_legs.legs.length ? `${leg.origin_hub_name} → ` : ''
+                                        )).join('')}
+                                        {opp.transport_route_legs.legs[opp.transport_route_legs.legs.length - 1].destination_hub_name}
+                                      </div>
+                                      <div className="text-[10px] text-terminal-muted pl-4">
+                                        {opp.transport_route_legs.legs.map((leg: any, idx: number) => (
+                                          <div key={idx}>
+                                            L{leg.leg}: {leg.transporter_name} ({leg.duration_days}d, €{leg.cost_per_pallet?.toFixed(2)}/pallet)
+                                          </div>
+                                        ))}
+                                        <div className="text-terminal-accent mt-0.5">
+                                          Total: {opp.transport_route_legs.total_duration_days}d, €{opp.transport_route_legs.total_cost_per_pallet?.toFixed(2)}/pallet
+                                        </div>
+                                      </div>
+                                    </>
+                                  ) : (() => {
+                                    const isSupplierDelivery = opp.supplier_price?.delivery_mode === 'DELIVERY' && !opp.selected_transporter && !opp.selected_transport_band
+                                    const supplierHub = opp.supplier_price?.hub_name || opp.supplier_price?.hub?.name
+                                    const hubDestination = opp.delivery_hub?.name
+                                    const hasThirdPartyTransport = opp.selected_transporter || opp.selected_transport_band
+
+                                    if (isSupplierDelivery && supplierHub) {
+                                      return <>📍 Delivered to {supplierHub} (Supplier)</>
+                                    } else if (hasThirdPartyTransport && hubDestination) {
+                                      return <>📍 {opp.supplier_price?.hub_name || opp.supplier?.city || '-'} → {hubDestination} (Pickup)</>
+                                    } else if (hasThirdPartyTransport) {
+                                      return <>📍 {opp.supplier_price?.hub_name || opp.supplier?.city || '-'} → {opp.customer?.city || '-'}</>
+                                    } else {
+                                      return <>📍 {opp.supplier_price?.hub_name || opp.supplier?.city || '-'} (pickup)</>
+                                    }
+                                  })()}
                                 </div>
 
                                 <div className="flex items-center justify-between mb-2">

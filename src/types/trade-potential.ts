@@ -1,3 +1,39 @@
+// Multi-leg transport types
+export interface TransportLeg {
+  leg: number
+  routeId: string
+  originHubId: string
+  originHubName: string
+  destinationHubId: string
+  destinationHubName: string
+  transporterId: string
+  transporterName: string
+  costPerPallet: number
+  costPerUnit: number
+  durationDays: number
+}
+
+export interface MultiLegTransportRoute {
+  id: string
+  legs: TransportLeg[]
+  totalLegs: number
+  totalCostPerPallet: number
+  totalCostPerUnit: number
+  totalDurationDays: number
+  intermediateHubs: Array<{
+    id: string
+    name: string
+  }>
+  unitsPerPallet: number
+  availableBands?: Array<{
+    id: string
+    pallet_dimensions?: string
+    min_pallets?: number
+    max_pallets?: number
+    price_per_pallet: number
+  }>
+}
+
 export interface TradePotential {
   id: string
   customer: {
@@ -64,6 +100,16 @@ export interface TradePotential {
       max_pallets?: number
       price_per_pallet: number
     }>
+    // Multi-leg route fields (present if this is a multi-leg route)
+    legs?: TransportLeg[]
+    totalLegs?: number
+    totalCostPerPallet?: number
+    totalCostPerUnit?: number
+    totalDurationDays?: number
+    intermediateHubs?: Array<{
+      id: string
+      name: string
+    }>
   }
 
   // All available transport routes for this origin-destination pair
@@ -85,6 +131,16 @@ export interface TradePotential {
       max_pallets?: number
       price_per_pallet: number
     }>
+    // Multi-leg route fields (present if this is a multi-leg route)
+    legs?: TransportLeg[]
+    totalLegs?: number
+    totalCostPerPallet?: number
+    totalCostPerUnit?: number
+    totalDurationDays?: number
+    intermediateHubs?: Array<{
+      id: string
+      name: string
+    }>
   }>
 
   // Gap analysis
@@ -99,7 +155,7 @@ export interface TradePotential {
   completionScore: number
 
   // Logistics solution type
-  logisticsSolution?: 'SAME_LOCATION' | 'SUPPLIER_DELIVERY' | 'THIRD_PARTY_TRANSPORT' | 'UNKNOWN'
+  logisticsSolution?: 'SAME_LOCATION' | 'SUPPLIER_DELIVERY' | 'THIRD_PARTY_TRANSPORT' | 'MULTI_LEG_TRANSPORT' | 'UNKNOWN'
 
   // Opportunity information
   opportunity?: {

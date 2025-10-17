@@ -207,7 +207,7 @@ export function BuildOpportunityModal({ open, onClose, potential }: BuildOpportu
       }
 
       // Step 3: Create opportunity
-      await createOpportunityMutation.mutateAsync({
+      const opportunityData: any = {
         customer_id: potential.customer.id,
         supplier_id: potential.supplier.id,
         product_packaging_spec_id: potential.product.specId,
@@ -222,7 +222,37 @@ export function BuildOpportunityModal({ open, onClose, potential }: BuildOpportu
         priority,
         internal_notes: internalNotes,
         customer_requirements: customerRequirements,
-      })
+      }
+
+      // Add multi-leg transport data if present
+      if (potential.transportRoute?.legs && potential.transportRoute.legs.length > 1) {
+        opportunityData.transport_route_legs = {
+          total_legs: potential.transportRoute.totalLegs || potential.transportRoute.legs.length,
+          total_cost_per_pallet: potential.transportRoute.totalCostPerPallet || 0,
+          total_duration_days: potential.transportRoute.totalDurationDays || 0,
+          legs: potential.transportRoute.legs.map(leg => ({
+            leg: leg.leg,
+            route_id: leg.routeId,
+            origin_hub_id: leg.originHubId,
+            origin_hub_name: leg.originHubName,
+            destination_hub_id: leg.destinationHubId,
+            destination_hub_name: leg.destinationHubName,
+            transporter_id: leg.transporterId,
+            transporter_name: leg.transporterName,
+            cost_per_pallet: leg.costPerPallet,
+            duration_days: leg.durationDays
+          }))
+        }
+        opportunityData.total_transport_legs = potential.transportRoute.totalLegs || potential.transportRoute.legs.length
+        // Store first leg's route ID as selected_transport_band_id for backward compat
+        opportunityData.selected_transport_band_id = potential.transportRoute.legs[0].routeId
+      } else if (selectedPriceBand) {
+        opportunityData.selected_transport_band_id = selectedPriceBand
+      } else if (transportRouteId) {
+        opportunityData.selected_transport_band_id = transportRouteId
+      }
+
+      await createOpportunityMutation.mutateAsync(opportunityData)
 
       toast.success('Opportunity built successfully!')
       onClose()
@@ -637,38 +667,88 @@ export function BuildOpportunityModal({ open, onClose, potential }: BuildOpportu
                 <CardHeader>
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <Truck className="h-4 w-4" />
-                    Transport Details
+                    {(potential.transportRoute.legs?.length ?? 0) > 1 ? 'Multi-Leg Transport Details' : 'Transport Details'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Transporter:</span>
-                      <span className="font-medium">
-                        {potential.transportRoute.transporterName || 'Available'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Route:</span>
-                      <span className="font-medium text-sm">
-                        {`${allHubs?.find(h => h.id === potential.transportRoute?.originHubId)?.name || potential.transportRoute?.originHubId || 'Origin'} → ${allHubs?.find(h => h.id === potential.transportRoute?.destinationHubId)?.name || potential.transportRoute?.destinationHubId || 'Destination'}`}
-                      </span>
-                    </div>
-                    {potential.transportRoute.durationDays > 0 && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Duration:</span>
-                        <span className="font-medium">
-                          {potential.transportRoute.durationDays} days
-                        </span>
-                      </div>
-                    )}
-                    {potential.transportRoute.pricePerPallet > 0 && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Base Price:</span>
-                        <span className="font-medium">
-                          {formatCurrency(potential.transportRoute.pricePerPallet)}/pallet
-                        </span>
-                      </div>
+                    {/* Multi-leg route display */}
+                    {potential.transportRoute.legs && potential.transportRoute.legs.length > 1 ? (
+                      <>
+                        <div className="flex justify-between items-center border-b pb-2">
+                          <span className="text-sm font-medium">Route Overview:</span>
+                          <Badge variant="outline" className="text-xs">
+                            {potential.transportRoute.totalLegs || potential.transportRoute.legs.length} legs
+                          </Badge>
+                        </div>
+                        <div className="text-sm mb-2">
+                          <span className="font-medium">
+                            {potential.transportRoute.legs[0].originHubName} → {' '}
+                            {potential.transportRoute.intermediateHubs?.map(h => h.name).join(' → ')} → {' '}
+                            {potential.transportRoute.legs[potential.transportRoute.legs.length - 1].destinationHubName}
+                          </span>
+                        </div>
+
+                        {/* Leg breakdown */}
+                        <div className="space-y-2 bg-muted/30 p-3 rounded">
+                          {potential.transportRoute.legs.map((leg, idx) => (
+                            <div key={idx} className="text-sm space-y-1">
+                              <div className="font-medium">
+                                Leg {leg.leg}: {leg.originHubName} → {leg.destinationHubName}
+                              </div>
+                              <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground pl-2">
+                                <span>Transporter: {leg.transporterName}</span>
+                                <span>Cost: {formatCurrency(leg.costPerPallet)}/pallet</span>
+                                <span>Duration: {leg.durationDays}d</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Total costs */}
+                        <div className="border-t pt-2 space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Total Duration:</span>
+                            <span className="font-medium">{potential.transportRoute.totalDurationDays || 0} days</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium">Total Transport Cost:</span>
+                            <span className="font-semibold">{formatCurrency(potential.transportRoute.totalCostPerPallet || 0)}/pallet</span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* Single-leg route display (existing) */}
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Transporter:</span>
+                          <span className="font-medium">
+                            {potential.transportRoute.transporterName || 'Available'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Route:</span>
+                          <span className="font-medium text-sm">
+                            {`${allHubs?.find(h => h.id === potential.transportRoute?.originHubId)?.name || potential.transportRoute?.originHubId || 'Origin'} → ${allHubs?.find(h => h.id === potential.transportRoute?.destinationHubId)?.name || potential.transportRoute?.destinationHubId || 'Destination'}`}
+                          </span>
+                        </div>
+                        {potential.transportRoute.durationDays > 0 && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Duration:</span>
+                            <span className="font-medium">
+                              {potential.transportRoute.durationDays} days
+                            </span>
+                          </div>
+                        )}
+                        {potential.transportRoute.pricePerPallet > 0 && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Base Price:</span>
+                            <span className="font-medium">
+                              {formatCurrency(potential.transportRoute.pricePerPallet)}/pallet
+                            </span>
+                          </div>
+                        )}
+                      </>
                     )}
                     {filteredRoutePriceBands && filteredRoutePriceBands.length > 0 && (
                       <div className="flex justify-between items-center">

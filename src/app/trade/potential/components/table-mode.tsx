@@ -472,7 +472,7 @@ export default function TradePotentialTableMode({
       if (selectedRoute) {
         if (selectedRoute.legs && selectedRoute.legs.length > 0) {
           // Multi-leg: use the final destination hub
-          deliveryHubId = selectedRoute.legs[selectedRoute.legs.length - 1].destinationHubId
+          deliveryHubId = selectedRoute.legs[selectedRoute.legs.length - 1]?.destinationHubId
         } else if (selectedRoute.destinationHubId) {
           // Single-leg: use the destination hub
           deliveryHubId = selectedRoute.destinationHubId

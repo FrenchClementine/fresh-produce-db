@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { TradePotential, TradePotentialSummary, NewSupplierPrice, PotentialStatus } from '@/types/trade-potential'
+import { TradePotential, TradePotentialSummary, NewSupplierPrice, PotentialStatus, TransportLeg, MultiLegTransportRoute } from '@/types/trade-potential'
 
 // Helper function to convert transport route data to standard format
 function convertTransportRoute(route: any, unitsPerPallet: number) {
@@ -23,6 +23,123 @@ function convertTransportRoute(route: any, unitsPerPallet: number) {
     customsCostPerShipment: route.customs_cost_per_shipment || 0,
     availableBands: route.transporter_route_price_bands || []
   }
+}
+
+/**
+ * Find 2-leg routes through designated transshipment hubs
+ * @param originHubId - Starting hub (supplier location)
+ * @param destinationHubIds - Array of possible destination hubs (customer locations)
+ * @param allRoutes - All available transport routes
+ * @param allHubs - All hubs with transshipment flag info
+ * @param unitsPerPallet - Units per pallet for cost calculation
+ * @returns Array of valid 2-leg route options
+ */
+function findTwoLegRoutes(
+  originHubId: string,
+  destinationHubIds: string[],
+  allRoutes: any[],
+  allHubs: any[],
+  unitsPerPallet: number
+): any[] {
+  const twoLegRoutes: any[] = []
+
+  // Get only hubs marked as transshipment points
+  const transshipmentHubs = allHubs.filter(hub => hub.can_transship === true)
+  const transshipmentHubIds = transshipmentHubs.map(hub => hub.id)
+
+  console.log(`🔄 Searching for 2-leg routes from hub ${originHubId}...`)
+  console.log(`   Found ${transshipmentHubs.length} transshipment hubs: ${transshipmentHubs.map(h => h.name).join(', ')}`)
+
+  // Find all routes FROM origin that END at transshipment hubs
+  const firstLegRoutes = allRoutes.filter(r =>
+    r.origin_hub_id === originHubId &&
+    transshipmentHubIds.includes(r.destination_hub_id)
+  )
+
+  console.log(`   Found ${firstLegRoutes.length} first-leg routes from origin to transshipment hubs`)
+
+  firstLegRoutes.forEach(leg1 => {
+    // Find routes FROM this transshipment hub TO customer destinations
+    const secondLegRoutes = allRoutes.filter(r =>
+      r.origin_hub_id === leg1.destination_hub_id &&
+      destinationHubIds.includes(r.destination_hub_id)
+    )
+
+    secondLegRoutes.forEach(leg2 => {
+      const leg1PricePerPallet = leg1.transporter_route_price_bands?.[0]?.price_per_pallet || 0
+      const leg2PricePerPallet = leg2.transporter_route_price_bands?.[0]?.price_per_pallet || 0
+      const totalCostPerPallet = leg1PricePerPallet + leg2PricePerPallet
+      const totalCostPerUnit = unitsPerPallet > 0 ? totalCostPerPallet / unitsPerPallet : 0
+      const totalDurationDays = leg1.transport_duration_days + leg2.transport_duration_days
+
+      const intermediateHub = transshipmentHubs.find(h => h.id === leg1.destination_hub_id)
+
+      // Get hub names from the routes or hubs data
+      const originHub = allHubs.find(h => h.id === leg1.origin_hub_id)
+      const destinationHub = allHubs.find(h => h.id === leg2.destination_hub_id)
+
+      const multiLegRoute = {
+        id: `multi-${leg1.id}-${leg2.id}`,
+        transporterId: null, // Multi-leg doesn't have single transporter
+        originHubId: leg1.origin_hub_id,
+        destinationHubId: leg2.destination_hub_id,
+        transporterName: `Multi-leg via ${intermediateHub?.name || 'Hub'}`,
+        durationDays: totalDurationDays,
+        pricePerPallet: totalCostPerPallet,
+        pricePerUnit: totalCostPerUnit,
+        unitsPerPallet: unitsPerPallet,
+        customsCostPerShipment: (leg1.customs_cost_per_shipment || 0) + (leg2.customs_cost_per_shipment || 0),
+        availableBands: [], // Multi-leg routes don't have single price bands
+        // Multi-leg specific fields
+        legs: [
+          {
+            leg: 1,
+            routeId: leg1.id,
+            originHubId: leg1.origin_hub_id,
+            originHubName: originHub?.name || 'Unknown',
+            destinationHubId: leg1.destination_hub_id,
+            destinationHubName: intermediateHub?.name || 'Unknown',
+            transporterId: leg1.transporter_id,
+            transporterName: leg1.transporters?.name || 'Unknown',
+            costPerPallet: leg1PricePerPallet,
+            costPerUnit: unitsPerPallet > 0 ? leg1PricePerPallet / unitsPerPallet : 0,
+            durationDays: leg1.transport_duration_days
+          },
+          {
+            leg: 2,
+            routeId: leg2.id,
+            originHubId: leg2.origin_hub_id,
+            originHubName: intermediateHub?.name || 'Unknown',
+            destinationHubId: leg2.destination_hub_id,
+            destinationHubName: destinationHub?.name || 'Unknown',
+            transporterId: leg2.transporter_id,
+            transporterName: leg2.transporters?.name || 'Unknown',
+            costPerPallet: leg2PricePerPallet,
+            costPerUnit: unitsPerPallet > 0 ? leg2PricePerPallet / unitsPerPallet : 0,
+            durationDays: leg2.transport_duration_days
+          }
+        ],
+        totalLegs: 2,
+        totalCostPerPallet: totalCostPerPallet,
+        totalCostPerUnit: totalCostPerUnit,
+        totalDurationDays: totalDurationDays,
+        intermediateHubs: intermediateHub ? [{
+          id: intermediateHub.id,
+          name: intermediateHub.name
+        }] : []
+      }
+
+      twoLegRoutes.push(multiLegRoute)
+    })
+  })
+
+  if (twoLegRoutes.length > 0) {
+    console.log(`   ✅ Found ${twoLegRoutes.length} valid 2-leg routes`)
+  } else {
+    console.log(`   ❌ No 2-leg routes found`)
+  }
+
+  return twoLegRoutes
 }
 
 // Get all possible customer-supplier-product combinations
@@ -130,7 +247,22 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
 
   if (routesError) throw routesError
 
-  // 5. Get customer logistics capabilities
+  // 5. Get all hubs with transshipment flag for multi-leg routing
+  const { data: allHubs, error: hubsError } = await supabase
+    .from('hubs')
+    .select(`
+      id,
+      name,
+      city_name,
+      country_code,
+      can_transship,
+      transship_cost_per_pallet,
+      transship_handling_time_hours
+    `)
+
+  if (hubsError) throw hubsError
+
+  // 6. Get customer logistics capabilities
   const { data: customerLogistics, error: logisticsError } = await supabase
     .from('customer_logistics_capabilities')
     .select(`
@@ -246,6 +378,7 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
   console.log(`🏭 Found ${supplierCapabilities?.length} supplier capabilities`)
   console.log(`💰 Found ${existingPrices?.length} existing prices`)
   console.log(`🚛 Found ${transportRoutes?.length} transport routes`)
+  console.log(`🏬 Found ${allHubs?.length} hubs (${allHubs?.filter(h => h.can_transship).length} transshipment-enabled)`)
   console.log(`🎯 Found ${customerLogistics?.length} customer logistics capabilities`)
   console.log(`📜 Found ${customerCertRequirements?.length} customer cert requirements`)
   console.log(`✅ Found ${supplierCertifications?.length} supplier certifications`)
@@ -333,11 +466,19 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
       let transportRoute = null
       let availableTransportRoutes: any[] = []
 
-      // Get customer delivery hubs for transport checking
-      const customerDeliveryHubs = customerLogisticsCaps
-        .filter(cap => cap.mode === 'DELIVERY')
-        .map(cap => cap.destination_hub_id)
-        .filter(Boolean)
+      // Get customer hubs for transport checking (both DELIVERY and TRANSIT)
+      // DELIVERY: customer receives delivery at destination_hub_id
+      // TRANSIT: customer picks up from origin_hub_id (their transit hub)
+      const customerDeliveryHubs = [
+        ...customerLogisticsCaps
+          .filter(cap => cap.mode === 'DELIVERY')
+          .map(cap => cap.destination_hub_id)
+          .filter(Boolean),
+        ...customerLogisticsCaps
+          .filter(cap => cap.mode === 'TRANSIT')
+          .map(cap => cap.origin_hub_id)
+          .filter(Boolean)
+      ]
 
       // Get supplier's logistics capabilities to check delivery hubs
       const supplierLogisticsCaps = supplierLogistics?.filter(cap => cap.supplier_id === supplier.id) || []
@@ -469,21 +610,45 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
             availableBands: []
           }
         } else {
-          // 4. Check if third-party transport exists - find ALL matching routes
-          const availableRoutes = transportRoutes?.filter(route =>
+          // 4. Check if third-party transport exists - find ALL matching direct routes
+          const directRoutes = transportRoutes?.filter(route =>
             route.origin_hub_id === supplierHub &&
             customerDeliveryHubs.includes(route.destination_hub_id)
           ) || []
 
-          if (availableRoutes.length > 0) {
+          // Convert direct routes to standard format
+          const directRoutesConverted = directRoutes.map(route => convertTransportRoute(route, unitsPerPallet))
+
+          // 5. Only search for 2-leg routes if NO direct routes exist
+          // This prevents illogical routes like Rome → Belgium → Verona
+          let twoLegRoutes: any[] = []
+          if (directRoutesConverted.length === 0 && allHubs && allHubs.length > 0) {
+            twoLegRoutes = findTwoLegRoutes(
+              supplierHub,
+              customerDeliveryHubs,
+              transportRoutes || [],
+              allHubs,
+              unitsPerPallet
+            )
+          }
+
+          // 6. Combine both direct and multi-leg routes into available options
+          availableTransportRoutes = [...directRoutesConverted, ...twoLegRoutes]
+
+          if (availableTransportRoutes.length > 0) {
             hasTransport = true
-            logisticsSolution = 'THIRD_PARTY_TRANSPORT'
 
-            // Convert all routes to standard format
-            availableTransportRoutes = availableRoutes.map(route => convertTransportRoute(route, unitsPerPallet))
+            // Determine logistics solution based on what we found
+            if (twoLegRoutes.length > 0) {
+              // Only multi-leg available (no direct routes existed)
+              logisticsSolution = 'MULTI_LEG_TRANSPORT'
+            } else {
+              // Direct routes available
+              logisticsSolution = 'THIRD_PARTY_TRANSPORT'
+            }
 
-            // Use first route as default
-            transportRoute = availableTransportRoutes[0]
+            // Use cheapest route overall as default (comparing all options)
+            transportRoute = availableTransportRoutes.sort((a, b) => a.pricePerPallet - b.pricePerPallet)[0]
           }
         }
       } else {
@@ -525,26 +690,52 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
           console.log(`🔍 ${supplier.name} has hubs: ${supplierHubIds.join(', ')}`)
 
           if (supplierHubIds.length > 0) {
-            // Find ALL transport routes that originate from supplier's actual hubs and reach customer delivery hubs
-            const availableRoutes = transportRoutes?.filter(route =>
+            // Find ALL direct transport routes that originate from supplier's actual hubs and reach customer delivery hubs
+            const directRoutes = transportRoutes?.filter(route =>
               supplierHubIds.includes(route.origin_hub_id) &&
               customerDeliveryHubs.includes(route.destination_hub_id)
             ) || []
 
-            if (availableRoutes.length > 0) {
+            // Convert direct routes to standard format
+            const directRoutesConverted = directRoutes.map(route => convertTransportRoute(route, unitsPerPallet))
+
+            // Only try 2-leg routes if NO direct routes exist
+            // This prevents illogical routes like Rome → Belgium → Verona
+            const allTwoLegRoutes: any[] = []
+            if (directRoutesConverted.length === 0 && allHubs && allHubs.length > 0) {
+              supplierHubIds.forEach(hubId => {
+                const twoLegRoutes = findTwoLegRoutes(
+                  hubId,
+                  customerDeliveryHubs,
+                  transportRoutes || [],
+                  allHubs,
+                  unitsPerPallet
+                )
+                allTwoLegRoutes.push(...twoLegRoutes)
+              })
+            }
+
+            // Combine both direct and multi-leg routes
+            availableTransportRoutes = [...directRoutesConverted, ...allTwoLegRoutes]
+
+            if (availableTransportRoutes.length > 0) {
               hasTransport = true
-              logisticsSolution = 'THIRD_PARTY_TRANSPORT'
 
-              // Convert all routes to standard format
-              availableTransportRoutes = availableRoutes.map(route => convertTransportRoute(route, unitsPerPallet))
+              // Determine logistics solution based on what we found
+              if (allTwoLegRoutes.length > 0) {
+                // Only multi-leg available (no direct routes existed)
+                logisticsSolution = 'MULTI_LEG_TRANSPORT'
+                console.log(`✅ Found ${allTwoLegRoutes.length} multi-leg transport option(s)`)
+              } else {
+                // Direct routes available
+                logisticsSolution = 'THIRD_PARTY_TRANSPORT'
+                console.log(`✅ Found ${directRoutesConverted.length} direct transport option(s)`)
+              }
 
-              // Use first route as default
-              transportRoute = availableTransportRoutes[0]
-
-              const transporterName = transportRoute.transporterName
-              console.log(`✅ Found ${availableRoutes.length} realistic transport option(s): ${transporterName} from hub ${transportRoute.originHubId} → ${transportRoute.destinationHubId}`)
+              // Use cheapest route overall as default (comparing all options)
+              transportRoute = availableTransportRoutes.sort((a, b) => a.pricePerPallet - b.pricePerPallet)[0]
             } else {
-              console.log(`❌ No realistic transport found for ${supplier.name} - no routes from their hubs (${supplierHubIds.join(', ')}) to customer hubs`)
+              console.log(`❌ No transport options found for ${supplier.name}`)
             }
           } else {
             console.log(`⚠️ ${supplier.name} has no hub logistics configured - cannot determine realistic transport`)
@@ -643,7 +834,14 @@ async function generateTradePotentialMatrix(): Promise<TradePotential[]> {
           pricePerUnit: (transportRoute as any).pricePerUnit || 0,
           unitsPerPallet: (transportRoute as any).unitsPerPallet || 0,
           customsCostPerShipment: (transportRoute as any).customsCostPerShipment || 0,
-          availableBands: (transportRoute as any).availableBands || []
+          availableBands: (transportRoute as any).availableBands || [],
+          // Multi-leg route fields (if present)
+          legs: (transportRoute as any).legs,
+          totalLegs: (transportRoute as any).totalLegs,
+          totalCostPerPallet: (transportRoute as any).totalCostPerPallet,
+          totalCostPerUnit: (transportRoute as any).totalCostPerUnit,
+          totalDurationDays: (transportRoute as any).totalDurationDays,
+          intermediateHubs: (transportRoute as any).intermediateHubs
         } : undefined,
         availableTransportRoutes: availableTransportRoutes.length > 0 ? availableTransportRoutes : undefined,
         priceGap: !hasPrice,
