@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -13,12 +12,17 @@ import {
   DollarSign,
   Building2,
   Package,
-  Printer
+  Printer,
+  Store,
+  Eye,
+  BarChart3
 } from 'lucide-react'
+import { PSContainer, PSGrid, PSCard, PSCardHeader, PSPageHeader } from '@/components/layout'
 import { useOpportunitySummary, useOpportunitiesRealtime, useOpportunities } from '@/hooks/use-opportunities'
 import { useCurrentSupplierPrices, useSupplierPricesRealtime } from '@/hooks/use-supplier-prices'
 import { usePriceTrendsRealtime } from '@/hooks/use-price-trends'
 import { useCustomerRequests } from '@/hooks/use-customer-requests'
+import { useMarketOpportunitySummary, useMarketOpportunities } from '@/hooks/use-market-opportunities'
 import { SupplierPricesPanel } from './components/supplier-prices-panel'
 import { WeatherCropIntel } from './components/weather-crop-intel'
 import { ActiveOpportunitiesTerminal } from './components/active-opportunities-terminal'
@@ -32,6 +36,8 @@ export default function TradeOverviewTerminal() {
   const { data: opportunities } = useOpportunities('all', 'all', true)
   const { data: supplierPrices } = useCurrentSupplierPrices()
   const { data: activeRequests } = useCustomerRequests({ status: 'open' })
+  const { data: marketSummary } = useMarketOpportunitySummary()
+  const { data: marketOpportunities } = useMarketOpportunities('all', 'all', true, undefined)
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
 
@@ -66,6 +72,24 @@ export default function TradeOverviewTerminal() {
     }
   }, [supplierPrices])
 
+  // Calculate market opportunity stats
+  const marketStats = useMemo(() => {
+    if (!marketOpportunities || marketOpportunities.length === 0) {
+      return { uniqueHubs: 0, totalMarketOpportunities: 0 }
+    }
+
+    const uniqueHubIds = new Set(
+      marketOpportunities
+        .filter(opp => opp.hub_id)
+        .map(opp => opp.hub_id)
+    )
+
+    return {
+      uniqueHubs: uniqueHubIds.size,
+      totalMarketOpportunities: marketOpportunities.length
+    }
+  }, [marketOpportunities])
+
   // Enable realtime subscriptions
   useSupplierPricesRealtime()
   useOpportunitiesRealtime()
@@ -81,157 +105,153 @@ export default function TradeOverviewTerminal() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-terminal-dark px-2 py-4 space-y-4">
-      {/* Growing Regions Weather Ticker */}
-      <div className="bg-terminal-panel border border-terminal-border rounded overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-2">
+    <PSContainer>
+      {/* Weather Ticker */}
+      <PSCard className="mb-2 lg:mb-3 py-1.5 lg:py-2">
+        <div className="flex items-center">
           <div className="overflow-hidden flex-1">
             <WeatherTicker />
           </div>
         </div>
-      </div>
+      </PSCard>
 
-      {/* Terminal Header */}
-      <div className="flex items-center justify-between border-b border-terminal-border pb-4">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-mono font-bold text-terminal-text tracking-wider">
-            TRADE OVERVIEW TERMINAL
-          </h1>
-          <Badge className="bg-terminal-success text-terminal-dark font-mono">
+      {/* Page Header */}
+      <div className="flex items-center justify-between mb-3 lg:mb-4 pb-2 lg:pb-3 border-b border-terminal-border">
+        <div className="flex items-center gap-2 lg:gap-3">
+          <BarChart3 className="h-6 w-6 lg:h-7 lg:w-7 text-terminal-accent flex-shrink-0" />
+          <div className="min-w-0">
+            <h1 className="text-lg lg:text-xl font-semibold text-terminal-text tracking-tight font-mono">Trade Overview</h1>
+            <p className="text-xs lg:text-sm text-terminal-muted mt-0.5 hidden sm:block font-mono">Real-time view of your fresh produce operations</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 lg:gap-2 flex-shrink-0">
+          <Badge className="bg-terminal-accent text-terminal-dark text-[10px] lg:text-xs px-1.5 lg:px-2 py-0.5">
             LIVE
           </Badge>
-
-          {/* Quick Access Buttons */}
-          <div className="flex items-center gap-2 ml-4">
-            <Button
-              onClick={() => router.push('/trade/prices')}
-              variant="outline"
-              size="sm"
-              className="bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
-            >
-              <DollarSign className="h-4 w-4 mr-2" />
-              Input Prices
-            </Button>
-
-            <Button
-              onClick={() => router.push('/trade/requests')}
-              variant="outline"
-              size="sm"
-              className="bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
-            >
-              <Package className="h-4 w-4 mr-2" />
-              Customer Request
-            </Button>
-
-            <Button
-              onClick={() => router.push('/trade/potential')}
-              variant="outline"
-              size="sm"
-              className="bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
-            >
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Product Potential
-            </Button>
-
-            <Button
-              onClick={() => router.push('/trade/overview/print-report')}
-              size="sm"
-              className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark font-mono"
-            >
-              <Printer className="h-4 w-4 mr-2" />
-              Print Prices
-            </Button>
+          <div className="hidden sm:flex items-center gap-1 lg:gap-1.5 text-terminal-muted text-sm">
+            <Clock className="h-3 w-3 lg:h-3.5 lg:w-3.5" />
+            <span className="text-[10px] lg:text-xs font-mono">
+              {currentTime.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+              })}
+            </span>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-terminal-muted font-mono text-sm">
-            <Clock className="h-4 w-4" />
-            {currentTime.toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-              hour12: false
-            })}
-          </div>
-        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="flex flex-wrap items-center gap-1.5 lg:gap-2 mb-3 lg:mb-4">
+        <Button
+          onClick={() => router.push('/trade/prices')}
+          variant="outline"
+          size="sm"
+          className="h-7 lg:h-8 text-[11px] lg:text-xs px-2 lg:px-3 bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
+        >
+          <DollarSign className="h-3 w-3 lg:h-3.5 lg:w-3.5 mr-1 lg:mr-1.5" />
+          <span className="hidden sm:inline">Input </span>Prices
+        </Button>
+
+        <Button
+          onClick={() => router.push('/trade/requests')}
+          variant="outline"
+          size="sm"
+          className="h-7 lg:h-8 text-[11px] lg:text-xs px-2 lg:px-3 bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
+        >
+          <Package className="h-3 w-3 lg:h-3.5 lg:w-3.5 mr-1 lg:mr-1.5" />
+          <span className="hidden sm:inline">Customer </span>Request
+        </Button>
+
+        <Button
+          onClick={() => router.push('/trade/potential')}
+          variant="outline"
+          size="sm"
+          className="h-7 lg:h-8 text-[11px] lg:text-xs px-2 lg:px-3 bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono"
+        >
+          <TrendingUp className="h-3 w-3 lg:h-3.5 lg:w-3.5 mr-1 lg:mr-1.5" />
+          <span className="hidden sm:inline">Product </span>Potential
+        </Button>
+
+        <Button
+          onClick={() => router.push('/trade/overview/print-report')}
+          size="sm"
+          className="bg-terminal-accent hover:bg-terminal-accent/90 text-terminal-dark h-7 lg:h-8 text-[11px] lg:text-xs px-2 lg:px-3 font-mono"
+        >
+          <Printer className="h-3 w-3 lg:h-3.5 lg:w-3.5 mr-1 lg:mr-1.5" />
+          Print<span className="hidden sm:inline"> Prices</span>
+        </Button>
       </div>
 
       {/* Stats Bar */}
-      <div className="flex gap-4 items-stretch">
-        <Card className="bg-terminal-panel border-terminal-border w-64">
-          <CardContent className="p-4 h-full flex items-center">
-            <div className="flex items-center justify-between w-full">
-              <div>
-                <div className="text-terminal-muted text-xs font-mono mb-1">Active Customers</div>
-                <div className="text-3xl font-mono font-bold text-terminal-text">
-                  {opportunityStats.uniqueCustomers}
-                </div>
-                <div className="text-terminal-muted text-xs font-mono mt-1">
-                  {opportunityStats.totalOpportunities} opportunities
-                </div>
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3 mb-3 lg:mb-4 auto-rows-fr">
+        <PSCard className="min-w-0">
+          <div className="flex items-center justify-between gap-1.5">
+            <div className="flex-1 min-w-0">
+              <div className="text-terminal-muted text-[8px] lg:text-[9px] uppercase tracking-wide font-medium mb-0.5 font-mono">Active Customers</div>
+              <div className="text-lg lg:text-xl font-bold text-terminal-text leading-none font-mono">
+                {opportunityStats.uniqueCustomers}
               </div>
-              <Activity className="h-8 w-8 text-terminal-accent" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-terminal-panel border-terminal-border w-64">
-          <CardContent className="p-4 h-full flex items-center">
-            <div className="flex items-center justify-between w-full">
-              <div>
-                <div className="text-terminal-muted text-xs font-mono mb-1">Active Suppliers</div>
-                <div className="text-3xl font-mono font-bold text-terminal-success">
-                  {supplierStats.uniqueSuppliers}
-                </div>
-                <div className="text-terminal-muted text-xs font-mono mt-1">
-                  {supplierStats.totalPrices} prices
-                </div>
+              <div className="text-terminal-muted text-[9px] lg:text-[10px] mt-0.5 lg:mt-1 truncate font-mono">
+                {opportunityStats.totalOpportunities} opps
               </div>
-              <Building2 className="h-8 w-8 text-terminal-success" />
             </div>
-          </CardContent>
-        </Card>
+            <Activity className="h-5 w-5 lg:h-6 lg:w-6 text-terminal-accent flex-shrink-0" />
+          </div>
+        </PSCard>
 
-        <Card className="bg-terminal-panel border-terminal-border flex-1">
-          <CardContent className="p-4 h-full flex items-center">
-            <WeatherForecastCycle />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Remove remaining cards */}
-      <div className="hidden">
-        <Card className="bg-terminal-panel border-terminal-border">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-terminal-muted text-xs font-mono mb-1">URGENT</div>
-                <div className="text-3xl font-mono font-bold text-terminal-alert">
-                  {summary?.byPriority?.urgent || 0}
-                </div>
+        <PSCard className="min-w-0">
+          <div className="flex items-center justify-between gap-1.5">
+            <div className="flex-1 min-w-0">
+              <div className="text-terminal-muted text-[8px] lg:text-[9px] uppercase tracking-wide font-medium mb-0.5 font-mono">Active Suppliers</div>
+              <div className="text-lg lg:text-xl font-bold text-terminal-text leading-none font-mono">
+                {supplierStats.uniqueSuppliers}
               </div>
-              <AlertTriangle className="h-8 w-8 text-terminal-alert" />
+              <div className="text-terminal-muted text-[9px] lg:text-[10px] mt-0.5 lg:mt-1 truncate font-mono">
+                {supplierStats.totalPrices} prices
+              </div>
             </div>
-          </CardContent>
-        </Card>
+            <Building2 className="h-5 w-5 lg:h-6 lg:w-6 text-terminal-accent flex-shrink-0" />
+          </div>
+        </PSCard>
+
+        <PSCard className="min-w-0">
+          <div className="flex items-center justify-between gap-1.5">
+            <div className="flex-1 min-w-0">
+              <div className="text-terminal-muted text-[8px] lg:text-[9px] uppercase tracking-wide font-medium mb-0.5 font-mono">Active Hubs</div>
+              <div className="text-lg lg:text-xl font-bold text-terminal-text leading-none font-mono">
+                {marketStats.uniqueHubs}
+              </div>
+              <div className="text-terminal-muted text-[9px] lg:text-[10px] mt-0.5 lg:mt-1 truncate font-mono">
+                {marketStats.totalMarketOpportunities} opps
+              </div>
+            </div>
+            <Store className="h-5 w-5 lg:h-6 lg:w-6 text-terminal-accent flex-shrink-0" />
+          </div>
+        </PSCard>
+
+        <PSCard className="min-w-0 col-span-2 sm:col-span-2 lg:col-span-1">
+          <WeatherForecastCycle />
+        </PSCard>
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-3 xl:gap-4 auto-rows-fr">
         {/* Left Column - Supplier Prices */}
-        <div className="col-span-1 space-y-4">
+        <div className="min-w-0 space-y-2 lg:space-y-3">
           <SupplierPricesPanel />
         </div>
 
         {/* Middle Column - Active Opportunities */}
-        <div className="col-span-1">
+        <div className="min-w-0">
           <ActiveOpportunitiesTerminal
             onSupplierSelect={(supplierId) => setSelectedSupplier(supplierId)}
           />
         </div>
 
         {/* Right Column - Weather & Crop Intelligence + Product Images */}
-        <div className="col-span-1 space-y-4">
+        <div className="min-w-0 space-y-2 lg:space-y-3">
           <WeatherCropIntel
             supplierId={selectedSupplier}
             onSupplierChange={(id) => setSelectedSupplier(id)}
@@ -239,6 +259,6 @@ export default function TradeOverviewTerminal() {
           <ProductImagesCarousel />
         </div>
       </div>
-    </div>
+    </PSContainer>
   )
 }

@@ -6,28 +6,29 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* PSEurope Fresh & Professional Theme */
+    --background: 210 20% 98%;        /* #F8F9FA - Light gray background */
+    --foreground: 162 100% 12%;       /* #003B2E - Dark green text */
+    --card: 0 0% 100%;                /* White cards */
+    --card-foreground: 162 100% 12%;  /* #003B2E - Dark green text */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --popover-foreground: 162 100% 12%;
+    --primary: 162 100% 12%;          /* #003B2E - Dark green primary */
+    --primary-foreground: 0 0% 100%;  /* White text on primary */
+    --secondary: 30 20% 95%;          /* #F5F3EF - Beige secondary */
+    --secondary-foreground: 162 100% 12%;
+    --muted: 220 14% 96%;             /* Light gray muted */
+    --muted-foreground: 220 9% 46%;   /* Medium gray text */
+    --accent: 151 68% 32%;            /* #1E8550 - Accent green */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;            /* Light gray borders */
+    --input: 220 13% 91%;
+    --ring: 151 68% 32%;              /* Accent green focus ring */
+    --radius: 0.75rem;
 
-    /* Bloomberg Terminal Colors */
+    /* Keep terminal colors for backward compatibility where needed */
     --terminal-dark: 221 39% 11%;
     --terminal-panel: 222 47% 16%;
     --terminal-border: 223 32% 24%;
@@ -67,7 +68,49 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+/* PSEurope Typography System */
+@layer utilities {
+  .text-page-title {
+    @apply text-lg lg:text-xl font-semibold text-pseurope-green-dark tracking-tight leading-tight;
+  }
+
+  .text-section-title {
+    @apply text-sm lg:text-base font-semibold text-pseurope-green-dark mb-1.5 leading-tight;
+  }
+
+  .text-card-title {
+    @apply text-sm font-semibold text-pseurope-green-dark leading-tight;
+  }
+
+  .text-body {
+    @apply text-sm text-pseurope-gray-700 leading-normal;
+  }
+
+  .text-metadata {
+    @apply text-xs text-pseurope-gray-500 leading-normal;
+  }
+}
+
+/* PSEurope Card Component */
+@layer components {
+  .ps-card {
+    @apply bg-terminal-panel rounded-lg shadow-sm border border-terminal-border p-3 lg:p-4 transition-all duration-200 h-full;
+  }
+
+  .ps-card-hover {
+    @apply hover:shadow-md hover:border-terminal-accent/40;
+  }
+
+  .ps-container {
+    @apply w-full max-w-screen-2xl mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4;
+  }
+
+  .ps-grid {
+    @apply grid grid-cols-12 gap-3 lg:gap-4 xl:gap-6 auto-rows-fr;
   }
 }
 

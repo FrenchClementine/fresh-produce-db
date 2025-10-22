@@ -10,8 +10,8 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Trade Terminal - Produce Services Europe',
-  description: 'Bloomberg-style trading terminal for fresh produce operations',
+  title: 'PSEurope - Fresh Produce Services Platform',
+  description: 'Professional trading platform for fresh produce operations across Europe',
 }
 
 export default function RootLayout({
@@ -21,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} ${jetbrainsMono.variable} bg-terminal-dark text-terminal-text`}>
+      <body className={`${inter.className} ${jetbrainsMono.variable} bg-background text-foreground`}>
         <RootProviders>{children}</RootProviders>
       </body>
     </html>

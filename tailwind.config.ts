@@ -14,10 +14,13 @@ const config: Config = {
       center: true,
       padding: "2rem",
       screens: {
-        "2xl": "1400px",
+        "2xl": "1920px",
       },
     },
     extend: {
+      maxWidth: {
+        '8xl': '1920px',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -52,6 +55,28 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // PSEurope Brand Colors
+        pseurope: {
+          green: {
+            dark: '#003B2E',    // Primary dark green
+            DEFAULT: '#1E8550', // Accent green
+            light: '#4CAF76',   // Light green for hover states
+          },
+          beige: {
+            light: '#F5F3EF',   // Secondary beige
+            DEFAULT: '#E8E5DD',
+          },
+          gray: {
+            50: '#F8F9FA',      // Background
+            100: '#F3F4F6',
+            200: '#E5E7EB',
+            300: '#D1D5DB',
+            500: '#6B7280',
+            700: '#374151',
+            900: '#111827',
+          }
+        },
+        // Keep terminal colors for backward compatibility
         terminal: {
           dark: "hsl(var(--terminal-dark))",
           panel: "hsl(var(--terminal-panel))",
@@ -68,6 +93,8 @@ const config: Config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        '2xl': '1rem',
+        '3xl': '1.5rem',
       },
       keyframes: {
         "accordion-down": {

@@ -145,47 +145,37 @@ export function WeatherForecastCycle() {
 
   return (
     <div
-      className="transition-opacity duration-300 flex items-center gap-4 w-full"
+      className="transition-opacity duration-300 flex items-center gap-1.5 w-full overflow-hidden"
       style={{ opacity: fadeIn ? 1 : 0 }}
     >
-      {/* Section Title */}
-      <div className="text-terminal-text text-sm font-mono font-bold whitespace-nowrap">
-        REGIONAL WEATHER FORECAST
-      </div>
-
       {/* Location and Forecast Label */}
-      <div className="flex flex-col gap-1">
-        <span className="text-terminal-text font-mono font-bold text-sm whitespace-nowrap">
+      <div className="flex flex-col gap-0 flex-shrink-0">
+        <span className="text-terminal-text font-mono font-bold text-[10px] whitespace-nowrap leading-tight">
           {current.city.toUpperCase()} ({current.country})
         </span>
-        <span className="text-terminal-muted font-mono text-xs whitespace-nowrap">
+        <span className="text-terminal-muted font-mono text-[8px] whitespace-nowrap leading-tight">
           {current.daysCount}-DAY FORECAST
         </span>
       </div>
 
       {/* Forecast Row */}
-      <div className="flex gap-3 flex-1 justify-center">
+      <div className="flex gap-1.5 flex-1 justify-end">
         {current.forecast.map((day, i) => (
           <div key={i} className="flex flex-col items-center">
-            <div className="text-terminal-muted font-mono text-[10px] mb-1">
+            <div className="text-terminal-muted font-mono text-[7px] leading-tight">
               {day.date}
             </div>
-            <div className="text-lg mb-1">
+            <div className="text-sm leading-tight">
               {day.icon}
             </div>
-            <div className="text-terminal-text font-mono text-sm font-bold">
+            <div className="text-terminal-text font-mono text-[10px] font-bold leading-tight">
               {Math.round(day.temp_max)}°
             </div>
-            <div className="text-terminal-muted font-mono text-xs">
+            <div className="text-terminal-muted font-mono text-[8px] leading-tight">
               {Math.round(day.temp_min)}°
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Description */}
-      <div className="text-terminal-muted font-mono text-xs whitespace-nowrap">
-        {current.description}
       </div>
     </div>
   )

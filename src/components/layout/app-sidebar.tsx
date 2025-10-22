@@ -25,7 +25,10 @@ import {
   Calendar,
   PanelLeft,
   User,
-  LogOut
+  LogOut,
+  Heart,
+  Store,
+  Eye
 } from 'lucide-react'
 import { UserMenu } from '@/components/auth/user-menu'
 
@@ -94,6 +97,21 @@ const navigationItems: NavItem[] = [
         href: '/trade/potential',
         label: 'Trade Potential',
         icon: Network,
+      },
+      {
+        href: '/trade/hub-preferences',
+        label: 'Hub Preferences',
+        icon: Heart,
+      },
+      {
+        href: '/trade/market-potential',
+        label: 'Market Potential',
+        icon: Store,
+      },
+      {
+        href: '/trade/market-opportunity',
+        label: 'Market Opportunities',
+        icon: Eye,
       },
     ],
   },
@@ -207,7 +225,7 @@ function NavItemComponent({ item, collapsed, level = 0 }: { item: NavItem; colla
 export function AppSidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <div className={cn(
-      'flex flex-col h-screen bg-terminal-panel border-r border-terminal-border transition-all duration-300 print:hidden',
+      'flex flex-col h-screen bg-terminal-panel border-r border-terminal-border transition-all duration-300 print:hidden flex-shrink-0',
       collapsed ? 'w-16' : 'w-64'
     )}>
       {/* Header */}

@@ -55,7 +55,7 @@ GET https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={A
 2. Fetch supplier coordinates from database
 3. Call OpenWeatherMap API
 4. Cache results (1 hour TTL to save API calls)
-5. Return formatted weather data
+5. Return formatted weather datat
 
 ### Phase 3: Enhanced Features
 - Historical data aggregation

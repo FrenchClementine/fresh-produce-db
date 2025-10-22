@@ -17,11 +17,14 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
 
   return (
     <div className="flex h-screen bg-terminal-dark">
+      {/* Sidebar pushes content */}
       <AppSidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
-      <main className="flex-1 overflow-auto relative bg-terminal-dark print:w-full px-[15%] print:px-0">
+
+      {/* Main content starts after sidebar */}
+      <main className="flex-1 h-screen overflow-auto bg-terminal-dark print:w-full">
         {children}
       </main>
     </div>
