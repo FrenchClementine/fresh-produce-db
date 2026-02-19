@@ -13,8 +13,6 @@ import {
   Building2,
   Package,
   Printer,
-  Store,
-  Eye,
   BarChart3
 } from 'lucide-react'
 import { PSContainer, PSGrid, PSCard, PSCardHeader, PSPageHeader } from '@/components/layout'
@@ -22,7 +20,6 @@ import { useOpportunitySummary, useOpportunitiesRealtime, useOpportunities } fro
 import { useCurrentSupplierPrices, useSupplierPricesRealtime } from '@/hooks/use-supplier-prices'
 import { usePriceTrendsRealtime } from '@/hooks/use-price-trends'
 import { useCustomerRequests } from '@/hooks/use-customer-requests'
-import { useMarketOpportunitySummary, useMarketOpportunities } from '@/hooks/use-market-opportunities'
 import { SupplierPricesPanel } from './components/supplier-prices-panel'
 import { WeatherCropIntel } from './components/weather-crop-intel'
 import { ActiveOpportunitiesTerminal } from './components/active-opportunities-terminal'
@@ -36,8 +33,6 @@ export default function TradeOverviewTerminal() {
   const { data: opportunities } = useOpportunities('all', 'all', true)
   const { data: supplierPrices } = useCurrentSupplierPrices()
   const { data: activeRequests } = useCustomerRequests({ status: 'open' })
-  const { data: marketSummary } = useMarketOpportunitySummary()
-  const { data: marketOpportunities } = useMarketOpportunities('all', 'all', true, undefined)
   const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
 
@@ -71,24 +66,6 @@ export default function TradeOverviewTerminal() {
       totalPrices: supplierPrices.length
     }
   }, [supplierPrices])
-
-  // Calculate market opportunity stats
-  const marketStats = useMemo(() => {
-    if (!marketOpportunities || marketOpportunities.length === 0) {
-      return { uniqueHubs: 0, totalMarketOpportunities: 0 }
-    }
-
-    const uniqueHubIds = new Set(
-      marketOpportunities
-        .filter(opp => opp.hub_id)
-        .map(opp => opp.hub_id)
-    )
-
-    return {
-      uniqueHubs: uniqueHubIds.size,
-      totalMarketOpportunities: marketOpportunities.length
-    }
-  }, [marketOpportunities])
 
   // Enable realtime subscriptions
   useSupplierPricesRealtime()
@@ -185,7 +162,7 @@ export default function TradeOverviewTerminal() {
       </div>
 
       {/* Stats Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3 mb-3 lg:mb-4 auto-rows-fr">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-3 mb-3 lg:mb-4 auto-rows-fr">
         <PSCard className="min-w-0">
           <div className="flex items-center justify-between gap-1.5">
             <div className="flex-1 min-w-0">
@@ -213,21 +190,6 @@ export default function TradeOverviewTerminal() {
               </div>
             </div>
             <Building2 className="h-5 w-5 lg:h-6 lg:w-6 text-terminal-accent flex-shrink-0" />
-          </div>
-        </PSCard>
-
-        <PSCard className="min-w-0">
-          <div className="flex items-center justify-between gap-1.5">
-            <div className="flex-1 min-w-0">
-              <div className="text-terminal-muted text-[8px] lg:text-[9px] uppercase tracking-wide font-medium mb-0.5 font-mono">Active Hubs</div>
-              <div className="text-lg lg:text-xl font-bold text-terminal-text leading-none font-mono">
-                {marketStats.uniqueHubs}
-              </div>
-              <div className="text-terminal-muted text-[9px] lg:text-[10px] mt-0.5 lg:mt-1 truncate font-mono">
-                {marketStats.totalMarketOpportunities} opps
-              </div>
-            </div>
-            <Store className="h-5 w-5 lg:h-6 lg:w-6 text-terminal-accent flex-shrink-0" />
           </div>
         </PSCard>
 

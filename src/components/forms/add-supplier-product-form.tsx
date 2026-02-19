@@ -43,6 +43,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from '@/components/ui/command'
 import { Check, ChevronsUpDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -163,17 +164,19 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
   const filteredSpecs = productSpecs?.filter(spec => {
     if (!productSearchQuery || productSearchQuery.length === 0) return false
 
-    const searchTerm = productSearchQuery.toLowerCase()
+    // Split search into multiple terms for smart matching (e.g., "spinach crate" searches for both)
+    const searchTerms = productSearchQuery.toLowerCase().trim().split(/\s+/)
     const productName = spec.products?.name?.toLowerCase() || ''
     const packagingName = spec.packaging_options?.label?.toLowerCase() || ''
     const sizeName = spec.size_options?.name?.toLowerCase() || ''
     const palletName = spec.pallets?.label?.toLowerCase() || ''
 
-    return (
-      productName.includes(searchTerm) ||
-      packagingName.includes(searchTerm) ||
-      sizeName.includes(searchTerm) ||
-      palletName.includes(searchTerm)
+    // Combine all searchable text
+    const combinedText = `${productName} ${packagingName} ${sizeName} ${palletName}`
+
+    // All search terms must match somewhere in the combined text
+    return searchTerms.every(term =>
+      combinedText.includes(term)
     )
   }) || []
 
@@ -346,23 +349,24 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-[520px] h-[500px] p-0 bg-terminal-panel border-terminal-border">
-                      <Command className="bg-terminal-panel h-full flex flex-col">
+                      <Command className="bg-terminal-panel h-full">
                         <CommandInput
-                          placeholder="Type to search products..."
+                          placeholder="Type to search (e.g. 'spinach crate' or 'iceberg box')..."
                           value={productSearchQuery}
                           onValueChange={setProductSearchQuery}
-                          className="font-mono text-terminal-text shrink-0"
+                          className="font-mono text-terminal-text"
                         />
-                        <CommandEmpty className="text-terminal-muted font-mono p-4">
-                          {isLoadingSpecs
-                            ? 'Loading product specifications...'
-                            : productSearchQuery.length === 0
-                              ? 'Type at least one character to search...'
-                              : 'No product specifications found.'}
-                        </CommandEmpty>
-                        {filteredSpecs.length > 0 && (
-                          <CommandGroup className="overflow-y-auto overflow-x-hidden flex-1">
-                            {filteredSpecs.map((spec) => {
+                        <CommandList className="max-h-[430px] overflow-y-auto">
+                          <CommandEmpty className="text-terminal-muted font-mono p-4">
+                            {isLoadingSpecs
+                              ? 'Loading product specifications...'
+                              : productSearchQuery.length === 0
+                                ? 'Type at least one character to search...'
+                                : 'No product specifications found.'}
+                          </CommandEmpty>
+                          {filteredSpecs.length > 0 && (
+                            <CommandGroup>
+                              {filteredSpecs.map((spec) => {
                               const isAlreadyLinked = alreadyLinkedSpecIds.has(spec.id)
                               const isSelected = field.value?.includes(spec.id)
 
@@ -408,9 +412,10 @@ export function AddSupplierProductForm({ open, onOpenChange, supplierId }: AddSu
                                   </div>
                                 </CommandItem>
                               )
-                            })}
-                          </CommandGroup>
-                        )}
+                              })}
+                            </CommandGroup>
+                          )}
+                        </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>

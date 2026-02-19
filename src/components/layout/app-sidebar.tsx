@@ -27,8 +27,7 @@ import {
   User,
   LogOut,
   Heart,
-  Store,
-  Eye
+  BookOpen
 } from 'lucide-react'
 import { UserMenu } from '@/components/auth/user-menu'
 
@@ -103,16 +102,6 @@ const navigationItems: NavItem[] = [
         label: 'Hub Preferences',
         icon: Heart,
       },
-      {
-        href: '/trade/market-potential',
-        label: 'Market Potential',
-        icon: Store,
-      },
-      {
-        href: '/trade/market-opportunity',
-        label: 'Market Opportunities',
-        icon: Eye,
-      },
     ],
   },
   {
@@ -141,6 +130,12 @@ const navigationItems: NavItem[] = [
     href: '/transporters',
     label: 'Transport',
     icon: Truck,
+  },
+  {
+    href: '/knowledge-base',
+    label: 'Knowledge Base',
+    icon: BookOpen,
+    description: 'Search WhatsApp conversations',
   },
   {
     href: '/settings',

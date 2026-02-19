@@ -146,22 +146,14 @@ export default function TradePotentialTableMode({
     )
   }, [suppliers, supplierSearchQuery])
 
-  // Filter transport bands to match product's pallet dimensions
+  // Get all transport bands - allow manual selection regardless of pallet dimensions
   const getFilteredBands = (potential: TradePotential) => {
     const bands = potential.transportRoute?.availableBands
     if (!bands || bands.length === 0) return []
 
-    const productPalletDimensions = potential.product.palletDimensions
-    if (!productPalletDimensions) return bands
-
-    // Filter bands that match the product's pallet dimensions
-    return bands.filter(band => {
-      // If band has no pallet_dimensions, include it (backwards compatibility)
-      if (!band.pallet_dimensions) return true
-
-      // Match the pallet dimensions
-      return band.pallet_dimensions === productPalletDimensions
-    })
+    // Return ALL bands - let the user choose the appropriate one
+    // Previously this filtered by pallet dimensions, which prevented selection when dimensions didn't match
+    return bands
   }
 
   // Get transport cost per unit for a selected band and transporter
@@ -1378,6 +1370,8 @@ export default function TradePotentialTableMode({
                                       {filteredBands.map((band, index) => (
                                         <SelectItem key={index} value={index.toString()} className="font-mono text-terminal-text text-xs">
                                           {band.min_pallets}-{band.max_pallets}p
+                                          {band.pallet_dimensions && ` (${band.pallet_dimensions})`}
+                                          {band.price_per_pallet && ` - ${formatCurrency(band.price_per_pallet)}/pallet`}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
@@ -1385,6 +1379,8 @@ export default function TradePotentialTableMode({
                                 ) : (
                                   <div className="text-[10px] text-terminal-muted mt-1">
                                     {filteredBands[pricing.selectedBandIndex]?.min_pallets}-{filteredBands[pricing.selectedBandIndex]?.max_pallets}p
+                                    {filteredBands[pricing.selectedBandIndex]?.pallet_dimensions &&
+                                      ` (${filteredBands[pricing.selectedBandIndex].pallet_dimensions})`}
                                   </div>
                                 )}
                               </>

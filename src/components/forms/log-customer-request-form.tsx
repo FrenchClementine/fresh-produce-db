@@ -26,6 +26,21 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { Check, ChevronsUpDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
@@ -66,6 +81,11 @@ interface LogCustomerRequestFormProps {
 }
 
 export function LogCustomerRequestForm({ open, onOpenChange }: LogCustomerRequestFormProps) {
+  const [productSearchOpen, setProductSearchOpen] = useState(false)
+  const [productSearchQuery, setProductSearchQuery] = useState('')
+  const [packagingSearchOpen, setPackagingSearchOpen] = useState(false)
+  const [packagingSearchQuery, setPackagingSearchQuery] = useState('')
+
   const { customers } = useCustomers()
   const { products } = useProducts()
   const { packagingOptions } = usePackagingOptions()
@@ -82,6 +102,22 @@ export function LogCustomerRequestForm({ open, onOpenChange }: LogCustomerReques
       quantity_unit: 'units'
     }
   })
+
+  // Filter products with smart search
+  const filteredProducts = products?.filter(product => {
+    if (!productSearchQuery || productSearchQuery.length === 0) return true
+    const searchTerms = productSearchQuery.toLowerCase().trim().split(/\s+/)
+    const productName = product.name?.toLowerCase() || ''
+    return searchTerms.every(term => productName.includes(term))
+  }) || []
+
+  // Filter packaging with smart search
+  const filteredPackaging = packagingOptions?.filter(pkg => {
+    if (!packagingSearchQuery || packagingSearchQuery.length === 0) return true
+    const searchTerms = packagingSearchQuery.toLowerCase().trim().split(/\s+/)
+    const pkgLabel = pkg.label?.toLowerCase() || ''
+    return searchTerms.every(term => pkgLabel.includes(term))
+  }) || []
 
   const onSubmit = async (data: FormData) => {
     if (!currentStaff?.id) {
@@ -160,20 +196,63 @@ export function LogCustomerRequestForm({ open, onOpenChange }: LogCustomerReques
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-terminal-text font-mono">Product *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="bg-terminal-dark border-terminal-border text-terminal-text">
-                          <SelectValue placeholder="Select product" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {products?.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={productSearchOpen}
+                            className={cn(
+                              "w-full justify-between bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono",
+                              !field.value && "text-terminal-muted"
+                            )}
+                          >
+                            {field.value
+                              ? products?.find((p) => p.id === field.value)?.name
+                              : "Select product..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0 bg-terminal-panel border-terminal-border" align="start">
+                        <Command className="bg-terminal-panel">
+                          <CommandInput
+                            placeholder="Search products..."
+                            value={productSearchQuery}
+                            onValueChange={setProductSearchQuery}
+                            className="font-mono text-terminal-text"
+                          />
+                          <CommandList className="max-h-[300px] overflow-y-auto">
+                            <CommandEmpty className="text-terminal-muted font-mono p-4">
+                              No products found.
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {filteredProducts.map((product) => (
+                                <CommandItem
+                                  key={product.id}
+                                  value={product.name}
+                                  onSelect={() => {
+                                    field.onChange(product.id)
+                                    setProductSearchOpen(false)
+                                    setProductSearchQuery('')
+                                  }}
+                                  className="font-mono text-terminal-text hover:bg-terminal-dark cursor-pointer"
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4 text-terminal-accent",
+                                      field.value === product.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {product.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -206,20 +285,63 @@ export function LogCustomerRequestForm({ open, onOpenChange }: LogCustomerReques
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-terminal-text font-mono">Packaging Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="bg-terminal-dark border-terminal-border text-terminal-text">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {packagingOptions?.map((type) => (
-                          <SelectItem key={type.id} value={type.id}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={packagingSearchOpen} onOpenChange={setPackagingSearchOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={packagingSearchOpen}
+                            className={cn(
+                              "w-full justify-between bg-terminal-dark border-terminal-border text-terminal-text hover:bg-terminal-panel hover:border-terminal-accent font-mono",
+                              !field.value && "text-terminal-muted"
+                            )}
+                          >
+                            {field.value
+                              ? packagingOptions?.find((p) => p.id === field.value)?.label
+                              : "Select type..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0 bg-terminal-panel border-terminal-border" align="start">
+                        <Command className="bg-terminal-panel">
+                          <CommandInput
+                            placeholder="Search packaging (e.g. crate, box)..."
+                            value={packagingSearchQuery}
+                            onValueChange={setPackagingSearchQuery}
+                            className="font-mono text-terminal-text"
+                          />
+                          <CommandList className="max-h-[250px] overflow-y-auto">
+                            <CommandEmpty className="text-terminal-muted font-mono p-4">
+                              No packaging types found.
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {filteredPackaging.map((pkg) => (
+                                <CommandItem
+                                  key={pkg.id}
+                                  value={pkg.label}
+                                  onSelect={() => {
+                                    field.onChange(pkg.id)
+                                    setPackagingSearchOpen(false)
+                                    setPackagingSearchQuery('')
+                                  }}
+                                  className="font-mono text-terminal-text hover:bg-terminal-dark cursor-pointer"
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4 text-terminal-accent",
+                                      field.value === pkg.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {pkg.label}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}

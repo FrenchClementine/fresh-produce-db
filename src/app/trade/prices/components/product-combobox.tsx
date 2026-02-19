@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Check, ChevronsUpDown, Package } from 'lucide-react'
+import { Check, ChevronsUpDown, Package, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,6 +23,7 @@ interface ProductComboboxProps {
   onChange: (value: string) => void
   hasError?: boolean
   placeholder?: string
+  onProductCreated?: () => void
 }
 
 export function ProductCombobox({
@@ -30,9 +31,12 @@ export function ProductCombobox({
   value,
   onChange,
   hasError = false,
-  placeholder = 'Select product...'
+  placeholder = 'Select product...',
+  onProductCreated
 }: ProductComboboxProps) {
   const [open, setOpen] = React.useState(false)
+  const [showQuickAdd, setShowQuickAdd] = React.useState(false)
+  const [searchQuery, setSearchQuery] = React.useState('')
 
   const getProductLabel = (productId: string) => {
     const product = products.find(p => p.id === productId)

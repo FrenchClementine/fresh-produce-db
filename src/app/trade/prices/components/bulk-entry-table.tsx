@@ -155,7 +155,7 @@ export function BulkEntryTable({
               <TableRow className="border-terminal-border hover:bg-terminal-dark">
                 <TableHead className="w-[40px] font-mono text-terminal-muted">#</TableHead>
                 <TableHead className="min-w-[250px] font-mono text-terminal-muted">Product *</TableHead>
-                <TableHead className="w-[120px] font-mono text-terminal-muted">Price *</TableHead>
+                <TableHead className="w-[140px] font-mono text-terminal-muted">Price *</TableHead>
                 <TableHead className="w-[100px] font-mono text-terminal-muted">Units/Pallet</TableHead>
                 <TableHead className="w-[150px] font-mono text-terminal-muted">Hub</TableHead>
                 <TableHead className="w-[130px] font-mono text-terminal-muted">Delivery Mode</TableHead>
@@ -213,12 +213,12 @@ export function BulkEntryTable({
                     <TableCell>
                       <div className="space-y-1">
                         <div className="relative">
-                          <Euro className="absolute left-2 top-2.5 h-4 w-4 text-terminal-muted" />
+                          <Euro className="absolute left-3 top-3.5 h-5 w-5 text-terminal-accent" />
                           <Input
                             type="number"
                             step="0.01"
                             placeholder="0.00"
-                            className={`pl-8 bg-terminal-dark text-terminal-text font-mono ${entry.errors.price ? 'border-terminal-alert' : 'border-terminal-border'}`}
+                            className={`pl-10 h-12 text-lg bg-terminal-dark text-terminal-text font-mono font-semibold ${entry.errors.price ? 'border-terminal-alert border-2' : 'border-terminal-border border-2'} focus:border-terminal-accent focus:ring-2 focus:ring-terminal-accent/20`}
                             value={entry.price_per_unit}
                             onChange={(e) => onUpdateEntry(entry.id, 'price_per_unit', e.target.value)}
                           />
@@ -234,7 +234,7 @@ export function BulkEntryTable({
                       <Input
                         type="number"
                         placeholder="Auto"
-                        className="text-sm bg-terminal-dark border-terminal-border text-terminal-text font-mono"
+                        className="h-12 text-sm bg-terminal-dark border-terminal-border border-2 text-terminal-text font-mono"
                         value={entry.units_per_pallet}
                         onChange={(e) => onUpdateEntry(entry.id, 'units_per_pallet', e.target.value)}
                       />
@@ -246,7 +246,7 @@ export function BulkEntryTable({
                         value={entry.hub_id || 'default'}
                         onValueChange={(value) => onUpdateEntry(entry.id, 'hub_id', value === 'default' ? '' : value)}
                       >
-                        <SelectTrigger className="text-sm bg-terminal-dark border-terminal-border text-terminal-text font-mono">
+                        <SelectTrigger className="h-12 text-sm bg-terminal-dark border-terminal-border border-2 text-terminal-text font-mono">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-terminal-panel border-terminal-border">
@@ -268,7 +268,7 @@ export function BulkEntryTable({
                         value={entry.delivery_mode || 'default'}
                         onValueChange={(value) => onUpdateEntry(entry.id, 'delivery_mode', value === 'default' ? '' : value)}
                       >
-                        <SelectTrigger className="text-sm bg-terminal-dark border-terminal-border text-terminal-text font-mono">
+                        <SelectTrigger className="h-12 text-sm bg-terminal-dark border-terminal-border border-2 text-terminal-text font-mono">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-terminal-panel border-terminal-border">
@@ -302,7 +302,7 @@ export function BulkEntryTable({
                           }
                         }}
                       >
-                        <SelectTrigger className="text-sm bg-terminal-dark border-terminal-border text-terminal-text font-mono">
+                        <SelectTrigger className="h-12 text-sm bg-terminal-dark border-terminal-border border-2 text-terminal-text font-mono">
                           <SelectValue placeholder="Default" />
                         </SelectTrigger>
                         <SelectContent className="bg-terminal-panel border-terminal-border">
