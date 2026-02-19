@@ -1,12 +1,13 @@
 'use client'
 
 import * as React from 'react'
-import { Search, Loader2, ChevronDown, ChevronUp, MessageSquare, Clock, Filter, Sparkles, X, Upload, Image, Video, Music, FileIcon, Network, Bot, Mail } from 'lucide-react'
+import { Search, Loader2, ChevronDown, ChevronUp, MessageSquare, Clock, Filter, Sparkles, X, Upload, Image, Video, Music, FileIcon, Network, Bot, Mail, Hash } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import { getEmailPreview } from './email-utils'
 
 // Lazy-load graph (uses ResizeObserver + SVG, fine in browser but skip SSR)
 const KnowledgeGraph = dynamic(() => import('./KnowledgeGraph'), { ssr: false, loading: () => (
@@ -16,6 +17,7 @@ const KnowledgeGraph = dynamic(() => import('./KnowledgeGraph'), { ssr: false, l
 ) })
 
 const KnowledgeChat = dynamic(() => import('./KnowledgeChat'), { ssr: false })
+const OrderSearch = dynamic(() => import('./OrderSearch'), { ssr: false })
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -242,9 +244,14 @@ function isEmail(body: string) {
   return body.startsWith('Subject:')
 }
 
+
 function ResultCard({ result, query }: { result: SearchResult; query: string }) {
   const [showThread, setShowThread] = React.useState(false)
+  const [showFullEmail, setShowFullEmail] = React.useState(false)
+  const [pdfOpen, setPdfOpen] = React.useState(false)
   const email = isEmail(result.body)
+  const emailData = React.useMemo(() => email ? getEmailPreview(result.body) : null, [email, result.body])
+  const mediaUrl = result.media_url || getInlineMediaUrl(result.body, result.group_name)
 
   return (
     <div className={cn(
@@ -266,21 +273,18 @@ function ResultCard({ result, query }: { result: SearchResult; query: string }) 
             {result.group_name}
           </span>
           <span className="text-terminal-border">·</span>
-          <span className="text-xs font-mono text-terminal-text">
-            {result.sender_name}
-          </span>
+          <span className="text-xs font-mono text-terminal-text">{result.sender_name}</span>
           <span className="text-terminal-border">·</span>
           <span className="text-xs font-mono text-terminal-muted flex items-center gap-1">
             <Clock className="h-3 w-3" />
             {formatDate(result.timestamp)}
           </span>
-          {result.has_media && result.media_type && (
+          {!email && result.has_media && result.media_type && (
             <span className="flex items-center gap-1 text-[10px] font-mono text-terminal-muted/70 bg-terminal-dark px-1.5 py-0.5 rounded border border-terminal-border">
               {result.media_type === 'image'    && <Image    className="h-3 w-3 text-blue-400"   />}
               {result.media_type === 'video'    && <Video    className="h-3 w-3 text-purple-400" />}
               {result.media_type === 'audio'    && <Music    className="h-3 w-3 text-green-400"  />}
               {result.media_type === 'document' && <FileIcon className="h-3 w-3 text-orange-400" />}
-              {!['image','video','audio','document'].includes(result.media_type) && <FileIcon className="h-3 w-3" />}
               {result.media_type}
             </span>
           )}
@@ -293,15 +297,71 @@ function ResultCard({ result, query }: { result: SearchResult; query: string }) 
         </div>
       </div>
 
-      {/* Message body */}
-      <p className="text-sm font-mono text-terminal-text leading-relaxed whitespace-pre-wrap break-words">
-        {highlightQuery(result.body, query)}
-      </p>
-      {(result.media_url || getInlineMediaUrl(result.body, result.group_name)) && (
-        <MediaPreview url={(result.media_url || getInlineMediaUrl(result.body, result.group_name))!} />
+      {/* Email: compact preview */}
+      {email && emailData ? (
+        <div>
+          <p className="text-sm font-mono text-terminal-text leading-relaxed whitespace-pre-wrap break-words">
+            {highlightQuery((showFullEmail ? emailData.fullLines : emailData.previewLines).join('\n'), query)}
+          </p>
+          {emailData.fullLines.length > 6 && (
+            <button
+              onClick={() => setShowFullEmail(!showFullEmail)}
+              className="mt-1.5 flex items-center gap-1 text-xs font-mono text-sky-400/70 hover:text-sky-400 transition-colors"
+            >
+              {showFullEmail ? <><ChevronUp className="h-3 w-3" /> Show less</> : <><ChevronDown className="h-3 w-3" /> Show full email</>}
+            </button>
+          )}
+          {/* Attachment */}
+          {mediaUrl && (
+            <div className="mt-3">
+              {PDF_EXT.test(mediaUrl) ? (
+                <div>
+                  <button
+                    onClick={() => setPdfOpen(!pdfOpen)}
+                    className="inline-flex items-center gap-1.5 text-xs font-mono text-sky-400 hover:text-sky-300 bg-sky-400/10 border border-sky-400/20 px-2.5 py-1.5 rounded transition-colors"
+                  >
+                    <FileIcon className="h-3.5 w-3.5" />
+                    {decodeURIComponent(mediaUrl.split('/').pop() ?? 'attachment.pdf').replace(/_/g, ' ')}
+                    <span className="text-sky-400/60 ml-1">{pdfOpen ? '▲ hide' : '▼ open'}</span>
+                  </button>
+                  {pdfOpen && (
+                    <div className="mt-2">
+                      <iframe src={`${mediaUrl}#toolbar=1`} className="w-full h-[600px] rounded border border-sky-500/30 bg-white" title="PDF" />
+                      <a href={mediaUrl} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-mono text-sky-400 hover:underline">↗ Open in new tab</a>
+                    </div>
+                  )}
+                </div>
+              ) : IMAGE_EXTS.test(mediaUrl) ? (
+                <MediaPreview url={mediaUrl} />
+              ) : (
+                <a href={mediaUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-mono text-sky-400 hover:underline bg-sky-400/10 border border-sky-400/20 px-2.5 py-1.5 rounded">
+                  <FileIcon className="h-3.5 w-3.5" />
+                  {decodeURIComponent(mediaUrl.split('/').pop() ?? 'attachment').replace(/_/g, ' ')}
+                </a>
+              )}
+            </div>
+          )}
+          {/* Attachment names from body (no URL) */}
+          {!mediaUrl && emailData.attachmentNames.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {emailData.attachmentNames.map(name => (
+                <span key={name} className="inline-flex items-center gap-1.5 text-xs font-mono text-terminal-muted/50 bg-terminal-dark border border-terminal-border px-2 py-1 rounded">
+                  <FileIcon className="h-3 w-3" />{name}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          <p className="text-sm font-mono text-terminal-text leading-relaxed whitespace-pre-wrap break-words">
+            {highlightQuery(result.body, query)}
+          </p>
+          {mediaUrl && <MediaPreview url={mediaUrl} />}
+        </>
       )}
 
-      {/* Thread toggle — skip for emails (group_id='email' contains all emails, not useful for thread) */}
+      {/* Thread toggle — skip for emails */}
       {!email && (
         <div className="mt-3">
           <button
@@ -312,13 +372,8 @@ function ResultCard({ result, query }: { result: SearchResult; query: string }) 
             {showThread ? 'Hide' : 'Show'} context
             {showThread ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
           </button>
-
           {showThread && (
-            <ThreadContext
-              messageId={result.id}
-              query={query}
-              onClose={() => setShowThread(false)}
-            />
+            <ThreadContext messageId={result.id} query={query} onClose={() => setShowThread(false)} />
           )}
         </div>
       )}
@@ -328,12 +383,13 @@ function ResultCard({ result, query }: { result: SearchResult; query: string }) 
 
 // ── Tab definitions ────────────────────────────────────────────────────────────
 
-type Tab = 'search' | 'graph' | 'chat'
+type Tab = 'search' | 'graph' | 'chat' | 'orders'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'search', label: 'Search', icon: <Search className="h-3.5 w-3.5" /> },
-  { id: 'graph',  label: 'Graph',  icon: <Network className="h-3.5 w-3.5" /> },
-  { id: 'chat',   label: 'Ask AI', icon: <Bot className="h-3.5 w-3.5" /> },
+  { id: 'search', label: 'Search',  icon: <Search  className="h-3.5 w-3.5" /> },
+  { id: 'orders', label: 'Orders',  icon: <Hash    className="h-3.5 w-3.5" /> },
+  { id: 'graph',  label: 'Graph',   icon: <Network className="h-3.5 w-3.5" /> },
+  { id: 'chat',   label: 'Ask AI',  icon: <Bot     className="h-3.5 w-3.5" /> },
 ]
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
@@ -690,6 +746,11 @@ export default function KnowledgeBasePage() {
             )}
             <KnowledgeGraph query={query} results={results} />
           </div>
+        )}
+
+        {/* ── Orders Tab ── */}
+        {activeTab === 'orders' && (
+          <OrderSearch />
         )}
 
         {/* ── Chat Tab ── */}
