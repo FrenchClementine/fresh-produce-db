@@ -1,8 +1,8 @@
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 export interface ParsedIntent {
   intent: 'create_task' | 'list_tasks' | 'complete_task' | 'query_supplier' | 'query_transport' | 'help' | 'unknown';
@@ -74,7 +74,7 @@ export async function parseWithAI(
         conversationContext.map(m => `${m.role === 'user' ? 'User' : 'Bot'}: ${m.content}`).join('\n');
     }
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
@@ -115,7 +115,7 @@ export async function generateResponse(
   context?: string
 ): Promise<string> {
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
